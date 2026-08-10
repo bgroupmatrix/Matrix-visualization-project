@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Vision Matrix Pro - Web Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -18,22 +18,25 @@
     .shape-2 { animation: float-med 15s infinite ease-in-out; }
     .shape-3 { animation: float-fast 10s infinite ease-in-out; }
     
-    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #18181b; }
-    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
+    /* 🚀 웹 표준 및 크로스 브라우징 호환성을 고려한 화살표(스피너) 숨김 처리 */
     input[type="number"]::-webkit-outer-spin-button,
     input[type="number"]::-webkit-inner-spin-button {
         -webkit-appearance: none;
+        appearance: none; /* 표준 속성 추가 */
         margin: 0;
     }
     input[type="number"] {
         -moz-appearance: textfield;
+        appearance: textfield; /* 표준 속성 추가 */
     }
   </style>
 </head>
-<body class="bg-zinc-900 text-zinc-100 min-h-screen font-sans overflow-hidden">
+<body class="bg-zinc-900 text-zinc-100 min-h-screen font-sans overflow-hidden touch-none">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -155,20 +158,21 @@
           <div className="geom-shape shape-2 w-32 h-32 top-1/4 right-20"></div>
           <div className="geom-shape shape-3 rounded-full w-24 h-24 bottom-20 left-1/4"></div>
           <div className="geom-shape shape-1 w-64 h-64 border-t-0 border-r-0 rounded-bl-full -bottom-10 -right-10"></div>
+          
           <div className="relative z-10 flex flex-col items-center justify-center transform transition-all duration-700 hover:scale-105"
                style={{ transform: 'perspective(1000px) rotateX(10deg) rotateY(-10deg) rotateZ(2deg)' }}>
             <div className="flex items-center text-white">
-              <span className="text-[12rem] font-light leading-none opacity-80">(</span>
-              <div className="grid grid-cols-3 gap-x-12 gap-y-2 text-8xl font-black mx-4 bg-clip-text text-transparent bg-gradient-to-b from-white via-zinc-300 to-zinc-600">
+              <span className="text-[6rem] md:text-[12rem] font-light leading-none opacity-80">(</span>
+              <div className="grid grid-cols-3 gap-x-6 md:gap-x-12 gap-y-2 text-5xl md:text-8xl font-black mx-2 md:mx-4 bg-clip-text text-transparent bg-gradient-to-b from-white via-zinc-300 to-zinc-600">
                 <span style={{ transform: 'translateY(15px)' }}>m</span><span style={{ transform: 'translateY(0px)' }}>a</span><span style={{ transform: 'translateY(15px)' }}>t</span>
                 <span style={{ transform: 'translateY(-15px)' }}>r</span><span style={{ transform: 'translateY(0px)' }}>i</span><span style={{ transform: 'translateY(-15px)' }}>x</span>
               </div>
-              <span className="text-[12rem] font-light leading-none opacity-80">)</span>
+              <span className="text-[6rem] md:text-[12rem] font-light leading-none opacity-80">)</span>
             </div>
-            <div className="absolute -top-6 -right-8 border-4 border-zinc-400 text-zinc-300 font-extrabold px-3 py-1 text-2xl transform rotate-12 rounded-lg backdrop-blur-sm shadow-xl">BETA</div>
+            <div className="absolute -top-4 -right-4 md:-top-6 md:-right-8 border-2 md:border-4 border-zinc-400 text-zinc-300 font-extrabold px-2 py-0.5 md:px-3 md:py-1 text-sm md:text-2xl transform rotate-12 rounded-lg backdrop-blur-sm shadow-xl">BETA</div>
           </div>
-          <p className="relative z-10 mt-6 text-zinc-400 font-medium tracking-widest text-lg">Interactive Vision Transformation Engine</p>
-          <button onClick={onStart} className="relative z-10 mt-16 px-14 py-4 bg-gradient-to-r from-white to-zinc-300 text-black text-2xl font-black rounded-full hover:from-zinc-300 hover:to-zinc-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-300 transform hover:-translate-y-1">시작하기</button>
+          <p className="relative z-10 mt-6 text-zinc-400 font-medium tracking-widest text-sm md:text-lg text-center px-4">Interactive Vision Transformation Engine</p>
+          <button onClick={onStart} className="relative z-10 mt-12 md:mt-16 px-10 py-3 md:px-14 md:py-4 bg-gradient-to-r from-white to-zinc-300 text-black text-xl md:text-2xl font-black rounded-full hover:from-zinc-300 hover:to-zinc-500 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-300 transform hover:-translate-y-1">시작하기</button>
         </div>
       );
     }
@@ -177,6 +181,7 @@
     // 2. 메인 시뮬레이터 
     // ==============================================================
     function SimulatorScreen() {
+      const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
       const [panelWidth, setPanelWidth] = useState(450);
       const isResizingPanel = useRef(false);
 
@@ -226,6 +231,13 @@
 
       const [imageObj, setImageObj] = useState(null);
       const canvasRef = useRef(null);
+
+      // 모바일 체크 및 리사이징 패널 이벤트
+      useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
 
       useEffect(() => {
         const handleMouseMoveGlobal = (e) => {
@@ -294,14 +306,10 @@
           }
       };
 
-      // 🚀 사용자의 피드백을 수용한 쾌적한 오토핏 알고리즘!
       const getOptimalCamera = (img) => {
         if (!img) return { x: 0, y: 0, z: 1.0 };
-        // 빈공간을 넉넉히(20%) 주기 위해 화면의 80%를 기준으로 계산
         let targetZ = Math.min((2000 * 0.8) / img.width, (1200 * 0.8) / img.height); 
-        // 원본 100% 비율(1.0)을 넘어서 억지로 픽셀이 깨지게 확대하는 것을 방지
         if (targetZ > 1.0) targetZ = 1.0; 
-        
         return { x: 0, y: 0, z: targetZ };
       };
 
@@ -326,6 +334,7 @@
         img.src = url;
       };
 
+      // 마우스 이벤트
       const handleMouseDown = (e) => { isDraggingRef.current = true; setIsDragUI(true); lastMouseRef.current = { x: e.clientX, y: e.clientY }; };
       const handleMouseMove = (e) => {
         if (!isDraggingRef.current) return;
@@ -336,6 +345,25 @@
         lastMouseRef.current = { x: e.clientX, y: e.clientY };
       };
       const handleMouseUpOrLeave = () => { isDraggingRef.current = false; setIsDragUI(false); };
+
+      // 터치 이벤트
+      const handleTouchStart = (e) => {
+        isDraggingRef.current = true; setIsDragUI(true); 
+        const touch = e.touches[0];
+        lastMouseRef.current = { x: touch.clientX, y: touch.clientY }; 
+      };
+      const handleTouchMove = (e) => {
+        if (!isDraggingRef.current) return;
+        const touch = e.touches[0];
+        const canvas = canvasRef.current; const rect = canvas.getBoundingClientRect();
+        const dx = (touch.clientX - lastMouseRef.current.x) * (canvas.width / rect.width);
+        const dy = (touch.clientY - lastMouseRef.current.y) * (canvas.height / rect.height);
+        setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+        lastMouseRef.current = { x: touch.clientX, y: touch.clientY };
+      };
+      const handleTouchEnd = () => {
+        isDraggingRef.current = false; setIsDragUI(false);
+      };
 
       const handleZoom = (direction) => {
           setCamera(prev => {
@@ -467,28 +495,30 @@
       }, [camera, scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, useRefl, reflAngle, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, imageObj, imageUnderGrid, hideGrid, useDuotone, colorDark, colorLight]);
 
       return (
-        <div className="flex h-screen overflow-hidden animate-fade-in bg-zinc-950">
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden animate-fade-in bg-zinc-950">
           
-          <div style={{ width: `${panelWidth}px` }} className="bg-zinc-900 flex flex-col shadow-2xl z-10 shrink-0 h-full">
-            <div className="p-5 border-b border-zinc-800 shrink-0">
-              <h1 className="text-xl font-black text-white flex items-baseline gap-2 truncate">
+          <div style={{ width: isMobile ? '100%' : `${panelWidth}px` }} 
+               className="bg-zinc-900 flex flex-col shadow-2xl z-10 shrink-0 h-[55vh] md:h-full order-2 md:order-1 border-t md:border-t-0 md:border-r border-zinc-800 relative">
+            
+            <div className="p-4 md:p-5 border-b border-zinc-800 shrink-0">
+              <h1 className="text-lg md:text-xl font-black text-white flex items-baseline gap-2 truncate">
                 Vision Matrix <span className="text-xs px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded-full">BETA</span>
               </h1>
-              <div className="flex gap-2 mt-4">
-                <label className="flex-1 bg-zinc-100 hover:bg-white text-black py-2.5 rounded-lg font-bold transition text-center cursor-pointer shadow truncate">
+              <div className="flex gap-2 mt-3 md:mt-4">
+                <label className="flex-1 bg-zinc-100 hover:bg-white text-black py-2 md:py-2.5 rounded-lg text-sm md:text-base font-bold transition text-center cursor-pointer shadow truncate">
                   📁 사진 열기
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
-                <button onClick={() => resetAll(imageObj)} className="px-5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold transition shadow shrink-0">
+                <button onClick={() => resetAll(imageObj)} className="px-4 md:px-5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm md:text-base font-bold transition shadow shrink-0">
                   🔄 리셋
                 </button>
               </div>
             </div>
 
-            <div className="p-6 bg-black flex justify-center items-center border-b border-zinc-800 shrink-0">
+            <div className="p-4 md:p-6 bg-black flex justify-center items-center border-b border-zinc-800 shrink-0">
               <div className="relative">
-                <span className="absolute -left-6 -top-2 text-7xl font-light text-zinc-600">(</span>
-                <div className="grid grid-cols-3 gap-x-8 gap-y-4 text-center font-mono text-3xl font-bold tracking-tighter">
+                <span className="absolute -left-4 md:-left-6 -top-1 md:-top-2 text-5xl md:text-7xl font-light text-zinc-600">(</span>
+                <div className="grid grid-cols-3 gap-x-6 md:gap-x-8 gap-y-2 md:gap-y-4 text-center font-mono text-2xl md:text-3xl font-bold tracking-tighter">
                   <div className={getMatrixColor(m00, "1.00")}>{m00}</div>
                   <div className={getMatrixColor(m01, "0.00")}>{m01}</div>
                   <div className={getMatrixColor(m02, "0")}>{m02}</div>
@@ -497,19 +527,18 @@
                   <div className={getMatrixColor(m12, "0")}>{m12}</div>
                   <div className="text-zinc-600">0.0</div><div className="text-zinc-600">0.0</div><div className="text-zinc-600">1.0</div>
                 </div>
-                <span className="absolute -right-6 -top-2 text-7xl font-light text-zinc-600">)</span>
+                <span className="absolute -right-4 md:-right-6 -top-1 md:-top-2 text-5xl md:text-7xl font-light text-zinc-600">)</span>
               </div>
             </div>
 
             <div className="flex border-b border-zinc-800 shrink-0">
-              <button onClick={() => setActiveTab('geo')} className={`flex-1 py-3 font-bold transition truncate ${activeTab === 'geo' ? 'bg-zinc-800 text-white border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>📐 기하학 변환</button>
-              <button onClick={() => setActiveTab('color')} className={`flex-1 py-3 font-bold transition truncate ${activeTab === 'color' ? 'bg-zinc-800 text-white border-b-2 border-amber-400' : 'text-zinc-500 hover:text-zinc-300'}`}>🎨 색상 변환</button>
+              <button onClick={() => setActiveTab('geo')} className={`flex-1 py-2 md:py-3 text-sm md:text-base font-bold transition truncate ${activeTab === 'geo' ? 'bg-zinc-800 text-white border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>📐 기하학 변환</button>
+              <button onClick={() => setActiveTab('color')} className={`flex-1 py-2 md:py-3 text-sm md:text-base font-bold transition truncate ${activeTab === 'color' ? 'bg-zinc-800 text-white border-b-2 border-amber-400' : 'text-zinc-500 hover:text-zinc-300'}`}>🎨 색상 변환</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5">
-              
+            <div className="flex-1 overflow-y-auto p-4 md:p-5">
               {activeTab === 'geo' && (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-5 md:gap-6">
                   <div className="space-y-4">
                     <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} 
                       onChange={v => handleSyncChange('scaleX', v)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} />
@@ -535,7 +564,7 @@
                       onChange={v => handleSyncChange('shearY', v)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} />
                   </div>
                   <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer text-rose-400 font-bold">
+                    <label className="flex items-center gap-2 cursor-pointer text-rose-400 font-bold text-sm md:text-base">
                       <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500" /> 반사 변환 직선 (y = ax) 켜기
                     </label>
                     <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} colorClass="rose" />
@@ -544,10 +573,10 @@
               )}
 
               {activeTab === 'color' && (
-                <div className="flex flex-col gap-6">
-                  <div className="flex gap-4 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap"><input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 흑백화</label>
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap"><input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 반전</label>
+                <div className="flex flex-col gap-5 md:gap-6">
+                  <div className="flex gap-2 md:gap-4 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap text-sm md:text-base"><input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 흑백화</label>
+                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap text-sm md:text-base"><input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 반전</label>
                   </div>
                   <div className="space-y-4">
                     <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" />
@@ -556,7 +585,7 @@
                   </div>
 
                   <div className="p-3 bg-purple-900/20 rounded-xl border border-purple-500/30 flex flex-col gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold"><input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 가짜 컬러 복원 (듀오톤 맵핑)</label>
+                    <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base"><input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 가짜 컬러 복원 (듀오톤)</label>
                     <div className="flex gap-2">
                       <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">어두운 영역<input type="color" value={colorDarkUI} onChange={(e) => setColorDarkUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
                       <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">밝은 영역<input type="color" value={colorLightUI} onChange={(e) => setColorLightUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
@@ -582,29 +611,26 @@
           </div>
 
           <div 
-            className="w-1.5 bg-zinc-800 hover:bg-sky-500 cursor-col-resize flex-shrink-0 z-20 flex items-center justify-center transition-colors group"
+            className="hidden md:flex w-1.5 bg-zinc-800 hover:bg-sky-500 cursor-col-resize flex-shrink-0 z-20 items-center justify-center transition-colors group order-1 md:order-none"
             onMouseDown={startResizingPanel}
             title="패널 크기 조절"
           >
             <div className="h-10 w-0.5 bg-zinc-600 group-hover:bg-white rounded"></div>
           </div>
 
-          {/* ==========================================
-              오른쪽 캔버스 렌더링 영역
-          ========================================== */}
-          <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-zinc-950">
+          <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-zinc-950 h-[45vh] md:h-full order-1 md:order-2">
             
             {useRefl && (
-              <div className="absolute top-8 left-8 z-20 text-rose-500 font-bold text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-5 py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm">
+              <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20 text-rose-500 font-bold text-lg md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm">
                 Reflection Axis: {Math.abs(reflAngle - 90) < 0.01 ? "x = 0" : `y = ${Math.tan(reflAngle * Math.PI / 180).toFixed(2)}x`}
               </div>
             )}
 
-            <div className="absolute top-6 right-6 z-50 flex flex-col items-end">
-              <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">☰</button>
+            <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 flex flex-col items-end">
+              <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">☰</button>
               
               {isSettingsOpen && (
-                <div className="mt-3 bg-zinc-800 border border-zinc-700 shadow-2xl rounded-xl p-4 flex flex-col w-[28rem] animate-fade-in origin-top-right">
+                <div className="mt-2 md:mt-3 bg-zinc-800 border border-zinc-700 shadow-2xl rounded-xl p-4 flex flex-col w-[90vw] md:w-[28rem] animate-fade-in origin-top-right absolute top-full right-0">
                   <div className="flex border-b border-zinc-700 mb-4">
                     <button onClick={() => setSettingsTab('display')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='display' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>디스플레이</button>
                     <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력값 조절</button>
@@ -618,7 +644,7 @@
                           <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                           <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                         </div>
-                        <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span>
+                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative">
@@ -626,7 +652,7 @@
                           <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                           <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                         </div>
-                        <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span>
+                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative">
@@ -634,13 +660,13 @@
                           <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                           <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                         </div>
-                        <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span>
+                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span>
                       </label>
                     </div>
                   )}
 
                   {settingsTab === 'inputs' && (
-                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
                       <ConfigRow title="X축 확대 (Scale X)" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
                       <ConfigRow title="Y축 확대 (Scale Y)" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
                       <ConfigRow title="X축 이동 (Translate X)" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
@@ -658,14 +684,15 @@
 
             <canvas 
               ref={canvasRef} width={2000} height={1200} 
-              className={`w-full h-full object-cover transition-colors ${isDragUI ? 'cursor-grabbing' : 'cursor-grab'}`}
+              className={`w-full h-full object-cover transition-colors touch-none ${isDragUI ? 'cursor-grabbing' : 'cursor-grab'}`}
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
+              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
             />
             
-            <div className="absolute bottom-8 right-8 flex bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold">
-              <button onClick={zoomOut} className="px-6 py-3 hover:bg-zinc-700 text-white transition" title="축소 (Zoom Out)">➖</button>
-              <button onClick={zoomIn} className="px-6 py-3 hover:bg-zinc-700 text-white border-l border-zinc-700 transition" title="확대 (Zoom In)">➕</button>
-              <button onClick={goHome} className="px-6 py-3 hover:bg-sky-600 bg-sky-500 text-white transition border-l border-zinc-700" title="오토핏 화면으로">🏠</button>
+            <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 flex bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-sm md:text-lg font-bold">
+              <button onClick={zoomOut} className="px-4 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white transition" title="축소 (Zoom Out)">➖</button>
+              <button onClick={zoomIn} className="px-4 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white border-l border-zinc-700 transition" title="확대 (Zoom In)">➕</button>
+              <button onClick={goHome} className="px-4 py-2 md:px-6 md:py-3 hover:bg-sky-600 bg-sky-500 text-white transition border-l border-zinc-700" title="오토핏 화면으로">🏠</button>
             </div>
           </div>
         </div>
