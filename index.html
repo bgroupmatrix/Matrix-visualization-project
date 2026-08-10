@@ -60,18 +60,17 @@
 
     function compileMath(expr) {
         try {
-            // 🚀 ^ 기호를 **(자바스크립트 제곱 연산자)로 변환하는 로직 추가
             let safeExpr = expr.replace(/sin/g, 'Math.sin').replace(/cos/g, 'Math.cos')
                                .replace(/tan/g, 'Math.tan').replace(/abs/g, 'Math.abs')
                                .replace(/sqrt/g, 'Math.sqrt').replace(/pi/gi, 'Math.PI')
                                .replace(/\^/g, '**'); 
             return new Function('v', `return ${safeExpr};`);
-        } catch(e) { return () => 0; }
+        } catch(e) { return () => NaN; } // 에러 발생 시 NaN 반환
     }
 
     const executeMath = (func, v) => {
-        try { const res = func(v); return isNaN(res) ? 0 : res; } 
-        catch { return 0; }
+        try { const res = func(v); return isNaN(res) ? NaN : res; } 
+        catch { return NaN; } // 수학적 예외(루트 음수 등)를 완벽히 처리하기 위해 NaN 사용
     }
 
     function CustomNumberInput({ value, onChange, className }) {
@@ -165,23 +164,17 @@
       const [manualMatrix, setManualMatrix] = useState({ a: '1.00', b: '0.00', c: '0.00', d: '1.00', e: '0', f: '0' });
 
       const [useGraph, setUseGraph] = useState(false);
-      const [graphEq, setGraphEq] = useState('x');
+      // 🚀 기본 수식을 이차함수 포물선으로 변경
+      const [graphEq, setGraphEq] = useState('x^2');
 
-      // 🚀 가상 수학 키보드(Math Pad) 상태 관리
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [tempGraphEq, setTempGraphEq] = useState("");
 
-      const openMathPad = () => {
-          setTempGraphEq(graphEq);
-          setMathPadOpen(true);
-      };
+      const openMathPad = () => { setTempGraphEq(graphEq); setMathPadOpen(true); };
       const handleMathPadKey = (char) => { setTempGraphEq(prev => prev + char); };
       const handleMathPadDelete = () => { setTempGraphEq(prev => prev.slice(0, -1)); };
       const handleMathPadClear = () => { setTempGraphEq(""); };
-      const applyMathPad = () => {
-          setGraphEq(tempGraphEq || 'x'); // 비어있으면 기본값 x 할당
-          setMathPadOpen(false);
-      };
+      const applyMathPad = () => { setGraphEq(tempGraphEq || 'x^2'); setMathPadOpen(false); };
 
       const [logicModalOpen, setLogicModalOpen] = useState(false);
       const [customLogic, setCustomLogic] = useState({ m00: 'cos(v)', m01: '-sin(v)', m10: 'sin(v)', m11: 'cos(v)' });
@@ -263,9 +256,7 @@
       }, [isPanelExpanded, isMobile]);
 
       useEffect(() => {
-          if (useGraph) {
-              setCamera({ x: 0, y: getDynamicTargetY(), z: 2.0 });
-          }
+          if (useGraph) { setCamera({ x: 0, y: getDynamicTargetY(), z: 2.0 }); }
       }, [useGraph]);
 
       useEffect(() => {
@@ -379,7 +370,6 @@
             const dist = Math.sqrt(dx*dx + dy*dy);
             const midX = (t1.clientX + t2.clientX) / 2; 
             const midY = (t1.clientY + t2.clientY) / 2;
-
             initialPinchDist.current = { lastDist: dist, lastMidX: midX, lastMidY: midY };
         }
       };
@@ -396,26 +386,21 @@
             const dist = Math.sqrt(dx*dx + dy*dy);
             const midX = (t1.clientX + t2.clientX) / 2; 
             const midY = (t1.clientY + t2.clientY) / 2;
-            
             const zRatio = dist / initialPinchDist.current.lastDist;
 
             setCamera(prev => {
                 let newZ = prev.z * zRatio;
                 if (newZ > 1e6 || newZ < 1e-6) return prev;
-
                 const canvas = canvasRef.current; 
                 const rect = canvas.getBoundingClientRect();
                 const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
                 
                 const dxScreen = (midX - initialPinchDist.current.lastMidX) / scale;
                 const dyScreen = (midY - initialPinchDist.current.lastMidY) / scale;
-
                 const cx = canvas.width / 2; 
                 const cy = canvas.height / 2;
-
                 const pointerCanvasX = (midX - rect.left) / scale;
                 const pointerCanvasY = (midY - rect.top) / scale;
-
                 const logicX = pointerCanvasX - cx - prev.x;
                 const logicY = pointerCanvasY - cy - prev.y;
 
@@ -592,6 +577,7 @@
         }
         ctx.restore();
 
+        // 🚀 함수 그래프 (수학 스케일 동기화)
         if (useGraph) {
             const func = compileMath(graphEq.replace(/x/g, 'v'));
             ctx.save();
@@ -602,9 +588,20 @@
             ctx.lineWidth = 4 / z; 
             
             let first = true;
-            for (let logicalX = -3000; logicalX <= 3000; logicalX += 5) {
-                let logicalY = -executeMath(func, logicalX); 
-                let pt = new DOMPoint(logicalX, logicalY);
+            for (let screenX = -3000; screenX <= 3000; screenX += 2) {
+                // 픽셀을 모눈종이 눈금(수학 좌표계)으로 변환하여 계산
+                let mathX = screenX / gridStep;
+                let mathY = executeMath(func, mathX); 
+                
+                if (isNaN(mathY) || !isFinite(mathY)) {
+                    first = true;
+                    continue;
+                }
+                
+                // 수학 결과를 다시 픽셀 좌표계로 확대하고 Y축 역전
+                let screenY = -(mathY * gridStep); 
+                
+                let pt = new DOMPoint(screenX, screenY);
                 let transformedPt = pt.matrixTransform(matrix);
                 
                 if(first) { ctx.moveTo(transformedPt.x, transformedPt.y); first = false; }
@@ -626,9 +623,7 @@
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
           
-          {/* ==============================================
-              🚀 🧮 모달 영역 (가상 수학 키보드 Math Pad) 
-          ============================================== */}
+          {/* 가상 수학 키보드(Math Pad) */}
           {mathPadOpen && (
             <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -637,13 +632,11 @@
                   <button onClick={() => setMathPadOpen(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
                 
-                {/* 수식 표시 창 */}
                 <div className="bg-zinc-950 border border-zinc-700 rounded-xl p-4 text-right overflow-x-auto whitespace-nowrap scrollbar-hide flex justify-end">
                     <span className="text-purple-400 font-mono text-2xl tracking-wider">y = {tempGraphEq}</span>
                     <span className="animate-pulse text-white font-mono text-2xl">_</span>
                 </div>
                 
-                {/* 5x6 수학 키보드 레이아웃 */}
                 <div className="grid grid-cols-5 gap-2">
                     <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-sm">sin</button>
                     <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-sm">cos</button>
@@ -682,7 +675,6 @@
             </div>
           )}
 
-          {/* 모달 영역 (코랩 로직 변경) */}
           {logicModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -815,7 +807,6 @@
 
                     <hr className="border-zinc-800" />
                     
-                    {/* 🚀 함수 탭 영역 (🧮 입력 버튼 추가) */}
                     <div className="p-4 bg-purple-900/10 rounded-xl border border-purple-500/20 flex flex-col gap-3">
                       <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base">
                         <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 함수(f(x))를 행렬로 구부리기
