@@ -38,13 +38,11 @@
         const targetStep = 100 / z;
         const exponent = Math.floor(Math.log10(targetStep));
         const fraction = targetStep / Math.pow(10, exponent);
-        
         let niceFraction;
         if (fraction < 1.5) niceFraction = 1;
         else if (fraction < 3.5) niceFraction = 2;
         else if (fraction < 7.5) niceFraction = 5;
         else niceFraction = 10;
-        
         return parseFloat((niceFraction * Math.pow(10, exponent)).toPrecision(14));
     }
 
@@ -164,7 +162,6 @@
       const [isManualMode, setIsManualMode] = useState(false);
       const [manualMatrix, setManualMatrix] = useState({ a: '1.00', b: '0.00', c: '0.00', d: '1.00', e: '0', f: '0' });
 
-      // 🚀 함수 그래프 기능 State
       const [useGraph, setUseGraph] = useState(false);
       const [graphEq, setGraphEq] = useState('sin(x/50)*100');
 
@@ -172,18 +169,12 @@
       const [customLogic, setCustomLogic] = useState({ m00: 'cos(v)', m01: '-sin(v)', m10: 'sin(v)', m11: 'cos(v)' });
       const [tempLogic, setTempLogic] = useState(customLogic);
       
-      const compiledLogic = useRef({
-          m00: compileMath('cos(v)'), m01: compileMath('-sin(v)'),
-          m10: compileMath('sin(v)'), m11: compileMath('cos(v)')
-      });
+      const compiledLogic = useRef({ m00: compileMath('cos(v)'), m01: compileMath('-sin(v)'), m10: compileMath('sin(v)'), m11: compileMath('cos(v)') });
 
       const openLogicModal = () => { setTempLogic(customLogic); setLogicModalOpen(true); };
       const saveLogicModal = () => {
           setCustomLogic(tempLogic);
-          compiledLogic.current = {
-              m00: compileMath(tempLogic.m00), m01: compileMath(tempLogic.m01),
-              m10: compileMath(tempLogic.m10), m11: compileMath(tempLogic.m11)
-          };
+          compiledLogic.current = { m00: compileMath(tempLogic.m00), m01: compileMath(tempLogic.m01), m10: compileMath(tempLogic.m10), m11: compileMath(tempLogic.m11) };
           setLogicModalOpen(false);
       };
 
@@ -227,12 +218,15 @@
 
       const [imageObj, setImageObj] = useState(null);
       const canvasRef = useRef(null);
-      
-      // 🚀 렉 해결의 핵심: 분리된 색상 연산 캐시 캔버스
       const colorCacheRef = useRef(null);
-      if (!colorCacheRef.current && typeof document !== 'undefined') {
-          colorCacheRef.current = document.createElement('canvas');
-      }
+      if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
+
+      // 🚀 함수 모드 켜졌을 때 자동 원점 줌인
+      useEffect(() => {
+          if (useGraph) {
+              setCamera({ x: 0, y: 0, z: 2.0 });
+          }
+      }, [useGraph]);
 
       useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -395,14 +389,20 @@
           } else { setManualMatrix(prev => ({...prev, [key]: val})); }
       };
 
+      // 🚀 클릭 즉시 수동 모드로 부드럽게 진입시키는 포커스 감지기
+      const handleManualFocus = () => {
+          if (!isManualMode) {
+              setIsManualMode(true);
+              setManualMatrix({ a: m00, b: m10, c: m01, d: m11, e: m02, f: m12 });
+          }
+      };
+
       const getMatrixColor = (val, defaultVal) => val === defaultVal ? "text-zinc-600" : "text-sky-400 text-shadow-glow";
 
-      // 🚀 Effect 1: 색상 연산 캐싱 엔진 (색상값이 바뀔 때만 무거운 연산 수행)
       useEffect(() => {
         if (!imageObj) return;
         const cCanvas = colorCacheRef.current;
-        cCanvas.width = imageObj.width;
-        cCanvas.height = imageObj.height;
+        cCanvas.width = imageObj.width; cCanvas.height = imageObj.height;
         const cCtx = cCanvas.getContext('2d', { willReadFrequently: true });
         cCtx.drawImage(imageObj, 0, 0);
 
@@ -423,10 +423,7 @@
               if (useDuotone) {
                 const ratio = gray / 255.0;
                 r = cDark.r + (cLight.r - cDark.r) * ratio; g = cDark.g + (cLight.g - cDark.g) * ratio; b = cDark.b + (cLight.b - cDark.b) * ratio;
-              } else {
-                if (binThresh >= 0) gray = gray > binThresh ? 255 : 0;
-                r = g = b = gray;
-              }
+              } else { if (binThresh >= 0) gray = gray > binThresh ? 255 : 0; r = g = b = gray; }
             }
             if (chkInvert) { r = 255 - r; g = 255 - g; b = 255 - b; }
             data[i] = r; data[i+1] = g; data[i+2] = b;
@@ -435,8 +432,6 @@
         }
       }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight]);
 
-
-      // 🚀 Effect 2: 실시간 화면 렌더링 엔진 (카메라 이동, 행렬 변환 - 렉 제로)
       useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -484,7 +479,6 @@
 
         if (!imageUnderGrid) drawGridAndAxes();
 
-        // 🚀 캐시된 이미지를 렌더링 (하드웨어 가속)
         ctx.save();
         ctx.translate(cx + camera.x, cy + camera.y); 
         ctx.scale(z, z); 
@@ -492,29 +486,26 @@
         
         if (imageObj && colorCacheRef.current) {
           ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
-        } else if (!imageObj) {
+        } 
+        // 🚀 함수 모드가 켜졌을 땐 기본 도형(네모, 원)을 아예 그리지 않음!
+        else if (!imageObj && !useGraph) {
           ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(-100, -100, 200, 200);
           ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
 
-        // 🚀 함수 그래프 렌더링 + 행렬 변환 동시 적용
         if (useGraph) {
             const func = compileMath(graphEq.replace(/x/g, 'v'));
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y);
             ctx.scale(z, z);
-            
             ctx.beginPath();
-            ctx.strokeStyle = '#a855f7'; // purple-500
-            ctx.lineWidth = 4 / z; // 줌 배율에 상관없이 두께 유지
+            ctx.strokeStyle = '#a855f7'; 
+            ctx.lineWidth = 4 / z; 
             
             let first = true;
-            // -3000 ~ 3000 범위를 돌며 함수 점들을 찍고 행렬 곱셈
             for (let logicalX = -3000; logicalX <= 3000; logicalX += 5) {
-                let logicalY = -executeMath(func, logicalX); // 캔버스 Y는 아래가 +이므로 뒤집음
-                
-                // 수학적 점 (x,y) 에 우리가 만든 3x3 행렬을 통째로 곱함!
+                let logicalY = -executeMath(func, logicalX); 
                 let pt = new DOMPoint(logicalX, logicalY);
                 let transformedPt = pt.matrixTransform(matrix);
                 
@@ -533,12 +524,13 @@
           ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-30000, 0); ctx.lineTo(30000, 0); ctx.stroke(); ctx.restore();
         }
       }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useGraph, graphEq]); 
-      // 👆 camera가 바뀔 땐 이 Effect만 돕니다. 픽셀 색상 연산은 무시되므로 렉이 0이 됩니다.
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
           
-          {/* 전역 모달 (코랩 모드) */}
+          {/* ==============================================
+              모달 영역 (코랩 로직 변경 & 설정창) 
+          ============================================== */}
           {logicModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -552,22 +544,10 @@
                   <span className="text-zinc-500">(예: <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">tan(v)</code>, <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">-sin(v)*2</code>)</span>
                 </p>
                 <div className="grid grid-cols-2 gap-3 font-mono text-sm md:text-base">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-zinc-500 text-[10px]">m00</span>
-                    <input type="text" value={tempLogic.m00} onChange={e => setTempLogic({...tempLogic, m00: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-zinc-500 text-[10px]">m01</span>
-                    <input type="text" value={tempLogic.m01} onChange={e => setTempLogic({...tempLogic, m01: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-zinc-500 text-[10px]">m10</span>
-                    <input type="text" value={tempLogic.m10} onChange={e => setTempLogic({...tempLogic, m10: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-zinc-500 text-[10px]">m11</span>
-                    <input type="text" value={tempLogic.m11} onChange={e => setTempLogic({...tempLogic, m11: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" />
-                  </div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m00</span><input type="text" value={tempLogic.m00} onChange={e => setTempLogic({...tempLogic, m00: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m01</span><input type="text" value={tempLogic.m01} onChange={e => setTempLogic({...tempLogic, m01: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m10</span><input type="text" value={tempLogic.m10} onChange={e => setTempLogic({...tempLogic, m10: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m11</span><input type="text" value={tempLogic.m11} onChange={e => setTempLogic({...tempLogic, m11: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
                 </div>
                 <div className="flex gap-3 mt-2">
                   <button onClick={() => setTempLogic({m00:'cos(v)', m01:'-sin(v)', m10:'sin(v)', m11:'cos(v)'})} className="flex-1 py-2 rounded bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition text-sm">초기화</button>
@@ -577,7 +557,6 @@
             </div>
           )}
 
-          {/* 전역 설정(디스플레이) 팝업 */}
           <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[60] flex flex-col items-end">
             <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">☰</button>
             {isSettingsOpen && (
@@ -588,18 +567,9 @@
                 </div>
                 {settingsTab === 'display' && (
                   <div className="flex flex-col gap-4">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative"><input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div>
-                      <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative"><input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div>
-                      <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative"><input type="checkbox" checked={hideGrid} onChange={(e) => setHideGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div>
-                      <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span>
-                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span></label>
+                    <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span></label>
+                    <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={hideGrid} onChange={(e) => setHideGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span></label>
                   </div>
                 )}
                 {settingsTab === 'inputs' && (
@@ -619,60 +589,11 @@
             )}
           </div>
 
-          <div className={`flex items-center justify-center relative overflow-hidden bg-zinc-950 h-full ${isMobile ? 'w-full absolute inset-0' : 'flex-1 order-2'}`}>
-            
-            {isMobile && (
-              <div className="absolute top-4 left-4 z-[50] flex items-center">
-                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-2 shadow-xl relative z-10 w-[120px]">
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-center font-mono text-[11px] font-bold tracking-tighter">
-                    <input type="text" value={isManualMode ? manualMatrix.a : m00} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.c : m01} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.e : m02} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.b : m10} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.d : m11} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.f : m12} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
-                    <div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">1.0</div>
-                  </div>
-                </div>
-
-                <button onClick={() => setIsPhotoMenuOpen(!isPhotoMenuOpen)} className="w-7 h-[100%] py-6 flex items-center justify-center bg-sky-600 hover:bg-sky-500 transition-colors shadow-xl relative z-0 -ml-2 pl-2" style={{ clipPath: 'polygon(0% 0%, 100% 15%, 100% 85%, 0% 100%)' }}>
-                  <span className="text-white text-[10px] font-black">{isPhotoMenuOpen ? '◀' : '▶'}</span>
-                </button>
-
-                {isPhotoMenuOpen && (
-                  <div className="ml-1 bg-zinc-800/90 backdrop-blur border border-zinc-700 rounded-lg p-1 shadow-xl animate-fade-in origin-left">
-                    <label className="flex bg-zinc-100 text-black px-3 py-2 rounded text-[11px] font-bold transition cursor-pointer shadow whitespace-nowrap">
-                      📁 사진 열기
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleImageUpload(e); setIsPhotoMenuOpen(false); }} />
-                    </label>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {useRefl && (
-              <div className={`absolute ${isMobile ? 'top-[90px] left-4' : 'top-8 left-8'} z-20 text-rose-500 font-bold text-sm md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm`}>
-                Reflection Axis: {Math.abs(reflAngle - 90) < 0.01 ? "x = 0" : `y = ${Math.tan(reflAngle * Math.PI / 180).toFixed(2)}x`}
-              </div>
-            )}
-
-            <canvas 
-              ref={canvasRef} width={2000} height={1200} 
-              className={`w-full h-full object-cover transition-colors touch-none ${isDragUI ? 'cursor-grabbing' : 'cursor-grab'}`}
-              onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
-              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
-            />
-            
-            <div className="absolute flex bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-xs md:text-lg font-bold z-40 transition-all duration-300"
-              style={isMobile ? { bottom: isPanelExpanded ? 'calc(55vh + env(safe-area-inset-bottom, 24px) + 16px)' : 'calc(env(safe-area-inset-bottom, 24px) + 16px)', right: '16px' } : { bottom: '32px', right: '32px' }}>
-              <button onClick={zoomOut} className="px-3 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white transition">➖</button>
-              <button onClick={zoomIn} className="px-3 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white border-l border-zinc-700 transition">➕</button>
-              <button onClick={goHome} className="px-3 py-2 md:px-6 md:py-3 hover:bg-sky-600 bg-sky-500 text-white transition border-l border-zinc-700">🏠</button>
-            </div>
-          </div>
-
-          <div style={isMobile ? { position: 'fixed', bottom: 'env(safe-area-inset-bottom, 24px)', left: 0, width: '100%', height: '55vh', transform: isPanelExpanded ? 'translateY(0)' : 'translateY(100%)', zIndex: 45 } : { width: `${panelWidth}px`, height: '100%', zIndex: 40 }} 
-            className={`bg-zinc-900 flex flex-col shadow-2xl shrink-0 transition-transform duration-300 ease-in-out border-zinc-800 ${isMobile ? 'border-t' : 'order-1 border-r'}`}>
+          {/* ==============================================
+              좌측(PC) / 하단 서랍(모바일) 패널 
+          ============================================== */}
+          <div style={isMobile ? { position: 'fixed', bottom: 'env(safe-area-inset-bottom, 16px)', left: 0, width: '100%', height: '55vh', transform: isPanelExpanded ? 'translateY(0)' : 'translateY(100%)', zIndex: 45 } : { width: `${panelWidth}px`, height: '100%', position: 'relative', zIndex: 40 }} 
+               className={`bg-zinc-900 flex flex-col shadow-2xl shrink-0 transition-transform duration-300 ease-in-out border-zinc-800 ${isMobile ? 'border-t rounded-t-2xl' : 'border-r'}`}>
             
             {isMobile && (
               <div onClick={() => setIsPanelExpanded(!isPanelExpanded)} className="absolute left-1/2 -top-7 w-28 h-7 flex justify-center items-end pb-1.5 cursor-pointer bg-zinc-800 border-t border-zinc-700/50" style={{ transform: 'translateX(-50%)', clipPath: 'polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)' }}>
@@ -688,15 +609,16 @@
               </div>
             </div>
 
+            {/* 🚀 PC용 수동 행렬 입력판 (onFocus 기능 추가) */}
             <div className="hidden md:flex p-6 bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative">
               <span className="absolute -left-6 -top-2 text-7xl font-light text-zinc-600 pointer-events-none">(</span>
               <div className="grid grid-cols-3 gap-x-6 gap-y-4 text-center font-mono text-3xl font-bold tracking-tighter w-full max-w-[280px]">
-                <input type="text" value={isManualMode ? manualMatrix.a : m00} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.c : m01} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.e : m02} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.b : m10} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.d : m11} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.f : m12} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.a : m00} onFocus={handleManualFocus} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.c : m01} onFocus={handleManualFocus} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.e : m02} onFocus={handleManualFocus} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.b : m10} onFocus={handleManualFocus} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.d : m11} onFocus={handleManualFocus} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
+                <input type="text" value={isManualMode ? manualMatrix.f : m12} onFocus={handleManualFocus} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
                 <div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">1.0</div>
               </div>
               <span className="absolute -right-6 -top-2 text-7xl font-light text-zinc-600 pointer-events-none">)</span>
@@ -727,7 +649,6 @@
                     
                     <hr className="border-zinc-800" />
                     
-                    {/* 🚀 함수 그래프 그리기 UI (선형 변환 하단 추가) */}
                     <div className="p-4 bg-purple-900/10 rounded-xl border border-purple-500/20 flex flex-col gap-3">
                       <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base">
                         <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 함수(f(x))를 행렬로 구부리기
@@ -798,11 +719,71 @@
             </div>
           </div>
 
+          {/* ==============================================
+              PC용 패널 크기 리사이저 
+          ============================================== */}
           {!isMobile && (
-            <div className="w-1.5 bg-zinc-800 hover:bg-sky-500 cursor-col-resize flex-shrink-0 z-20 flex items-center justify-center transition-colors group order-1" onMouseDown={startResizingPanel} title="패널 크기 조절">
+            <div className="w-1.5 bg-zinc-800 hover:bg-sky-500 cursor-col-resize flex-shrink-0 z-20 flex items-center justify-center transition-colors group relative" onMouseDown={startResizingPanel} title="패널 크기 조절">
               <div className="h-10 w-0.5 bg-zinc-600 group-hover:bg-white rounded"></div>
             </div>
           )}
+
+          {/* ==============================================
+              우측(PC) / 바탕화면(모바일) 메인 캔버스
+          ============================================== */}
+          <div className={`flex items-center justify-center relative overflow-hidden bg-zinc-950 h-full ${isMobile ? 'w-full absolute inset-0 z-10' : 'flex-1 z-10'}`}>
+            
+            {/* 🚀 모바일 전용 수동 매트릭스 입력 & 사진 열기 */}
+            {isMobile && (
+              <div className="absolute top-4 left-4 z-[50] flex items-start">
+                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-2 shadow-xl relative z-10 w-[120px]">
+                  <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-center font-mono text-[11px] font-bold tracking-tighter">
+                    <input type="text" value={isManualMode ? manualMatrix.a : m00} onFocus={handleManualFocus} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
+                    <input type="text" value={isManualMode ? manualMatrix.c : m01} onFocus={handleManualFocus} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
+                    <input type="text" value={isManualMode ? manualMatrix.e : m02} onFocus={handleManualFocus} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
+                    <input type="text" value={isManualMode ? manualMatrix.b : m10} onFocus={handleManualFocus} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
+                    <input type="text" value={isManualMode ? manualMatrix.d : m11} onFocus={handleManualFocus} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
+                    <input type="text" value={isManualMode ? manualMatrix.f : m12} onFocus={handleManualFocus} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
+                    <div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">1.0</div>
+                  </div>
+                </div>
+
+                <button onClick={() => setIsPhotoMenuOpen(!isPhotoMenuOpen)} className="w-7 h-[88px] flex items-center justify-center bg-sky-600 hover:bg-sky-500 transition-colors shadow-xl relative z-0 -ml-2 pl-2" style={{ clipPath: 'polygon(0% 0%, 100% 15%, 100% 85%, 0% 100%)' }}>
+                  <span className="text-white text-[10px] font-black">{isPhotoMenuOpen ? '◀' : '▶'}</span>
+                </button>
+
+                {isPhotoMenuOpen && (
+                  <div className="ml-1 bg-zinc-800/90 backdrop-blur border border-zinc-700 rounded-lg p-1 shadow-xl animate-fade-in origin-left h-[88px] flex items-center">
+                    <label className="flex bg-zinc-100 text-black px-3 py-2 rounded text-[11px] font-bold transition cursor-pointer shadow whitespace-nowrap">
+                      📁 사진 열기
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleImageUpload(e); setIsPhotoMenuOpen(false); }} />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {useRefl && (
+              <div className={`absolute ${isMobile ? 'top-[110px] left-4' : 'top-8 left-8'} z-20 text-rose-500 font-bold text-sm md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm`}>
+                Reflection Axis: {Math.abs(reflAngle - 90) < 0.01 ? "x = 0" : `y = ${Math.tan(reflAngle * Math.PI / 180).toFixed(2)}x`}
+              </div>
+            )}
+
+            <canvas 
+              ref={canvasRef} width={2000} height={1200} 
+              className={`w-full h-full object-cover transition-colors touch-none ${isDragUI ? 'cursor-grabbing' : 'cursor-grab'}`}
+              onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
+              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
+            />
+            
+            <div className="absolute flex bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-xs md:text-lg font-bold z-40 transition-all duration-300"
+                 style={isMobile ? { bottom: isPanelExpanded ? 'calc(55vh + env(safe-area-inset-bottom, 16px) + 16px)' : 'calc(env(safe-area-inset-bottom, 16px) + 16px)', right: '16px' } : { bottom: '32px', right: '32px' }}>
+              <button onClick={zoomOut} className="px-3 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white transition">➖</button>
+              <button onClick={zoomIn} className="px-3 py-2 md:px-6 md:py-3 hover:bg-zinc-700 text-white border-l border-zinc-700 transition">➕</button>
+              <button onClick={goHome} className="px-3 py-2 md:px-6 md:py-3 hover:bg-sky-600 bg-sky-500 text-white transition border-l border-zinc-700">🏠</button>
+            </div>
+          </div>
+
         </div>
       );
     }
