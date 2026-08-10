@@ -162,8 +162,9 @@
       const [isManualMode, setIsManualMode] = useState(false);
       const [manualMatrix, setManualMatrix] = useState({ a: '1.00', b: '0.00', c: '0.00', d: '1.00', e: '0', f: '0' });
 
+      // 🚀 기본 함수 형태 y = x 로 변경
       const [useGraph, setUseGraph] = useState(false);
-      const [graphEq, setGraphEq] = useState('sin(x/50)*100');
+      const [graphEq, setGraphEq] = useState('x');
 
       const [logicModalOpen, setLogicModalOpen] = useState(false);
       const [customLogic, setCustomLogic] = useState({ m00: 'cos(v)', m01: '-sin(v)', m10: 'sin(v)', m11: 'cos(v)' });
@@ -181,9 +182,8 @@
       const [camera, setCamera] = useState({ x: 0, y: 0, z: 1.0 });
       const isDraggingRef = useRef(false);
       const lastMouseRef = useRef({ x: 0, y: 0 });
+      const initialPinchDist = useRef(null); // 🚀 멀티터치 상태 기록용
       
-      // 🚀 멀티터치(핀치 줌) 상태 관리를 위한 Ref 추가
-      const initialPinchDist = useRef(null);
       const [isDragUI, setIsDragUI] = useState(false);
 
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -224,8 +224,37 @@
       const colorCacheRef = useRef(null);
       if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
 
+      // 🚀 카메라 상하 Y 오프셋을 계산하는 함수 (모바일에서 패널이 열려있을 때 중심을 위로 올림)
+      const getDynamicTargetY = () => {
+          if (!isMobile || !isPanelExpanded || !canvasRef.current) return 0;
+          const canvas = canvasRef.current;
+          const rect = canvas.getBoundingClientRect();
+          const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+          // 패널이 55vh를 가리므로, 보여지는 공간의 중심은 상단 22.5vh 지점입니다. (화면 중심보다 27.5vh 위에 위치)
+          const offsetScreenPixels = window.innerHeight * 0.275; 
+          return -(offsetScreenPixels / scale);
+      };
+
+      // 🚀 패널이 열고 닫힐 때 카메라 Y 위치를 스무스하게 보정
       useEffect(() => {
-          if (useGraph) { setCamera({ x: 0, y: 0, z: 2.0 }); }
+          if (!isMobile) return;
+          setCamera(prev => {
+              const canvas = canvasRef.current;
+              if (!canvas) return prev;
+              const rect = canvas.getBoundingClientRect();
+              const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+              const shiftAmountCanvas = (window.innerHeight * 0.275) / scale;
+              
+              // 패널이 열리면 중심이 위로(-), 닫히면 중심이 아래로(+)
+              return { ...prev, y: isPanelExpanded ? prev.y - shiftAmountCanvas : prev.y + shiftAmountCanvas };
+          });
+      }, [isPanelExpanded, isMobile]);
+
+      // 🚀 함수 모드 켜졌을 때 다이나믹하게 원점 맞추고 줌인
+      useEffect(() => {
+          if (useGraph) {
+              setCamera({ x: 0, y: getDynamicTargetY(), z: 2.0 });
+          }
       }, [useGraph]);
 
       useEffect(() => {
@@ -280,10 +309,12 @@
       };
 
       const getOptimalCamera = (img) => {
-        if (!img) return { x: 0, y: 0, z: 1.0 };
-        let targetZ = Math.min((2000 * 0.8) / img.width, (1200 * 0.8) / img.height); 
-        if (targetZ > 1.0) targetZ = 1.0; 
-        return { x: 0, y: 0, z: targetZ };
+        let targetZ = 1.0;
+        if (img) {
+            targetZ = Math.min((2000 * 0.8) / img.width, (1200 * 0.8) / img.height);
+            if (targetZ > 1.0) targetZ = 1.0; 
+        }
+        return { x: 0, y: getDynamicTargetY(), z: targetZ };
       };
 
       const resetAll = (img = imageObj) => {
@@ -317,7 +348,6 @@
           return { dx, dy };
       };
 
-      // 마우스 이벤트 (PC)
       const handleMouseDown = (e) => { isDraggingRef.current = true; setIsDragUI(true); lastMouseRef.current = { x: e.clientX, y: e.clientY }; };
       const handleMouseMove = (e) => {
         if (!isDraggingRef.current) return;
@@ -327,19 +357,33 @@
       };
       const handleMouseUpOrLeave = () => { isDraggingRef.current = false; setIsDragUI(false); };
 
-      // 🚀 터치 이벤트 (모바일 Pinch-to-zoom 추가)
+      // 🚀 완벽하게 중앙을 유지하는 핀치 투 줌(Pinch-to-zoom) 로직
       const handleTouchStart = (e) => {
         if (e.touches.length === 1) {
             isDraggingRef.current = true; setIsDragUI(true); 
             lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; 
         } else if (e.touches.length === 2) {
-            isDraggingRef.current = false; // 핀치 중에는 패닝 정지
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            initialPinchDist.current = Math.sqrt(dx * dx + dy * dy);
+            isDraggingRef.current = false; // 핀치 중에는 싱글 터치 패닝 정지
+            const t1 = e.touches[0]; const t2 = e.touches[1];
+            const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY;
+            const midX = (t1.clientX + t2.clientX) / 2; const midY = (t1.clientY + t2.clientY) / 2;
+
+            const canvas = canvasRef.current;
+            const rect = canvas.getBoundingClientRect();
+            const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+            
+            // 두 손가락 중앙의 캔버스 픽셀 좌표
+            const canvasMidX = (midX - rect.left) / scale;
+            const canvasMidY = (midY - rect.top) / scale;
+            
+            // 두 손가락 중앙의 수학적/논리적 좌표 (Logic Coordinate) 저장
+            const logicX = (canvasMidX - (canvas.width / 2) - camera.x) / camera.z;
+            const logicY = (canvasMidY - (canvas.height / 2) - camera.y) / camera.z;
+
+            initialPinchDist.current = { dist: Math.sqrt(dx*dx + dy*dy), logicX, logicY, initialZ: camera.z };
         }
       };
-      
+
       const handleTouchMove = (e) => {
         if (e.touches.length === 1 && isDraggingRef.current) {
             const touch = e.touches[0];
@@ -347,30 +391,38 @@
             setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
             lastMouseRef.current = { x: touch.clientX, y: touch.clientY };
         } else if (e.touches.length === 2 && initialPinchDist.current) {
-            // 두 손가락 줌인/줌아웃
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const ratio = dist / initialPinchDist.current;
+            const t1 = e.touches[0]; const t2 = e.touches[1];
+            const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const ratio = dist / initialPinchDist.current.dist;
+            const newZ = initialPinchDist.current.initialZ * ratio;
+            
+            if (newZ > 1e6 || newZ < 1e-6) return;
 
-            setCamera(prev => {
-                let newZ = prev.z * ratio;
-                if (newZ > 1e12 || newZ < 1e-12) return prev;
-                return { x: prev.x * ratio, y: prev.y * ratio, z: newZ };
-            });
-            initialPinchDist.current = dist;
+            // 핀치 도중 손가락을 이동해도 해당 지점이 화면에 고정되도록 동적 패닝 처리
+            const midX = (t1.clientX + t2.clientX) / 2; const midY = (t1.clientY + t2.clientY) / 2;
+            const canvas = canvasRef.current; const rect = canvas.getBoundingClientRect();
+            const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+            const canvasMidX = (midX - rect.left) / scale; const canvasMidY = (midY - rect.top) / scale;
+            const cx = canvas.width / 2; const cy = canvas.height / 2;
+
+            // 로직 좌표가 다시 화면의 손가락(midX, midY) 아래 오도록 새로운 camera.x, y 계산
+            const newCamX = canvasMidX - cx - (initialPinchDist.current.logicX * newZ);
+            const newCamY = canvasMidY - cy - (initialPinchDist.current.logicY * newZ);
+
+            setCamera({ x: newCamX, y: newCamY, z: newZ });
         }
       };
-      
+
       const handleTouchEnd = (e) => {
-        if (e.touches.length < 2) initialPinchDist.current = null;
-        if (e.touches.length === 0) {
-            isDraggingRef.current = false; setIsDragUI(false); 
-        } else if (e.touches.length === 1) {
-            // 한 손가락을 떼면 부드럽게 패닝 모드로 복귀
-            lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            isDraggingRef.current = true;
-        }
+          if (e.touches.length < 2) initialPinchDist.current = null;
+          if (e.touches.length === 0) {
+              isDraggingRef.current = false; setIsDragUI(false);
+          } else if (e.touches.length === 1) {
+              // 핀치 끝나고 한 손가락만 남았을 때 부드럽게 패닝으로 전환
+              lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+              isDraggingRef.current = true;
+          }
       };
 
       const handleZoom = (direction) => {
@@ -692,14 +744,14 @@
 
                     <hr className="border-zinc-800" />
                     
-                    {/* 🚀 함수 그래프 UI 이동 (반사 변환 아래로 배치) */}
+                    {/* 🚀 함수 그래프 UI 맨 아래 배치 및 기본식 y=x 적용 */}
                     <div className="p-4 bg-purple-900/10 rounded-xl border border-purple-500/20 flex flex-col gap-3">
                       <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base">
                         <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 함수(f(x))를 행렬로 구부리기
                       </label>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-bold italic text-lg">y = </span>
-                        <input type="text" value={graphEq} onChange={e => setGraphEq(e.target.value)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-3 py-2 rounded focus:outline-none focus:border-purple-500 font-mono text-sm" placeholder="예: sin(x/50)*100" />
+                        <input type="text" value={graphEq} onChange={e => setGraphEq(e.target.value)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-3 py-2 rounded focus:outline-none focus:border-purple-500 font-mono text-sm" placeholder="예: x" />
                       </div>
                     </div>
 
@@ -751,12 +803,18 @@
             </div>
           )}
 
+          {/* ==============================================
+              우측(PC) / 바탕화면(모바일) 메인 캔버스
+          ============================================== */}
           <div className={`flex items-center justify-center relative overflow-hidden bg-zinc-950 h-full ${isMobile ? 'w-full absolute inset-0 z-10' : 'flex-1 z-10'}`}>
             
+            {/* 🚀 모바일 전용 수동 매트릭스 & 1px 접합 마감 완벽 처리 */}
             {isMobile && (
-              <div className="absolute top-4 left-4 z-[50] flex items-start">
-                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-2 shadow-xl relative z-10 w-[120px]">
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-center font-mono text-[11px] font-bold tracking-tighter">
+              <div className="absolute top-4 left-4 z-[50] flex items-center drop-shadow-2xl">
+                
+                {/* 왼쪽 행렬 박스: 오른쪽 테두리를 없애고 평평하게 만듦 */}
+                <div className="bg-black/90 backdrop-blur border border-zinc-700 border-r-0 rounded-l-lg p-2 relative w-[120px] h-[88px] flex justify-center items-center">
+                  <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-center font-mono text-[11px] font-bold tracking-tighter w-full">
                     <input type="text" value={isManualMode ? manualMatrix.a : m00} onFocus={handleManualFocus} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
                     <input type="text" value={isManualMode ? manualMatrix.c : m01} onFocus={handleManualFocus} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
                     <input type="text" value={isManualMode ? manualMatrix.e : m02} onFocus={handleManualFocus} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
@@ -767,12 +825,16 @@
                   </div>
                 </div>
 
-                <button onClick={() => setIsPhotoMenuOpen(!isPhotoMenuOpen)} className="w-7 h-[88px] flex items-center justify-center bg-sky-600 hover:bg-sky-500 transition-colors shadow-xl relative z-0 -ml-2 pl-2" style={{ clipPath: 'polygon(0% 0%, 100% 15%, 100% 85%, 0% 100%)' }}>
-                  <span className="text-white text-[10px] font-black">{isPhotoMenuOpen ? '◀' : '▶'}</span>
+                {/* 오른쪽 사다리꼴(Trapezoid) 버튼: -1px 마진으로 박스와 빈틈없이 접착 */}
+                <button onClick={() => setIsPhotoMenuOpen(!isPhotoMenuOpen)} 
+                        className="w-8 h-[88px] flex items-center justify-center bg-sky-600 hover:bg-sky-500 transition-colors -ml-[1px]" 
+                        style={{ clipPath: 'polygon(0% 0%, 100% 15%, 100% 85%, 0% 100%)' }}>
+                  <span className="text-white text-[10px] font-black mr-1">{isPhotoMenuOpen ? '◀' : '▶'}</span>
                 </button>
 
+                {/* 숨겨진 사진 열기 버튼 */}
                 {isPhotoMenuOpen && (
-                  <div className="ml-1 bg-zinc-800/90 backdrop-blur border border-zinc-700 rounded-lg p-1 shadow-xl animate-fade-in origin-left h-[88px] flex items-center">
+                  <div className="ml-2 bg-zinc-800/90 backdrop-blur border border-zinc-700 rounded-lg p-1 shadow-xl animate-fade-in origin-left h-[88px] flex items-center">
                     <label className="flex bg-zinc-100 text-black px-3 py-2 rounded text-[11px] font-bold transition cursor-pointer shadow whitespace-nowrap">
                       📁 사진 열기
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleImageUpload(e); setIsPhotoMenuOpen(false); }} />
