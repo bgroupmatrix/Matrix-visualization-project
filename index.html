@@ -34,6 +34,36 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
+    const DEFAULT_CONFIG = {
+        scaleXMin: 0.1, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: 0.1, scaleYMax: 5.0, scaleYStep: 0.1,
+        squeezeMin: 0.1, squeezeMax: 3.0, squeezeStep: 0.1, transXMin: -500, transXMax: 500, transXStep: 1, transYMin: -500, transYMax: 500, transYStep: 1,
+        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1
+    };
+
+    const INFO_DATA = {
+        scaleX: { title: "X축 확대 (Scale X)", desc: "X좌표에만 지정한 배율(sx)을 곱하여 가로로 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        scaleY: { title: "Y축 확대 (Scale Y)", desc: "Y좌표에만 지정한 배율(sy)을 곱하여 세로로 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
+        squeeze: { title: "스퀴즈 (Squeeze)", desc: "전체 면적은 그대로 1로 유지하면서, 한쪽 축은 늘리고 반대 축은 압축하는 특수 변환입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
+        transX: { title: "X축 이동 (Translate X)", desc: "모든 픽셀의 X좌표에 일정 값(dx)을 더하여 좌우로 평행 이동시킵니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
+        transY: { title: "Y축 이동 (Translate Y)", desc: "모든 픽셀의 Y좌표에 일정 값(dy)을 더하여 상하로 평행 이동시킵니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
+        rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 회전시키는 변환입니다.", matrix: [['cos(θ)', '-sin(θ)', '0'], ['sin(θ)', 'cos(θ)', '0'], ['0', '0', '1']] },
+        shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
+        refl: { title: "반사 변환 (Reflection)", desc: "원점을 지나는 특정 직선(y = ax)을 거울 삼아 이미지를 반대편으로 대칭 이동시킵니다.", matrix: [['cos(2θ)', 'sin(2θ)', '0'], ['sin(2θ)', '-cos(2θ)', '0'], ['0', '0', '1']] },
+        mathLab: { title: "🧮 수학 실험실 (Math Lab)", desc: "이미지나 기본 도형 렌더링을 끄고 순수한 2D 좌표평면을 띄워, 점을 직접 찍거나 수학 함수식을 입력하여 행렬이 어떻게 공간을 휘게 만드는지 직관적으로 실험할 수 있는 전문가용 모드입니다." },
+        graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점(x, y)에 현재 설정된 3x3 변환 행렬을 곱하여 곡선의 형태를 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
+        point: { title: "📍 좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x, y)에 현재 설정된 3x3 변환 행렬을 실시간으로 곱하여 점들을 이동시킵니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
+        
+        chkGray: { title: "흑백화 (Grayscale)", desc: "빛의 3원색(RGB)에 사람의 눈이 민감하게 느끼는 가중치를 곱해 완전한 무채색으로 변환합니다.", formulas: ["Gray = R*0.299 + G*0.587 + B*0.114", "R = Gray, G = Gray, B = Gray"] },
+        chkInv: { title: "색상 반전 (Invert)", desc: "빛의 삼원색 한계치(255)에서 현재 색상을 빼 보색(반대색)을 만듭니다.", formulas: ["R = 255 - R", "G = 255 - G", "B = 255 - B"] },
+        gAdd: { title: "전체 밝기 (Global Add)", desc: "모든 픽셀의 RGB 값에 동일한 상수를 더해 화면 전체를 밝게 하거나 어둡게 합니다.", formulas: ["R' = R + Add", "G' = G + Add", "B' = B + Add"] },
+        gMul: { title: "전체 명암비 (Global Contrast)", desc: "밝은 곳은 더 밝게, 어두운 곳은 더 어둡게 배율을 곱해 색상의 대비를 키웁니다.", formulas: ["R' = R * Contrast", "G' = G * Contrast", "B' = B * Contrast"] },
+        binThresh: { title: "이진화 (Binary Threshold)", desc: "특정 임계값(Threshold)을 기준으로 픽셀을 오직 흰색(255)과 검은색(0) 두 가지로만 나눕니다.", formulas: ["if (Gray > Threshold) 255", "else 0"] },
+        duo: { title: "듀오톤 (Duotone)", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 지정된 두 가지 색상만 매핑합니다.", formulas: ["Ratio = Gray / 255", "Color = Dark + (Light - Dark) * Ratio"] },
+        cAdd: { title: "채널별 밝기 (Channel Add)", desc: "특정 색상(Red/Green/Blue) 채널의 값만 더하거나 빼서 특정 색조를 강하게 만듭니다.", formulas: ["Channel = Channel + Add"] },
+        cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상(R,G,B) 채널의 값에만 배율을 곱해 해당 색상의 대비를 극대화합니다.", formulas: ["Channel = Channel * Contrast"] }
+    };
+
     function getOptimalGridStep(z) {
         const targetStep = 100 / z;
         const exponent = Math.floor(Math.log10(targetStep));
@@ -73,38 +103,62 @@
         catch { return NaN; }
     }
 
-    function CustomNumberInput({ value, onChange, className }) {
+    function CustomNumberInput({ value, onChange, validate, className }) {
         const [localVal, setLocalVal] = useState(String(value));
         useEffect(() => { setLocalVal(String(value)); }, [value]);
+
+        const handleBlur = () => {
+            let parsed = parseFloat(localVal);
+            if (isNaN(parsed)) parsed = 0;
+            if (validate && !validate(parsed)) {
+                setLocalVal(String(value)); 
+                return;
+            }
+            setLocalVal(String(parsed));
+            if (parsed !== parseFloat(value)) onChange(parsed);
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                let parsed = parseFloat(localVal);
+                if (isNaN(parsed)) parsed = 0;
+                if (validate && !validate(parsed)) {
+                    e.preventDefault(); 
+                    return;
+                }
+                e.target.blur(); 
+            }
+        };
+
+        const handleChange = (e) => { setLocalVal(e.target.value); };
+        return <input type="text" value={localVal} onChange={handleChange} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} />;
+    }
+
+    function MatrixInput({ value, onChange, className }) {
+        const [localVal, setLocalVal] = useState(String(value));
+        useEffect(() => { setLocalVal(String(value)); }, [value]);
+        
         const handleBlur = () => {
             let parsed = parseFloat(localVal);
             if (isNaN(parsed)) parsed = 0;
             setLocalVal(String(parsed));
-            onChange(parsed);
+            if (Math.abs(parsed - parseFloat(value)) > 0.0001) onChange(parsed);
         };
-        const handleChange = (e) => {
-            let val = e.target.value;
-            if (val === '-' || val === '') { setLocalVal(val); return; }
-            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '') || '0';
-            if (val.length > 2 && val.startsWith('-0') && !val.startsWith('-0.')) { val = '-' + val.replace(/^-0+/, ''); if(val === '-') val = '-0'; }
-            if (/^-?\d*\.?\d*$/.test(val)) {
-                setLocalVal(val);
-                const parsed = parseFloat(val);
-                if (!isNaN(parsed)) onChange(parsed);
-            }
-        };
-        return <input type="text" value={localVal} onChange={handleChange} onBlur={handleBlur} className={className} />;
+        const handleKeyDown = (e) => { if (e.key === 'Enter') e.target.blur(); };
+        
+        return <input type="text" value={localVal} onChange={e=>setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} />;
     }
 
-    const ControlRow = ({ label, min, max, step, value, onChange, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null }) => (
+    const ControlRow = ({ label, min, max, step, value, onChange, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null, onOpenInfo = null }) => (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-center">
           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
             {label}
+            {onOpenInfo && ( <button onClick={onOpenInfo} title="로직 설명" className={`w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button> )}
             {syncKey && ( <button onClick={onToggleSync} title="동시 조작 링크 (체인 묶기)" className={`text-xs px-1.5 py-0.5 rounded font-black transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-700'}`}>🔗</button> )}
             {onOpenLogic && ( <button onClick={onOpenLogic} title="수학 로직 변경 (코랩 모드)" className={`text-xs px-1.5 py-0.5 rounded font-black transition-colors bg-zinc-800 text-zinc-500 hover:text-white border border-zinc-700`}>⚙️</button> )}
           </span>
-          <CustomNumberInput value={value} onChange={onChange} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1 rounded w-20 text-right outline-none focus:border-${colorClass}-500 transition-colors`} />
+          <CustomNumberInput value={value} validate={(v) => v >= min && v <= max} onChange={onChange} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1 rounded w-20 text-right outline-none focus:border-${colorClass}-500 transition-colors`} />
         </div>
         <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className={`accent-${colorClass}-400 cursor-pointer h-1.5 bg-zinc-700 rounded-lg appearance-none`} />
       </div>
@@ -112,20 +166,27 @@
 
     const ConfigRow = ({ title, prefix, config, setConfig, colorClass }) => {
         const handleConfigChange = (type, val) => {
-            setConfig(prev => {
-                let next = { ...prev, [`${prefix}${type}`]: val };
-                if (type === 'Min' && next[`${prefix}Min`] > next[`${prefix}Max`]) next[`${prefix}Max`] = next[`${prefix}Min`];
-                if (type === 'Max' && next[`${prefix}Max`] < next[`${prefix}Min`]) next[`${prefix}Min`] = next[`${prefix}Max`];
-                return next;
-            });
+            setConfig(prev => ({ ...prev, [`${prefix}${type}`]: val }));
         };
+        const resetToDefault = () => {
+            setConfig(prev => ({
+                ...prev,
+                [`${prefix}Min`]: DEFAULT_CONFIG[`${prefix}Min`],
+                [`${prefix}Max`]: DEFAULT_CONFIG[`${prefix}Max`],
+                [`${prefix}Step`]: DEFAULT_CONFIG[`${prefix}Step`]
+            }));
+        };
+
         return (
             <div className="flex flex-col gap-2 border-b border-zinc-700 pb-3">
-                <span className="text-zinc-300 text-xs font-bold">{title}</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-zinc-300 text-xs font-bold">{title}</span>
+                    <button onClick={resetToDefault} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition">↺ 기본값</button>
+                </div>
                 <div className="flex gap-2">
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소 (Min)<CustomNumberInput value={config[`${prefix}Min`]} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최대 (Max)<CustomNumberInput value={config[`${prefix}Max`]} onChange={v => handleConfigChange('Max', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">간격 (Step)<CustomNumberInput value={config[`${prefix}Step`]} onChange={v => handleConfigChange('Step', Math.max(0.0001, Math.abs(v)))} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소 (Min)<CustomNumberInput value={config[`${prefix}Min`]} validate={(v) => v <= config[`${prefix}Max`]} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최대 (Max)<CustomNumberInput value={config[`${prefix}Max`]} validate={(v) => v >= config[`${prefix}Min`]} onChange={v => handleConfigChange('Max', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">간격 (Step)<CustomNumberInput value={config[`${prefix}Step`]} validate={(v) => Math.abs(v) > 0} onChange={v => handleConfigChange('Step', Math.abs(v))} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                 </div>
             </div>
         );
@@ -158,14 +219,17 @@
       const isResizingPanel = useRef(false);
 
       const [isPanelExpanded, setIsPanelExpanded] = useState(false); 
-      const prevPanelState = useRef(false); // 🚀 패널 상태 변경 감지용
+      const prevPanelState = useRef(false); 
       const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false); 
 
-      const [isManualMode, setIsManualMode] = useState(false);
-      const [manualMatrix, setManualMatrix] = useState({ a: '1.00', b: '0.00', c: '0.00', d: '1.00', e: '0', f: '0' });
+      const [logicInfoData, setLogicInfoData] = useState(null); 
 
+      // 🚀 수학 실험실 상태 (Math Lab)
+      const [useMathLab, setUseMathLab] = useState(false);
       const [useGraph, setUseGraph] = useState(false);
-      const [graphEq, setGraphEq] = useState('x^2');
+      const [usePointMode, setUsePointMode] = useState(false);
+      const [points, setPoints] = useState([]); // {id, label, x, y}
+      const [graphEq, setGraphEq] = useState('x');
 
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [tempGraphEq, setTempGraphEq] = useState("");
@@ -174,7 +238,7 @@
       const handleMathPadKey = (char) => { setTempGraphEq(prev => prev + char); };
       const handleMathPadDelete = () => { setTempGraphEq(prev => prev.slice(0, -1)); };
       const handleMathPadClear = () => { setTempGraphEq(""); };
-      const applyMathPad = () => { setGraphEq(tempGraphEq || 'x^2'); setMathPadOpen(false); };
+      const applyMathPad = () => { setGraphEq(tempGraphEq || 'x'); setMathPadOpen(false); };
 
       const [logicModalOpen, setLogicModalOpen] = useState(false);
       const [customLogic, setCustomLogic] = useState({ m00: 'cos(v)', m01: '-sin(v)', m10: 'sin(v)', m11: 'cos(v)' });
@@ -194,19 +258,18 @@
       const lastMouseRef = useRef({ x: 0, y: 0 });
       const initialPinchDist = useRef(null);
       
+      // 클릭 판별을 위한 드래그 거리 누적 기록기
+      const dragDistRef = useRef(0);
       const [isDragUI, setIsDragUI] = useState(false);
 
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
       const [settingsTab, setSettingsTab] = useState('display'); 
+      const [imageSmoothing, setImageSmoothing] = useState(true); 
       const [imageUnderGrid, setImageUnderGrid] = useState(false);
       const [hideGrid, setHideGrid] = useState(false);
       const [autoResetOnLoad, setAutoResetOnLoad] = useState(false);
       
-      const [config, setConfig] = useState({
-        scaleXMin: 0.1, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: 0.1, scaleYMax: 5.0, scaleYStep: 0.1,
-        squeezeMin: 0.1, squeezeMax: 3.0, squeezeStep: 0.1, transXMin: -500, transXMax: 500, transXStep: 1, transYMin: -500, transYMax: 500, transYStep: 1,
-        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1
-      });
+      const [config, setConfig] = useState(DEFAULT_CONFIG);
 
       const [activeTab, setActiveTab] = useState('geo');
 
@@ -234,9 +297,8 @@
       const colorCacheRef = useRef(null);
       if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
 
-      // 🚀 리셋 시 호출되는 다이나믹 타겟 위치 계산기
       const getDynamicTargetY = () => {
-          if (!isMobile || !isPanelExpanded || !canvasRef.current) return 0; // 패널 닫혀있으면 진짜 중앙(0)
+          if (!isMobile || !isPanelExpanded || !canvasRef.current) return 0;
           const canvas = canvasRef.current;
           const rect = canvas.getBoundingClientRect();
           if (rect.width === 0) return 0;
@@ -245,10 +307,9 @@
           return -(offsetScreenPixels / scale);
       };
 
-      // 🚀 패널 여닫을 때 뚝뚝 끊기지 않고 부드럽게 기존 위치에서 밀려 올라가도록 수정
       useEffect(() => {
           if (!isMobile) return;
-          if (prevPanelState.current === isPanelExpanded) return; // 실제 토글 시에만 작동
+          if (prevPanelState.current === isPanelExpanded) return; 
 
           setCamera(prev => {
               const canvas = canvasRef.current;
@@ -257,20 +318,22 @@
               if (rect.width === 0) return prev;
               const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
               const shiftAmountCanvas = (window.innerHeight * 0.275) / scale;
-              
-              return { 
-                  ...prev, 
-                  y: isPanelExpanded ? prev.y - shiftAmountCanvas : prev.y + shiftAmountCanvas 
-              };
+              return { ...prev, y: isPanelExpanded ? prev.y - shiftAmountCanvas : prev.y + shiftAmountCanvas };
           });
           prevPanelState.current = isPanelExpanded;
       }, [isPanelExpanded, isMobile]);
 
-      useEffect(() => {
-          if (useGraph) {
-              setCamera({ x: 0, y: getDynamicTargetY(), z: 2.0 });
+     // 🚀 수학 실험실 켜고 끄기 핸들러 (z=100 줌인 및 끄면 원상복귀)
+      const handleMathLabToggle = (checked) => {
+          setUseMathLab(checked);
+          if (checked) {
+              // 수학 모드를 켤 때: 1x1 모눈종이 단위로 확대
+              setCamera({ x: 0, y: getDynamicTargetY(), z: 100.0 });
+          } else {
+              // 수학 모드를 끌 때: 현재 사진(imageObj)이나 기본 도형에 맞는 최적 배율로 복귀
+              setCamera(getOptimalCamera(imageObj));
           }
-      }, [useGraph]);
+      };
 
       useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -329,17 +392,34 @@
             targetZ = Math.min((2000 * 0.8) / img.width, (1200 * 0.8) / img.height);
             if (targetZ > 1.0) targetZ = 1.0; 
         }
-        // 🚀 수정됨: 패널이 열려있으면 위로 밀려난 중앙 위치를, 아니면 0(진짜 중앙)을 반환합니다.
         return { x: 0, y: getDynamicTargetY(), z: targetZ };
       };
 
       const resetAll = (img = imageObj) => {
         setCamera(getOptimalCamera(img));
-        setScaleX(1.0); setScaleY(1.0); setTranslateX(0); setTranslateY(0); 
-        setRotation(0); setShearX(0); setShearY(0); setSqueeze(1.0); setUseRefl(false); setReflAngle(90);
-        setChkGray(false); setChkInvert(false); setGlobalAdd(0); setGlobalMul(1.0); setBinThresh(-1);
-        setRAdd(0); setRMul(1.0); setGAdd(0); setGMul(1.0); setBAdd(0); setBMul(1.0);
-        setUseDuotone(false); setIsManualMode(false); setUseGraph(false);
+        
+        const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+        setScaleX(clamp(1.0, config.scaleXMin, config.scaleXMax));
+        setScaleY(clamp(1.0, config.scaleYMin, config.scaleYMax));
+        setTranslateX(clamp(0, config.transXMin, config.transXMax));
+        setTranslateY(clamp(0, config.transYMin, config.transYMax));
+        setRotation(clamp(0, config.rotMin, config.rotMax));
+        setShearX(clamp(0, config.shearXMin, config.shearXMax));
+        setShearY(clamp(0, config.shearYMin, config.shearYMax));
+        setSqueeze(clamp(1.0, config.squeezeMin, config.squeezeMax));
+        
+        setUseRefl(false); setReflAngle(90);
+        setChkGray(false); setChkInvert(false); 
+        setGlobalAdd(0); setGlobalMul(clamp(1.0, config.contMin, config.contMax)); 
+        setBinThresh(-1);
+        
+        setRAdd(0); setRMul(clamp(1.0, config.contMin, config.contMax)); 
+        setGAdd(0); setGMul(clamp(1.0, config.contMin, config.contMax)); 
+        setBAdd(0); setBMul(clamp(1.0, config.contMin, config.contMax));
+        
+        setUseDuotone(false); 
+        setUseMathLab(false); setUseGraph(false); setUsePointMode(false); setPoints([]);
       };
 
       const handleImageUpload = (e) => {
@@ -349,9 +429,86 @@
         const img = new Image();
         img.onload = () => {
           setImageObj(img);
+          setUseMathLab(false); setUseGraph(false); setUsePointMode(false); // 사진 띄울 땐 수학모드 해제
           if (autoResetOnLoad) resetAll(img); else setCamera(getOptimalCamera(img));
         };
         img.src = url;
+      };
+
+      let matrix = new DOMMatrix();
+      matrix = matrix.translate(translateX, translateY);
+      if (useRefl) {
+          const theta = (reflAngle * Math.PI) / 180;
+          matrix = matrix.multiply(new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]));
+      } else { 
+          let v = rotation * Math.PI / 180;
+          let rM = new DOMMatrix([
+              executeMath(compiledLogic.current.m00, v), executeMath(compiledLogic.current.m10, v),
+              executeMath(compiledLogic.current.m01, v), executeMath(compiledLogic.current.m11, v),
+              0, 0
+          ]);
+          matrix = matrix.multiply(rM);
+      }
+      matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
+      matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
+
+      let m00 = matrix.a.toFixed(2), m10 = matrix.b.toFixed(2), m01 = matrix.c.toFixed(2), m11 = matrix.d.toFixed(2), m02 = matrix.e.toFixed(0), m12 = matrix.f.toFixed(0);
+
+      const handleMatrixUpdate = (key, v) => {
+          setConfig(prev => {
+              let next = { ...prev };
+              const expand = (prefix, val) => {
+                  if (val > next[`${prefix}Max`]) next[`${prefix}Max`] = Math.ceil(val + Math.abs(val)*0.2 + 1);
+                  if (val < next[`${prefix}Min`]) next[`${prefix}Min`] = Math.floor(val - Math.abs(val)*0.2 - 1);
+              };
+              if (key === 'a' || key === 'd') { expand('scaleX', v); expand('scaleY', v); }
+              if (key === 'e') expand('transX', v);
+              if (key === 'f') expand('transY', v);
+              if (key === 'b' || key === 'c') { expand('shearX', v); expand('shearY', v); }
+              return next;
+          });
+
+          if (key === 'e') setTranslateX(v);
+          if (key === 'f') setTranslateY(v);
+          if (key === 'a') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setScaleX(v); }
+          if (key === 'd') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setScaleY(v); }
+          if (key === 'c') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearX(scaleY !== 0 ? v / scaleY : 0); }
+          if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
+      };
+
+      const getMatrixColor = (val, defaultVal) => val === defaultVal ? "text-zinc-600" : "text-sky-400 text-shadow-glow";
+
+      // 🚀 캔버스 클릭 시 점 추가 로직
+      const addMathPoint = (clientX, clientY) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const rect = canvas.getBoundingClientRect();
+          const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+          
+          // ✨ object-cover로 인한 캔버스 렌더링 오프셋(잘려나간 여백) 보정 계산
+          const offsetX = (rect.width - canvas.width * scale) / 2;
+          const offsetY = (rect.height - canvas.height * scale) / 2;
+          
+          // ✨ 오프셋을 빼서 '진짜 캔버스 내부 픽셀 좌표'를 완벽하게 추적
+          const canvasX = (clientX - rect.left - offsetX) / scale;
+          const canvasY = (clientY - rect.top - offsetY) / scale;
+          
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          
+          // 역행렬을 이용해 클릭한 화면 위치의 '수학적 원본 논리 좌표' 구하기
+          let screenPt = new DOMPoint(canvasX - cx - camera.x, canvasY - cy - camera.y);
+          let invMat = matrix.inverse();
+          let basePt = screenPt.matrixTransform(invMat);
+          
+          // 0.1 단위 스냅 (깔끔하게 떨어지도록)
+          let logicX = Math.round((basePt.x / camera.z) * 10) / 10;
+          let logicY = Math.round((-basePt.y / camera.z) * 10) / 10;
+          
+          setPoints(prev => {
+              const newLabel = String.fromCharCode(65 + prev.length % 26);
+              return [...prev, { id: Date.now(), label: newLabel, x: logicX, y: logicY }];
+          });
       };
 
       const calculateDelta = (clientX, clientY) => {
@@ -364,27 +521,37 @@
           return { dx, dy };
       };
 
-      const handleMouseDown = (e) => { isDraggingRef.current = true; setIsDragUI(true); lastMouseRef.current = { x: e.clientX, y: e.clientY }; };
+      const handleMouseDown = (e) => { 
+          isDraggingRef.current = true; setIsDragUI(true); dragDistRef.current = 0; 
+          lastMouseRef.current = { x: e.clientX, y: e.clientY }; 
+      };
       const handleMouseMove = (e) => {
         if (!isDraggingRef.current) return;
         const { dx, dy } = calculateDelta(e.clientX, e.clientY);
+        dragDistRef.current += Math.abs(dx) + Math.abs(dy); // 🚀 이동 거리 누적
         setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
         lastMouseRef.current = { x: e.clientX, y: e.clientY };
       };
-      const handleMouseUpOrLeave = () => { isDraggingRef.current = false; setIsDragUI(false); };
+      const handleMouseUpOrLeave = (e) => { 
+        isDraggingRef.current = false; setIsDragUI(false); 
+        // 🚀 드래그 거리가 5 미만이고 점 찍기 모드면 점 추가!
+        if (e.type === 'mouseup' && dragDistRef.current < 5 && useMathLab && usePointMode) {
+            addMathPoint(e.clientX, e.clientY);
+        }
+      };
 
       const handleTouchStart = (e) => {
+        dragDistRef.current = 0;
         if (e.touches.length === 1) {
             isDraggingRef.current = true; setIsDragUI(true); 
             lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; 
         } else if (e.touches.length === 2) {
             isDraggingRef.current = false;
+            dragDistRef.current += 100; // 핀치 시에는 클릭 무효화
             const t1 = e.touches[0]; const t2 = e.touches[1];
             const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            const midX = (t1.clientX + t2.clientX) / 2; 
-            const midY = (t1.clientY + t2.clientY) / 2;
-
+            const midX = (t1.clientX + t2.clientX) / 2; const midY = (t1.clientY + t2.clientY) / 2;
             initialPinchDist.current = { lastDist: dist, lastMidX: midX, lastMidY: midY };
         }
       };
@@ -393,43 +560,33 @@
         if (e.touches.length === 1 && isDraggingRef.current) {
             const touch = e.touches[0];
             const { dx, dy } = calculateDelta(touch.clientX, touch.clientY);
+            dragDistRef.current += Math.abs(dx) + Math.abs(dy);
             setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
             lastMouseRef.current = { x: touch.clientX, y: touch.clientY };
         } else if (e.touches.length === 2 && initialPinchDist.current) {
+            dragDistRef.current += 100; // 핀치 중 이동은 클릭으로 인정 안함
             const t1 = e.touches[0]; const t2 = e.touches[1];
             const dx = t1.clientX - t2.clientX; const dy = t1.clientY - t2.clientY;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            const midX = (t1.clientX + t2.clientX) / 2; 
-            const midY = (t1.clientY + t2.clientY) / 2;
-            
+            const midX = (t1.clientX + t2.clientX) / 2; const midY = (t1.clientY + t2.clientY) / 2;
             const zRatio = dist / initialPinchDist.current.lastDist;
 
             setCamera(prev => {
                 let newZ = prev.z * zRatio;
                 if (newZ > 1e6 || newZ < 1e-6) return prev;
-
                 const canvas = canvasRef.current; 
                 const rect = canvas.getBoundingClientRect();
                 const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
-                
                 const dxScreen = (midX - initialPinchDist.current.lastMidX) / scale;
                 const dyScreen = (midY - initialPinchDist.current.lastMidY) / scale;
-
-                const cx = canvas.width / 2; 
-                const cy = canvas.height / 2;
-
-                const pointerCanvasX = (midX - rect.left) / scale;
-                const pointerCanvasY = (midY - rect.top) / scale;
-
-                const logicX = pointerCanvasX - cx - prev.x;
-                const logicY = pointerCanvasY - cy - prev.y;
+                const cx = canvas.width / 2; const cy = canvas.height / 2;
+                const pointerCanvasX = (midX - rect.left) / scale; const pointerCanvasY = (midY - rect.top) / scale;
+                const logicX = pointerCanvasX - cx - prev.x; const logicY = pointerCanvasY - cy - prev.y;
 
                 const newCamX = prev.x + dxScreen - logicX * (zRatio - 1);
                 const newCamY = prev.y + dyScreen - logicY * (zRatio - 1);
-
                 return { x: newCamX, y: newCamY, z: newZ };
             });
-
             initialPinchDist.current = { lastDist: dist, lastMidX: midX, lastMidY: midY };
         }
       };
@@ -438,6 +595,10 @@
           if (e.touches.length < 2) initialPinchDist.current = null;
           if (e.touches.length === 0) {
               isDraggingRef.current = false; setIsDragUI(false);
+              // 🚀 터치 짧게 눌렀다 뗐으면 점 추가
+              if (dragDistRef.current < 5 && useMathLab && usePointMode && e.changedTouches.length > 0) {
+                  addMathPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+              }
           } else if (e.touches.length === 1) {
               lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
               isDraggingRef.current = true;
@@ -455,57 +616,8 @@
       
       const zoomIn = () => handleZoom('in'); const zoomOut = () => handleZoom('out'); const goHome = () => setCamera(getOptimalCamera(imageObj));
 
-      let matrix = new DOMMatrix();
-      let m00 = "1.00", m01 = "0.00", m02 = "0", m10 = "0.00", m11 = "1.00", m12 = "0";
-
-      if (isManualMode) {
-          matrix = new DOMMatrix([
-              parseFloat(manualMatrix.a) || 0, parseFloat(manualMatrix.b) || 0,
-              parseFloat(manualMatrix.c) || 0, parseFloat(manualMatrix.d) || 0,
-              parseFloat(manualMatrix.e) || 0, parseFloat(manualMatrix.f) || 0
-          ]);
-      } else {
-          matrix = matrix.translate(translateX, translateY);
-          if (useRefl) {
-              const theta = (reflAngle * Math.PI) / 180;
-              matrix = matrix.multiply(new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]));
-          } else { 
-              let v = rotation * Math.PI / 180;
-              let rM = new DOMMatrix([
-                  executeMath(compiledLogic.current.m00, v), executeMath(compiledLogic.current.m10, v),
-                  executeMath(compiledLogic.current.m01, v), executeMath(compiledLogic.current.m11, v),
-                  0, 0
-              ]);
-              matrix = matrix.multiply(rM);
-          }
-          matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
-          matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
-      }
-
-      if (!isManualMode) {
-          m00 = matrix.a.toFixed(2); m10 = matrix.b.toFixed(2);
-          m01 = matrix.c.toFixed(2); m11 = matrix.d.toFixed(2);
-          m02 = matrix.e.toFixed(0); m12 = matrix.f.toFixed(0);
-      }
-
-      const handleManualInput = (key, val) => {
-          if (!isManualMode) {
-              setIsManualMode(true);
-              setManualMatrix({ a: m00, b: m10, c: m01, d: m11, e: m02, f: m12, [key]: val });
-          } else { setManualMatrix(prev => ({...prev, [key]: val})); }
-      };
-
-      const handleManualFocus = () => {
-          if (!isManualMode) {
-              setIsManualMode(true);
-              setManualMatrix({ a: m00, b: m10, c: m01, d: m11, e: m02, f: m12 });
-          }
-      };
-
-      const getMatrixColor = (val, defaultVal) => val === defaultVal ? "text-zinc-600" : "text-sky-400 text-shadow-glow";
-
       useEffect(() => {
-        if (!imageObj) return;
+        if (!imageObj || useMathLab) return;
         const cCanvas = colorCacheRef.current;
         cCanvas.width = imageObj.width; cCanvas.height = imageObj.height;
         const cCtx = cCanvas.getContext('2d', { willReadFrequently: true });
@@ -535,12 +647,15 @@
           }
           cCtx.putImageData(imgData, 0, 0);
         }
-      }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight]);
+      }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight, useMathLab]);
 
       useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        ctx.imageSmoothingEnabled = imageSmoothing;
+
         const w = canvas.width, h = canvas.height;
         const cx = w / 2, cy = h / 2;
         
@@ -589,15 +704,19 @@
         ctx.scale(z, z); 
         ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
         
-        if (imageObj && colorCacheRef.current) {
-          ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
-        } else if (!imageObj && !useGraph) {
-          ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(-100, -100, 200, 200);
-          ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
+        // 🚀 수학 실험실이 꺼져있을 때만 이미지나 도형 렌더링
+        if (!useMathLab) {
+            if (imageObj && colorCacheRef.current) {
+              ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
+            } else if (!imageObj) {
+              ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(-100, -100, 200, 200);
+              ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
+            }
         }
         ctx.restore();
 
-        if (useGraph) {
+        // 🚀 함수 및 맵핑 렌더링
+        if (useMathLab && useGraph) {
             const func = compileMath(graphEq.replace(/x/g, 'v'));
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y);
@@ -608,7 +727,7 @@
             
             let first = true;
             for (let screenX = -3000; screenX <= 3000; screenX += 2) {
-                let mathX = screenX / gridStep;
+                let mathX = screenX / z;
                 let mathY = executeMath(func, mathX); 
                 
                 if (isNaN(mathY) || !isFinite(mathY)) {
@@ -616,7 +735,7 @@
                     continue;
                 }
                 
-                let screenY = -(mathY * gridStep); 
+                let screenY = -(mathY * z); 
                 let pt = new DOMPoint(screenX, screenY);
                 let transformedPt = pt.matrixTransform(matrix);
                 
@@ -629,16 +748,43 @@
 
         if (imageUnderGrid) drawGridAndAxes();
 
+        // 🚀 점 맵핑 렌더링 (행렬에 텍스트가 찌그러지지 않도록 별도 변환)
+        if (useMathLab && usePointMode && points.length > 0) {
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y);
+            points.forEach(p => {
+                let pt = new DOMPoint(p.x * z, -p.y * z);
+                let tPt = pt.matrixTransform(matrix);
+                
+                ctx.beginPath();
+                ctx.arc(tPt.x, tPt.y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = '#10b981'; // emerald-500
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillStyle = 'white';
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 4;
+                ctx.fillText(`${p.label}(${p.x}, ${p.y})`, tPt.x + 12, tPt.y - 12);
+                ctx.shadowBlur = 0; // 초기화
+            });
+            ctx.restore();
+        }
+
         if (useRefl) {
           ctx.save();
           ctx.translate(cx + camera.x, cy + camera.y); ctx.translate(translateX * z, translateY * z); ctx.rotate(-(reflAngle * Math.PI) / 180); 
           ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-30000, 0); ctx.lineTo(30000, 0); ctx.stroke(); ctx.restore();
         }
-      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useGraph, graphEq]); 
+      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphEq, imageSmoothing]); 
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
           
+          {/* 🧮 수학 키보드(Math Pad) */}
           {mathPadOpen && (
             <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -690,6 +836,41 @@
             </div>
           )}
 
+          {/* 🚀 각 기능별 3x3 로직 또는 색상 공식 안내 모달 */}
+          {logicInfoData && (
+            <div className="fixed inset-0 z-[120] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+                  <h3 className="text-white font-bold text-lg md:text-xl">💡 {logicInfoData.title}</h3>
+                  <button onClick={() => setLogicInfoData(null)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                </div>
+                
+                <p className="text-zinc-300 text-sm leading-relaxed">{logicInfoData.desc}</p>
+                
+                {logicInfoData.matrix && (
+                  <div className="bg-black border border-zinc-700 rounded-lg p-4 flex justify-center items-center relative my-2 shadow-inner">
+                    <span className="absolute left-3 text-[50px] font-light text-zinc-600">(</span>
+                    <div className="grid grid-cols-3 gap-x-8 gap-y-3 text-center font-mono text-lg font-bold text-sky-400">
+                      {logicInfoData.matrix.flat().map((val, idx) => (
+                        <div key={idx} className={val === '0' || val === '1' ? 'text-zinc-500' : 'text-sky-400 text-shadow-glow'}>{val}</div>
+                      ))}
+                    </div>
+                    <span className="absolute right-3 text-[50px] font-light text-zinc-600">)</span>
+                  </div>
+                )}
+
+                {logicInfoData.formulas && (
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 flex flex-col gap-2 font-mono text-[13px] shadow-inner">
+                    {logicInfoData.formulas.map((f, i) => (
+                      <div key={i} className="text-amber-400">{f}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ⚙️ 수학 로직(코랩 모드) 변경 모달 */}
           {logicModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -727,6 +908,7 @@
                 {settingsTab === 'display' && (
                   <div className="flex flex-col gap-4">
                     <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span></label>
+                    <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={imageSmoothing} onChange={(e) => setImageSmoothing(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지 스무딩 (계단현상 방지)</span></label>
                     <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span></label>
                     <label className="flex items-center gap-3 cursor-pointer group"><div className="relative"><input type="checkbox" checked={hideGrid} onChange={(e) => setHideGrid(e.target.checked)} className="peer sr-only" /><div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div><div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div></div><span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span></label>
                   </div>
@@ -768,12 +950,12 @@
             <div className="hidden md:flex p-6 bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative">
               <span className="absolute -left-6 -top-2 text-7xl font-light text-zinc-600 pointer-events-none">(</span>
               <div className="grid grid-cols-3 gap-x-6 gap-y-4 text-center font-mono text-3xl font-bold tracking-tighter w-full max-w-[280px]">
-                <input type="text" value={isManualMode ? manualMatrix.a : m00} onFocus={handleManualFocus} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.c : m01} onFocus={handleManualFocus} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.e : m02} onFocus={handleManualFocus} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.b : m10} onFocus={handleManualFocus} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.d : m11} onFocus={handleManualFocus} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
-                <input type="text" value={isManualMode ? manualMatrix.f : m12} onFocus={handleManualFocus} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
+                <MatrixInput value={m00} onChange={v => handleMatrixUpdate('a', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m00, "1.00")}`} />
+                <MatrixInput value={m01} onChange={v => handleMatrixUpdate('c', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m01, "0.00")}`} />
+                <MatrixInput value={m02} onChange={v => handleMatrixUpdate('e', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m02, "0")}`} />
+                <MatrixInput value={m10} onChange={v => handleMatrixUpdate('b', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m10, "0.00")}`} />
+                <MatrixInput value={m11} onChange={v => handleMatrixUpdate('d', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m11, "1.00")}`} />
+                <MatrixInput value={m12} onChange={v => handleMatrixUpdate('f', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12, "0")}`} />
                 <div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">1.0</div>
               </div>
               <span className="absolute -right-6 -top-2 text-7xl font-light text-zinc-600 pointer-events-none">)</span>
@@ -787,74 +969,118 @@
             <div className="flex-1 overflow-y-auto p-4 md:p-5">
               {activeTab === 'geo' && (
                 <div className="flex flex-col gap-5 md:gap-6">
-                  {isManualMode && (
-                    <div className="bg-purple-900/20 border border-purple-500/40 rounded-xl p-4 flex flex-col gap-2 shadow-lg animate-fade-in">
-                      <span className="text-purple-400 font-bold text-sm">⚠️ 수동 행렬 입력 모드</span>
-                      <p className="text-zinc-400 text-xs leading-relaxed">직접 타이핑한 행렬이 우선 적용되며, 기하학 슬라이더 조작은 일시적으로 무시됩니다.</p>
-                      <button onClick={() => setIsManualMode(false)} className="mt-1 py-2 bg-purple-600/80 hover:bg-purple-500 text-white text-sm rounded font-bold transition">수동 모드 해제</button>
-                    </div>
-                  )}
-
-                  <div className={`flex flex-col gap-5 md:gap-6 transition-opacity duration-300 ${isManualMode ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
-                    <div className="space-y-4">
-                      <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} />
-                      <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} />
-                      <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} />
-                    </div>
-                    <hr className="border-zinc-800" />
-                    <div className="space-y-4">
-                      <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} />
-                      <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} />
-                      <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} />
-                    </div>
-                    <hr className="border-zinc-800" />
-                    <div className="space-y-4">
-                      <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} />
-                      <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} />
-                    </div>
-                    
-                    <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer text-rose-400 font-bold text-sm md:text-base">
-                        <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500" /> 반사 변환 직선 (y = ax) 켜기
-                      </label>
-                      <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} colorClass="rose" />
-                    </div>
-
-                    <hr className="border-zinc-800" />
-                    
-                    <div className="p-4 bg-purple-900/10 rounded-xl border border-purple-500/20 flex flex-col gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base">
-                        <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 함수(f(x))를 행렬로 구부리기
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-bold italic text-lg">y = </span>
-                        <div onClick={openMathPad} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-3 py-2 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap">
-                          {graphEq}
-                        </div>
-                        <button onClick={openMathPad} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded font-bold shadow-lg transition whitespace-nowrap text-sm">
-                          🧮 입력
-                        </button>
-                      </div>
-                    </div>
-
+                  <div className="space-y-4">
+                    <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
+                    <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
+                    <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
                   </div>
+                  <hr className="border-zinc-800" />
+                  <div className="space-y-4">
+                    <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
+                    <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
+                    <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
+                  </div>
+                  <hr className="border-zinc-800" />
+                  <div className="space-y-4">
+                    <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
+                    <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                  </div>
+                  
+                  <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
+                    <label className="flex items-center gap-2 text-rose-400 font-bold text-sm md:text-base w-max cursor-pointer">
+                      <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500 cursor-pointer" /> 
+                      반사 변환 직선 (y = ax) 켜기
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.refl); }} className={`ml-1 w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                    </label>
+                    <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} colorClass="rose" />
+                  </div>
+
+                  <hr className="border-zinc-800" />
+                  
+                  {/* 🚀 수학 실험실 (Math Lab) 패널 */}
+                  <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4">
+                    <label className="flex items-center gap-2 text-indigo-400 font-black text-base w-max cursor-pointer">
+                      <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="w-5 h-5 accent-indigo-500 cursor-pointer" /> 
+                      🧮 수학 실험실 (Math Lab)
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className={`ml-1 w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                    </label>
+
+                    {useMathLab && (
+                        <div className="flex flex-col gap-5 mt-1 pl-3 border-l-2 border-indigo-500/30">
+                            
+                            {/* 📍 좌표 점 찍기 모드 */}
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
+                                  <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
+                                  📍 좌표 점(Point) 맵핑
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.point); }} className={`ml-1 w-[16px] h-[16px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[10px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                                </label>
+                                {usePointMode && (
+                                    <div className="flex flex-col gap-2 bg-emerald-900/10 p-3 rounded-lg border border-emerald-500/20">
+                                        <div className="flex flex-wrap gap-2">
+                                            {points.length === 0 ? <span className="text-zinc-500 text-xs py-1">화면(좌표계)을 클릭하여 점을 추가하세요.</span> :
+                                            points.map(p => (
+                                                <div key={p.id} className="bg-zinc-800 border border-zinc-700 px-2 py-1 rounded text-xs flex items-center gap-1.5 shadow-sm">
+                                                    <span className="text-emerald-400 font-bold">{p.label}</span>
+                                                    <span className="text-zinc-300">({p.x}, {p.y})</span>
+                                                    <button onClick={() => setPoints(pts => pts.filter(pt => pt.id !== p.id))} className="text-rose-400 hover:text-rose-300 ml-1 font-bold">✕</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {points.length > 0 && <button onClick={() => setPoints([])} className="text-[11px] text-zinc-400 hover:text-white text-right mt-1 w-max self-end px-2 py-1 bg-zinc-800 rounded">전체 지우기</button>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 📈 함수 맵핑 모드 */}
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
+                                  <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
+                                  📈 함수(f(x)) 맵핑
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className={`ml-1 w-[16px] h-[16px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[10px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                                </label>
+                                {useGraph && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-white font-bold italic text-lg">y = </span>
+                                      <div onClick={openMathPad} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-3 py-2 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap">
+                                        {graphEq}
+                                      </div>
+                                      <button onClick={openMathPad} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded font-bold shadow-lg transition whitespace-nowrap text-sm">
+                                        🧮 입력
+                                      </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                  </div>
+
                 </div>
               )}
 
               {activeTab === 'color' && (
                 <div className="flex flex-col gap-5 md:gap-6">
-                  <div className="flex gap-2 md:gap-4 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap text-sm md:text-base"><input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 흑백화</label>
-                    <label className="flex-1 flex items-center gap-2 cursor-pointer text-amber-400 font-bold whitespace-nowrap text-sm md:text-base"><input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="w-4 h-4 accent-amber-500" /> 반전</label>
+                  <div className="flex gap-4 md:gap-6 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
+                    <label className="flex items-center gap-2 text-amber-400 font-bold whitespace-nowrap text-sm md:text-base w-max cursor-pointer">
+                        <input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 흑백화
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.chkGray); }} className={`w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                    </label>
+                    <label className="flex items-center gap-2 text-amber-400 font-bold whitespace-nowrap text-sm md:text-base w-max cursor-pointer">
+                        <input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 반전
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.chkInv); }} className={`w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                    </label>
                   </div>
                   <div className="space-y-4">
-                    <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" />
-                    <ControlRow label="전체 명암비 (x)" min={config.contMin} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" />
-                    <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} colorClass="zinc" />
+                    <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
+                    <ControlRow label="전체 명암비 (x)" min={config.contMin} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
+                    <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
                   </div>
 
                   <div className="p-3 bg-purple-900/20 rounded-xl border border-purple-500/30 flex flex-col gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer text-purple-400 font-bold text-sm md:text-base"><input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="w-4 h-4 accent-purple-500" /> 가짜 컬러 복원 (듀오톤)</label>
+                    <label className="flex items-center gap-2 text-purple-400 font-bold text-sm md:text-base w-max cursor-pointer">
+                        <input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 가짜 컬러 복원 (듀오톤)
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.duo); }} className={`ml-1 w-[18px] h-[18px] pb-px rounded-full bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-serif italic text-[11px] font-black border border-zinc-700 shadow-sm transition`}>i</button>
+                    </label>
                     <div className="flex gap-2">
                       <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">어두운 영역<input type="color" value={colorDarkUI} onChange={(e) => setColorDarkUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
                       <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">밝은 영역<input type="color" value={colorLightUI} onChange={(e) => setColorLightUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
@@ -863,16 +1089,16 @@
 
                   <hr className="border-zinc-800" />
                   <div className="space-y-4 p-3 border-l-2 border-red-500">
-                    <ControlRow label="Red 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" />
-                    <ControlRow label="Red 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" />
+                    <ControlRow label="Red 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Red 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-green-500">
-                    <ControlRow label="Green 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" />
-                    <ControlRow label="Green 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" />
+                    <ControlRow label="Green 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Green 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-blue-500">
-                    <ControlRow label="Blue 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" />
-                    <ControlRow label="Blue 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" />
+                    <ControlRow label="Blue 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Blue 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                 </div>
               )}
@@ -891,12 +1117,12 @@
               <div className="absolute top-4 left-4 z-[50] flex items-center drop-shadow-2xl">
                 <div className="bg-black/90 backdrop-blur border border-zinc-700 border-r-0 rounded-l-lg p-2 relative w-[120px] h-[88px] flex justify-center items-center">
                   <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-center font-mono text-[11px] font-bold tracking-tighter w-full">
-                    <input type="text" value={isManualMode ? manualMatrix.a : m00} onFocus={handleManualFocus} onChange={e => handleManualInput('a', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m00, "1.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.c : m01} onFocus={handleManualFocus} onChange={e => handleManualInput('c', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m01, "0.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.e : m02} onFocus={handleManualFocus} onChange={e => handleManualInput('e', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m02, "0")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.b : m10} onFocus={handleManualFocus} onChange={e => handleManualInput('b', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m10, "0.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.d : m11} onFocus={handleManualFocus} onChange={e => handleManualInput('d', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m11, "1.00")}`} />
-                    <input type="text" value={isManualMode ? manualMatrix.f : m12} onFocus={handleManualFocus} onChange={e => handleManualInput('f', e.target.value)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${isManualMode ? 'text-purple-400' : getMatrixColor(m12, "0")}`} />
+                    <MatrixInput value={m00} onChange={v => handleMatrixUpdate('a', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00, "1.00")}`} />
+                    <MatrixInput value={m01} onChange={v => handleMatrixUpdate('c', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01, "0.00")}`} />
+                    <MatrixInput value={m02} onChange={v => handleMatrixUpdate('e', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02, "0")}`} />
+                    <MatrixInput value={m10} onChange={v => handleMatrixUpdate('b', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10, "0.00")}`} />
+                    <MatrixInput value={m11} onChange={v => handleMatrixUpdate('d', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11, "1.00")}`} />
+                    <MatrixInput value={m12} onChange={v => handleMatrixUpdate('f', v)} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12, "0")}`} />
                     <div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">0.0</div><div className="text-zinc-600 pointer-events-none">1.0</div>
                   </div>
                 </div>
@@ -933,8 +1159,10 @@
             
             <div className="absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg md:text-xl font-bold z-40 transition-all duration-300"
                  style={isMobile ? { bottom: isPanelExpanded ? 'calc(55vh + env(safe-area-inset-bottom, 16px) + 16px)' : 'calc(env(safe-area-inset-bottom, 16px) + 16px)', right: '16px' } : { bottom: '32px', right: '32px' }}>
-              <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition" title="리셋 (Reset)">🔄</button>
-              <button onClick={goHome} className="px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition border-t border-zinc-700" title="오토핏 화면으로">🏠</button>
+              {isMobile && (
+                  <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition" title="리셋 (Reset)">🔄</button>
+              )}
+              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition ${isMobile ? 'border-t' : ''} border-zinc-700`} title="오토핏 화면으로">🏠</button>
               <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-white border-t border-zinc-700 transition" title="확대 (Zoom In)">➕</button>
               <button onClick={zoomOut} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-white border-t border-zinc-700 transition" title="축소 (Zoom Out)">➖</button>
             </div>
