@@ -48,7 +48,7 @@
         squeeze: { title: "스퀴즈 (Squeeze)", desc: "전체 면적은 그대로 1로 유지하면서, 한쪽 축은 늘리고 반대 축은 압축하는 특수 변환입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
         transX: { title: "X축 이동 (Translate X)", desc: "모든 픽셀의 X좌표에 일정 값(dx)을 더하여 좌우로 평행 이동시킵니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
         transY: { title: "Y축 이동 (Translate Y)", desc: "모든 픽셀의 Y좌표에 일정 값(dy)을 더하여 상하로 평행 이동시킵니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
-        rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 평면 회전시키는 변환입니다.", matrix: [['cos(θ)', '-sin(θ)', '0'], ['sin(θ)', 'cos(θ)', '0'], ['0', '0', '1']] },
+        rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 평면 회전시키는 변환입니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
         shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
         shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
         refl: { title: "반사 변환 (Reflection)", desc: "원점을 지나는 특정 직선(y = ax)을 거울 삼아 이미지를 반대편으로 대칭 이동시킵니다.", matrix: [['cos(2θ)', 'sin(2θ)', '0'], ['sin(2θ)', '-cos(2θ)', '0'], ['0', '0', '1']] },
@@ -89,17 +89,24 @@
     function compileMath(expr, constNames = []) {
         try {
             let safeExpr = expr
+                .replace(/([0-9.]+)(x|[a-zA-Z_])/gi, '$1*$2') 
+                .replace(/x([a-zA-Z_])/gi, 'x*$1') 
+                .replace(/([0-9.x])\(/gi, '$1*(') 
+                .replace(/\)(x|[0-9a-zA-Z_])/gi, ')*$1') 
+                .replace(/\)\(/g, ')*(') 
                 .replace(/log_([0-9a-zA-Z.]+)\(([^)]+)\)/g, '(Math.log($2)/Math.log($1))')
                 .replace(/sin/g, 'Math.sin')
                 .replace(/cos/g, 'Math.cos')
                 .replace(/tan/g, 'Math.tan')
                 .replace(/abs/g, 'Math.abs')
                 .replace(/sqrt/g, 'Math.sqrt')
+                .replace(/exp\(/g, 'Math.exp(') 
                 .replace(/log\(/g, 'Math.log10(') 
                 .replace(/ln\(/g, 'Math.log(')    
                 .replace(/pi/gi, 'Math.PI')
                 .replace(/\be\b/g, 'Math.E')
-                .replace(/\^/g, '**'); 
+                .replace(/\^/g, '**')
+                .replace(/\bx\b/g, 'v'); 
             return new Function('v', ...constNames, `return ${safeExpr};`);
         } catch(e) { return () => NaN; }
     }
@@ -254,6 +261,10 @@
       const [logicInfoData, setLogicInfoData] = useState(null); 
       const [useMathLab, setUseMathLab] = useState(false);
       
+      const [showImageInMathLab, setShowImageInMathLab] = useState(false); 
+      const [keepViewOnMathLab, setKeepViewOnMathLab] = useState(false); 
+      const [mathUnderImage, setMathUnderImage] = useState(false); 
+      
       const [constants, setConstants] = useState([]);
       const [activeConstConfig, setActiveConstConfig] = useState(null);
 
@@ -262,18 +273,25 @@
       const deleteConstant = (name) => { setConstants(prev => prev.filter(c => c.name !== name)); };
       
       const [useGraph, setUseGraph] = useState(false);
-      const [graphs, setGraphs] = useState([{ id: Date.now(), eq: 'x' }]);
+      const [graphs, setGraphs] = useState([{ id: Date.now(), eq: 'x', matrixMode: 'global', customMatrix: {a:1, b:0, c:0, d:1, e:0, f:0} }]);
       const [isGraphListExpanded, setIsGraphListExpanded] = useState(true);
 
       const [usePointMode, setUsePointMode] = useState(false);
       const [points, setPoints] = useState([]); 
       const [isPointListExpanded, setIsPointListExpanded] = useState(true);
+      
+      // 🚀 3. 수동 점 추가 입력 폼 State
+      const [showManualPointUI, setShowManualPointUI] = useState(false);
+      const [manualX, setManualX] = useState("0");
+      const [manualY, setManualY] = useState("0");
 
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [padTab, setPadTab] = useState('math'); 
       const [tempGraphEq, setTempGraphEq] = useState("");
       const [editingGraphId, setEditingGraphId] = useState(null);
       const inputRef = useRef(null);
+
+      const [graphSettingsId, setGraphSettingsId] = useState(null);
 
       const openMathPad = (id, currentEq) => { 
           setEditingGraphId(id); 
@@ -333,12 +351,16 @@
           }
       };
       
-      const addGraph = () => { setGraphs(prev => [...prev, { id: Date.now(), eq: 'x' }]); setIsGraphListExpanded(true); };
+      const addGraph = () => { setGraphs(prev => [...prev, { id: Date.now(), eq: 'x', matrixMode: 'global', customMatrix: {a:1, b:0, c:0, d:1, e:0, f:0} }]); setIsGraphListExpanded(true); };
       const removeGraph = (id) => { 
           setGraphs(prev => {
               const next = prev.filter(g => g.id !== id);
-              return next.length > 0 ? next : [{ id: Date.now(), eq: 'x' }];
+              return next.length > 0 ? next : [{ id: Date.now(), eq: 'x', matrixMode: 'global', customMatrix: {a:1, b:0, c:0, d:1, e:0, f:0} }];
           });
+      };
+
+      const updateGraphCustomMatrix = (id, key, val) => {
+          setGraphs(prev => prev.map(g => g.id === id ? { ...g, customMatrix: { ...g.customMatrix, [key]: val } } : g));
       };
 
       const [logicModalOpen, setLogicModalOpen] = useState(false);
@@ -407,7 +429,7 @@
       useEffect(() => {
           setConfig(prev => {
               let next = { ...prev };
-              if (useMathLab) {
+              if (useMathLab && !showImageInMathLab) {
                   next.transXMin = -10; next.transXMax = 10; next.transXStep = 0.1;
                   next.transYMin = -10; next.transYMax = 10; next.transYStep = 0.1;
               } else if (imageObj) {
@@ -421,7 +443,7 @@
               }
               return next;
           });
-      }, [imageObj, useMathLab]);
+      }, [imageObj, useMathLab, showImageInMathLab]);
 
       useEffect(() => {
           if (!isMobile) return;
@@ -449,11 +471,13 @@
 
       const handleMathLabToggle = (checked) => {
           setUseMathLab(checked);
-          if (checked) {
-              const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
-              setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
-          } else {
-              setCamera(getOptimalCamera(imageObj));
+          if (!keepViewOnMathLab) {
+              if (checked) {
+                  const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
+                  setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
+              } else {
+                  setCamera(getOptimalCamera(imageObj));
+              }
           }
       };
 
@@ -557,10 +581,10 @@
       };
 
       const resetAll = (img = imageObj) => {
-        if (useMathLab) {
+        if (useMathLab && !keepViewOnMathLab) {
             const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
             setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
-        } else {
+        } else if (!useMathLab) {
             setCamera(getOptimalCamera(img));
         }
         
@@ -585,8 +609,6 @@
         setBAdd(0); setBMul(clamp(1.0, config.contMin, config.contMax));
         
         setUseDuotone(false); 
-        setPoints([]); setGraphs([{ id: Date.now(), eq: 'x' }]);
-        setConstants([]);
       };
 
       const handleImageUpload = (e) => {
@@ -600,6 +622,24 @@
           if (autoResetOnLoad) resetAll(img); else setCamera(getOptimalCamera(img));
         };
         img.src = url;
+      };
+
+      // 🚀 3. 수동 점 추가 기능 (버그 방지 클램핑 적용)
+      const handleAddManualPoint = () => {
+          let x = parseFloat(manualX);
+          let y = parseFloat(manualY);
+          if (isNaN(x) || !isFinite(x)) x = 0;
+          if (isNaN(y) || !isFinite(y)) y = 0;
+          
+          // 캔버스 과부하 방지 한계치 설정 (-1000만 ~ +1000만)
+          x = Math.max(-1e7, Math.min(1e7, x));
+          y = Math.max(-1e7, Math.min(1e7, y));
+
+          setPoints(prev => {
+              const newLabel = String.fromCharCode(65 + prev.length % 26);
+              return [...prev, { id: Date.now(), label: newLabel, x, y }];
+          });
+          setShowManualPointUI(false);
       };
 
       const constValues = constants.map(c => c.value);
@@ -757,9 +797,8 @@
 
             setCamera(prev => {
                 let newZ = prev.z * zRatio;
-                // 모바일 GPU 블랙스크린 방지를 위해 최대 한계치 조정
-                if (newZ > 1e7) newZ = 1e7;
-                if (newZ < 1e-7) newZ = 1e-7;
+                if (newZ > 500000) newZ = 500000;
+                if (newZ < 1e-6) newZ = 1e-6;
                 const actualRatio = newZ / prev.z;
 
                 const canvas = canvasRef.current; 
@@ -816,15 +855,15 @@
               const nextStep = getNextStep(currentStep, direction);
               let newZ = 100 / nextStep;
               
-              if (newZ > 1e7) newZ = 1e7;
-              if (newZ < 1e-7) newZ = 1e-7;
+              if (newZ > 500000) newZ = 500000;
+              if (newZ < 1e-6) newZ = 1e-6;
               const actualRatio = newZ / prev.z;
               return { x: prev.x * actualRatio, y: prev.y * actualRatio, z: newZ }; 
           });
       };
       
       const goHome = () => {
-          if (useMathLab) {
+          if (useMathLab && !keepViewOnMathLab) {
               const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
               setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
           } else {
@@ -835,7 +874,7 @@
       const zoomIn = () => handleZoom('in'); const zoomOut = () => handleZoom('out');
 
       useLayoutEffect(() => {
-        if (!imageObj || useMathLab) return;
+        if (!imageObj) return;
         const cCanvas = colorCacheRef.current;
         cCanvas.width = imageObj.width; cCanvas.height = imageObj.height;
         const cCtx = cCanvas.getContext('2d', { willReadFrequently: true });
@@ -865,7 +904,7 @@
           }
           cCtx.putImageData(imgData, 0, 0);
         }
-      }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight, useMathLab]);
+      }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight]);
 
       useLayoutEffect(() => {
         const canvas = canvasRef.current;
@@ -882,103 +921,106 @@
 
         ctx.clearRect(0, 0, w, h);
 
-        const drawGridAndAxes = () => {
+        const isImageActive = !useMathLab || showImageInMathLab;
+
+        let minXIter = Math.floor(((-cx - camera.x) / z) / gridStep) - 2;
+        let maxXIter = Math.ceil(((w - cx - camera.x) / z) / gridStep) + 2;
+        if (maxXIter - minXIter > 200) { minXIter = -100; maxXIter = 100; }
+        
+        let minYIter = Math.floor(((-cy - camera.y) / z) / gridStep) - 2;
+        let maxYIter = Math.ceil(((h - cy - camera.y) / z) / gridStep) + 2;
+        if (maxYIter - minYIter > 200) { minYIter = -100; maxYIter = 100; }
+
+        let regularMarksX = [];
+        for (let i = minXIter; i <= maxXIter; i++) { if (i !== 0) regularMarksX.push(i * gridStep); }
+        let regularMarksY = [];
+        for (let i = minYIter; i <= maxYIter; i++) { if (i !== 0) regularMarksY.push(-i * gridStep); }
+
+        const drawGridLines = () => {
           if (hideGrid) return;
-          const logicalLeft = (-cx - camera.x) / z, logicalRight = (w - cx - camera.x) / z;
-          const logicalTop = (-cy - camera.y) / z, logicalBottom = (h - cy - camera.y) / z;
           
-          let minXIter = Math.floor(logicalLeft / gridStep);
-          let maxXIter = Math.ceil(logicalRight / gridStep);
-          let minYIter = Math.floor(logicalTop / gridStep);
-          let maxYIter = Math.ceil(logicalBottom / gridStep);
-
-          // 브라우저 렌더링 부하를 막기 위해 최대 그리기 갯수 제한 (블랙스크린 방지)
-          if (maxXIter - minXIter > 300) { minXIter = -150; maxXIter = 150; }
-          if (maxYIter - minYIter > 300) { minYIter = -150; maxYIter = 150; }
-
           ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
           ctx.beginPath();
-          // 선을 화면 밖으로 무한히 그리지 않고, 캔버스 크기(0 ~ h)에 딱 맞게 그려서 모바일 오류 방지
-          for (let i = minXIter; i <= maxXIter; i++) { 
-              let screenX = cx + camera.x + i * gridStep * z; 
-              ctx.moveTo(screenX, 0); ctx.lineTo(screenX, h); 
-          }
-          for (let i = minYIter; i <= maxYIter; i++) { 
-              let screenY = cy + camera.y + i * gridStep * z; 
-              ctx.moveTo(0, screenY); ctx.lineTo(w, screenY); 
-          }
+          regularMarksX.forEach(valX => { let screenX = cx + camera.x + valX * z; ctx.moveTo(screenX, -100000); ctx.lineTo(screenX, 100000); });
+          regularMarksY.forEach(valY => { let screenY = cy + camera.y - valY * z; ctx.moveTo(-100000, screenY); ctx.lineTo(100000, screenY); });
           ctx.stroke();
 
           ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
           ctx.beginPath();
           let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
-          ctx.moveTo(sOriginX, 0); ctx.lineTo(sOriginX, h);
-          ctx.moveTo(0, sOriginY); ctx.lineTo(w, sOriginY);
+          ctx.moveTo(sOriginX, -100000); ctx.lineTo(sOriginX, 100000);
+          ctx.moveTo(-100000, sOriginY); ctx.lineTo(100000, sOriginY);
           ctx.stroke();
-
-          // 🚀 사진 테두리에 숫자 띄우는 기능 완전히 삭제 (오리지널 롤백)
-          ctx.font = `bold 14px monospace`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          for (let i = minXIter; i <= maxXIter; i++) {
-              if (i === 0) continue;
-              let valX = i * gridStep;
-              let screenX = cx + camera.x + valX * z;
-              let textY = Math.max(15, Math.min(h - 25, sOriginY + 15)); // 항상 x축 아래
-              let str = formatNumber(valX);
-              ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, screenX, textY);
-              ctx.fillStyle = 'white'; ctx.fillText(str, screenX, textY);
-          }
-
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          for (let i = minYIter; i <= maxYIter; i++) {
-              if (i === 0) continue;
-              let valY = -i * gridStep;
-              let screenY = cy + camera.y + i * gridStep * z;
-              let textX = Math.max(15, Math.min(w - 70, sOriginX - 10)); // 항상 y축 왼쪽
-              let str = formatNumber(valY);
-              ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, screenY);
-              ctx.fillStyle = 'white'; ctx.fillText(str, textX, screenY);
-          }
         };
 
-        if (!imageUnderGrid) drawGridAndAxes();
+        const drawNumbers = () => {
+            if (hideGrid) return;
+            let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
+            ctx.font = `bold 14px monospace`;
+            
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            regularMarksX.forEach(valX => {
+                let screenX = cx + camera.x + valX * z;
+                let textY = Math.max(15, Math.min(h - 25, sOriginY + 15));
+                let str = formatNumber(valX);
+                ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, screenX, textY);
+                ctx.fillStyle = 'white'; ctx.fillText(str, screenX, textY);
+            });
 
-        ctx.save();
-        ctx.translate(cx + camera.x, cy + camera.y); 
-        ctx.scale(z, z); 
-        ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
-        
-        if (!useMathLab) {
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            regularMarksY.forEach(valY => {
+                let screenY = cy + camera.y - valY * z;
+                let textX = Math.max(15, Math.min(w - 70, sOriginX - 10));
+                let str = formatNumber(valY);
+                ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, screenY);
+                ctx.fillStyle = 'white'; ctx.fillText(str, textX, screenY);
+            });
+        };
+
+        const drawImageLayer = () => {
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y); 
+            ctx.scale(z, z); 
+            ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
             if (imageObj && colorCacheRef.current) {
               ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
             } else if (!imageObj) {
               ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(-100, -100, 200, 200);
               ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
             }
-        }
-        ctx.restore();
+            ctx.restore();
+        };
 
-        // 🚀 사진 위에 격자가 그려질 수 있도록 롤백 완료
-        if (imageUnderGrid) drawGridAndAxes();
+        const drawMathFunctions = () => {
+            if (!useMathLab || !useGraph || graphs.length === 0) return;
+            const constNames = constants.map(c => c.name);
+            const currentConstValues = constants.map(c => c.value);
 
-        const constNames = constants.map(c => c.name);
-        const currentConstValues = constants.map(c => c.value);
+            let viewMinX = -cx - camera.x - w * 2;
+            let viewMaxX = w - cx - camera.x + w * 2;
+            let viewMinY = -cy - camera.y - h * 2;
+            let viewMaxY = h - cy - camera.y + h * 2;
 
-        if (useMathLab && useGraph && graphs.length > 0) {
             graphs.forEach((g, idx) => {
-                if (!g) return;
-                const func = compileMath(g.eq.replace(/x/g, 'v'), constNames);
+                if (!g || !g.eq) return;
+                const func = compileMath(g.eq, constNames);
+                
+                let gMatrix = matrix;
+                if (g.matrixMode === 'none') {
+                    gMatrix = new DOMMatrix(); 
+                } else if (g.matrixMode === 'custom' && g.customMatrix) {
+                    gMatrix = new DOMMatrix([g.customMatrix.a, g.customMatrix.b, g.customMatrix.c, g.customMatrix.d, g.customMatrix.e, g.customMatrix.f]);
+                }
+
                 ctx.save();
                 ctx.translate(cx + camera.x, cy + camera.y);
                 ctx.beginPath();
                 ctx.strokeStyle = GRAPH_COLORS[idx % GRAPH_COLORS.length]; 
                 ctx.lineWidth = 4; 
-                
+
                 let invMat;
-                try { invMat = matrix.inverse(); } catch(e) { invMat = new DOMMatrix(); }
-                
+                try { invMat = gMatrix.inverse(); } catch(e) { invMat = new DOMMatrix(); }
+
                 let corners = [
                     new DOMPoint(-w, -h), new DOMPoint(w*2, -h),
                     new DOMPoint(-w, h*2), new DOMPoint(w*2, h*2)
@@ -992,66 +1034,116 @@
                     maxMathX = Math.max(maxMathX, mathPt.x);
                 });
 
-                // 🚀 화면 픽셀 기준으로 3000번 분할하여 스캔 (모바일/웹 공통 부하 완벽 제거)
-                let steps = 3000;
+                let steps = Math.min(3000, w * 1.5);
                 let mathStep = (maxMathX - minMathX) / steps;
                 if (mathStep <= 0 || !isFinite(mathStep)) mathStep = 0.01;
 
                 let startMathX = minMathX;
                 let first = true;
                 let prevMathY = null;
-                
-                // 모바일 GPU 보호 한계선
-                const LIMIT = 15000;
+                let prevMathX = null;
 
                 for (let mathX = startMathX; mathX <= maxMathX; mathX += mathStep) {
                     let mathY = executeMath(func, mathX, currentConstValues); 
                     
                     if (isNaN(mathY) || !isFinite(mathY)) {
-                        first = true; prevMathY = null; continue;
+                        // 오른쪽으로 진행하다가 정의되지 않는 영역으로 들어갈 때
+                        if (!first && prevMathX !== null && prevMathY !== null) {
+                            let bx = prevMathX, step = mathStep, lastValidY = prevMathY;
+                            for(let k=0; k<25; k++){ 
+                                step /= 2; 
+                                let ty = executeMath(func, bx + step, currentConstValues); 
+                                if(!isNaN(ty) && isFinite(ty)){ bx += step; lastValidY = ty; } 
+                            }
+                            
+                            let delta = Math.max(1e-12, Math.abs(bx) * 1e-6);
+                            let tY1 = executeMath(func, bx - delta, currentConstValues);
+                            let tY2 = executeMath(func, bx - delta * 100, currentConstValues);
+                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2;
+                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2;
+
+                            if (isPlunging && lastValidY < 0) {
+                                let aPt = new DOMPoint(bx, 1e7).matrixTransform(gMatrix);
+                                ctx.lineTo(aPt.x * z, viewMaxY);
+                            } else if (isShooting && lastValidY > 0) {
+                                let aPt = new DOMPoint(bx, -1e7).matrixTransform(gMatrix);
+                                ctx.lineTo(aPt.x * z, viewMinY);
+                            } else {
+                                let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
+                                ctx.lineTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
+                            }
+                        }
+                        first = true; prevMathY = null; prevMathX = null; continue;
                     }
 
                     if (prevMathY !== null) {
                         let dyScreen = Math.abs(mathY - prevMathY) * z;
                         if (dyScreen > h && mathY * prevMathY < 0) {
-                            first = true;
+                            first = true; 
                         }
                     }
-                    prevMathY = mathY;
                     
                     let pt = new DOMPoint(mathX, -mathY);
-                    let transformedPt = pt.matrixTransform(matrix);
-                    
-                    let drawX = transformedPt.x * z;
-                    let drawY = transformedPt.y * z;
-                    
-                    if (drawX > LIMIT) drawX = LIMIT;
-                    if (drawX < -LIMIT) drawX = -LIMIT;
-                    if (drawY > LIMIT) drawY = LIMIT;
-                    if (drawY < -LIMIT) drawY = -LIMIT;
+                    let transformedPt = pt.matrixTransform(gMatrix);
+                    let drawX = Math.max(viewMinX, Math.min(viewMaxX, transformedPt.x * z));
+                    let drawY = Math.max(viewMinY, Math.min(viewMaxY, transformedPt.y * z));
 
                     if (first) {
-                        ctx.moveTo(drawX, drawY);
+                        let probeY = executeMath(func, mathX - mathStep, currentConstValues);
+                        if (isNaN(probeY) || !isFinite(probeY)) {
+                            let bx = mathX, step = mathStep, lastValidY = mathY;
+                            for(let k=0; k<25; k++){ 
+                                step /= 2; 
+                                let ty = executeMath(func, bx - step, currentConstValues); 
+                                if(!isNaN(ty) && isFinite(ty)){ bx -= step; lastValidY = ty; } 
+                            }
+                            
+                            // 🚀 미세 델타 탐색으로 log(x)의 -무한대 수직 추락을 포착하여 바닥부터 선 꽂기
+                            let delta = Math.max(1e-12, Math.abs(bx) * 1e-6);
+                            let tY1 = executeMath(func, bx + delta, currentConstValues);
+                            let tY2 = executeMath(func, bx + delta * 100, currentConstValues);
+                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2;
+                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2;
+
+                            if (isPlunging) {
+                                let aPt = new DOMPoint(bx, 1e7).matrixTransform(gMatrix);
+                                ctx.moveTo(aPt.x * z, viewMaxY);
+                                let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
+                                ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
+                            } else if (isShooting) {
+                                let aPt = new DOMPoint(bx, -1e7).matrixTransform(gMatrix);
+                                ctx.moveTo(aPt.x * z, viewMinY);
+                                let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
+                                ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
+                            } else {
+                                let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
+                                ctx.moveTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
+                            }
+                            ctx.lineTo(drawX, drawY);
+                        } else {
+                            ctx.moveTo(drawX, drawY);
+                        }
                         first = false;
                     } else {
                         ctx.lineTo(drawX, drawY);
                     }
+                    prevMathY = mathY;
+                    prevMathX = mathX;
                 }
                 ctx.stroke();
                 ctx.restore();
             });
-        }
+        };
 
-        if (useMathLab && usePointMode && points.length > 0) {
+        const drawMathPoints = () => {
+            if (!useMathLab || !usePointMode || points.length === 0) return;
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y);
             points.forEach(p => {
                 let pt = new DOMPoint(p.x, -p.y);
                 let tPt = pt.matrixTransform(matrix);
-                
                 let drawX = tPt.x * z;
                 let drawY = tPt.y * z;
-                
                 ctx.beginPath();
                 ctx.arc(drawX, drawY, 6, 0, 2 * Math.PI);
                 ctx.fillStyle = '#10b981'; 
@@ -1059,7 +1151,6 @@
                 ctx.strokeStyle = 'white';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                
                 ctx.font = 'bold 16px sans-serif';
                 ctx.fillStyle = 'white';
                 ctx.shadowColor = 'black';
@@ -1068,14 +1159,31 @@
                 ctx.shadowBlur = 0;
             });
             ctx.restore();
+        };
+
+        if (!imageUnderGrid) {
+            drawGridLines();
+            drawNumbers();
+        }
+        
+        if (useMathLab && mathUnderImage) { drawMathFunctions(); drawMathPoints(); }
+
+        if (isImageActive) drawImageLayer();
+
+        if (useMathLab && !mathUnderImage) { drawMathFunctions(); drawMathPoints(); }
+
+        if (imageUnderGrid) {
+            drawGridLines();
+            drawNumbers();
         }
 
         if (useRefl) {
-          ctx.save();
-          ctx.translate(cx + camera.x, cy + camera.y); ctx.translate(translateX * z, translateY * z); ctx.rotate(-(reflAngle * Math.PI) / 180); 
-          ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-30000, 0); ctx.lineTo(30000, 0); ctx.stroke(); ctx.restore();
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y); ctx.translate(translateX * z, translateY * z); ctx.rotate(-(reflAngle * Math.PI) / 180); 
+            ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-100000, 0); ctx.lineTo(100000, 0); ctx.stroke(); ctx.restore();
         }
-      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants]); 
+
+      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab]); 
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
@@ -1183,9 +1291,9 @@
                     <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0">
                       <path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" />
                     </svg>
-                    <div className="grid grid-cols-3 gap-x-6 gap-y-4 text-center font-mono text-lg font-bold text-sky-400 mx-3 flex-1 max-w-[180px]">
+                    <div className="grid grid-cols-3 gap-x-3 gap-y-4 text-center font-mono text-base font-bold text-sky-400 mx-1 flex-1 w-full max-w-[240px]">
                       {logicInfoData.matrix.flat().map((val, idx) => (
-                        <div key={idx} className={val === '0' || val === '1' ? 'text-zinc-500 flex items-center justify-center' : 'text-sky-400 text-shadow-glow flex items-center justify-center'}>{val}</div>
+                        <div key={idx} className={val === '0' || val === '1' ? 'text-zinc-500 flex items-center justify-center whitespace-nowrap' : 'text-sky-400 text-shadow-glow flex items-center justify-center whitespace-nowrap'}>{val}</div>
                       ))}
                     </div>
                     <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0">
@@ -1201,6 +1309,69 @@
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* 🚀 각 함수별 행렬 개별 설정을 위한 모달 창 */}
+          {graphSettingsId !== null && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-[22rem] shadow-2xl animate-fade-in flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
+                  <h3 className="text-white font-bold text-lg">함수 행렬 설정</h3>
+                  <button onClick={() => setGraphSettingsId(null)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                </div>
+                
+                {graphs.find(g => g.id === graphSettingsId) && (() => {
+                    const g = graphs.find(g => g.id === graphSettingsId);
+                    return (
+                        <div className="flex flex-col gap-5">
+                            <div className="flex flex-col gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-zinc-800 transition">
+                                    <input type="radio" name="matrixMode" checked={g.matrixMode === 'global'} onChange={() => {
+                                        setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'global' } : item));
+                                    }} className="accent-purple-500" />
+                                    <span className="text-zinc-300 font-bold text-sm">기본 (글로벌 행렬 따르기)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-zinc-800 transition">
+                                    <input type="radio" name="matrixMode" checked={g.matrixMode === 'none'} onChange={() => {
+                                        setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'none' } : item));
+                                    }} className="accent-purple-500" />
+                                    <span className="text-zinc-300 font-bold text-sm">적용 안 함 (변환 무시)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-zinc-800 transition">
+                                    <input type="radio" name="matrixMode" checked={g.matrixMode === 'custom'} onChange={() => {
+                                        setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'custom' } : item));
+                                    }} className="accent-purple-500" />
+                                    <span className="text-zinc-300 font-bold text-sm text-purple-400">개별 행렬 직접 입력</span>
+                                </label>
+                            </div>
+
+                            {g.matrixMode === 'custom' && (
+                                <div className="bg-black border border-zinc-800 rounded-lg p-4 flex justify-center items-center relative shadow-inner h-[140px]">
+                                    <div className="flex items-center justify-center w-3 h-full">
+                                        <span className="text-zinc-500 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.6, 2.0)' }}>(</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-x-3 gap-y-4 text-center font-mono text-base font-bold text-purple-400 mx-2 flex-1 max-w-[200px]">
+                                        <CustomNumberInput value={g.customMatrix.a} onChange={v => updateGraphCustomMatrix(g.id, 'a', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                        <CustomNumberInput value={g.customMatrix.c} onChange={v => updateGraphCustomMatrix(g.id, 'c', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                        <CustomNumberInput value={g.customMatrix.e} onChange={v => updateGraphCustomMatrix(g.id, 'e', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                        <CustomNumberInput value={g.customMatrix.b} onChange={v => updateGraphCustomMatrix(g.id, 'b', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                        <CustomNumberInput value={g.customMatrix.d} onChange={v => updateGraphCustomMatrix(g.id, 'd', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                        <CustomNumberInput value={g.customMatrix.f} onChange={v => updateGraphCustomMatrix(g.id, 'f', v)} className="w-full bg-zinc-900 border border-zinc-700 text-center focus:outline-none focus:border-purple-500 rounded py-1" />
+                                    </div>
+                                    <div className="flex items-center justify-center w-3 h-full">
+                                        <span className="text-zinc-500 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.6, 2.0)' }}>)</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button onClick={() => setGraphSettingsId(null)} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors">
+                                확인
+                            </button>
+                        </div>
+                    );
+                })()}
               </div>
             </div>
           )}
@@ -1285,6 +1456,35 @@
                         </div>
                         <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 값 딱 떨어지게 표시 (1.00 → 1)</span>
                     </label>
+
+                    {/* 🚀 수학 실험실 전용 옵션 분리 적용 */}
+                    <hr className="border-zinc-700/50 my-2" />
+                    <span className="text-xs font-bold text-zinc-500">수학 실험실 전용 옵션</span>
+                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
+                        <div className="relative">
+                            <input type="checkbox" checked={showImageInMathLab} onChange={(e) => setShowImageInMathLab(e.target.checked)} className="peer sr-only" />
+                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
+                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드에서 사진 함께 보기</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
+                        <div className="relative">
+                            <input type="checkbox" checked={keepViewOnMathLab} onChange={(e) => setKeepViewOnMathLab(e.target.checked)} className="peer sr-only" />
+                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
+                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드 켤 때 줌/좌표 고정 (사진에 맞춤)</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
+                        <div className="relative">
+                            <input type="checkbox" checked={mathUnderImage} onChange={(e) => setMathUnderImage(e.target.checked)} className="peer sr-only" />
+                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
+                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 함수/좌표 점을 사진 아래로 내리기</span>
+                    </label>
+
                   </div>
                 )}
                 {settingsTab === 'inputs' && (
@@ -1417,7 +1617,13 @@
                                 {usePointMode && (
                                     <div className="flex flex-col gap-2 bg-emerald-900/10 p-3 rounded-lg border border-emerald-500/20">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
+                                                {/* 🚀 3. 수동 점 추가 버튼 */}
+                                                <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                    +
+                                                </button>
+                                            </div>
                                             <div className="flex gap-1">
                                                 {points.length > 0 && (
                                                     <button onClick={() => setPoints([])} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 지우기">
@@ -1429,9 +1635,19 @@
                                                 </button>
                                             </div>
                                         </div>
+                                        {/* 🚀 3. 수동 점 추가 폼 (클램핑 보호막 적용) */}
+                                        {showManualPointUI && (
+                                            <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-emerald-500/10 mb-1">
+                                                <span className="text-zinc-500 font-mono text-[10px]">X:</span>
+                                                <CustomNumberInput value={manualX} onChange={setManualX} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
+                                                <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
+                                                <CustomNumberInput value={manualY} onChange={setManualY} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
+                                                <button onClick={handleAddManualPoint} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
+                                            </div>
+                                        )}
                                         {isPointListExpanded && (
                                             <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
-                                                {points.length === 0 ? <span className="text-zinc-500 text-xs py-1">화면(좌표계)을 클릭하여 점을 추가하세요.</span> :
+                                                {points.length === 0 ? <span className="text-zinc-500 text-xs py-1">화면을 클릭하거나 직접 입력하세요.</span> :
                                                 points.map(p => (
                                                     <div key={p.id} className="bg-zinc-800 border border-zinc-700 px-3 py-2 rounded text-sm flex justify-between items-center shadow-sm">
                                                         <div className="flex gap-3 items-center">
@@ -1464,17 +1680,25 @@
                                         {isGraphListExpanded && (
                                             <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
                                                 {graphs.map((g, idx) => (
-                                                    <div key={g.id} className="bg-zinc-800 border border-zinc-700 px-3 py-2 rounded flex justify-between items-center shadow-sm gap-2">
-                                                        <span className="font-bold italic text-lg" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}}>y =</span>
-                                                        <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-2 py-1.5 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap">
-                                                            {g.eq}
+                                                    <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
+                                                        <div className="flex justify-between items-center w-full gap-2">
+                                                            <span className="font-bold italic text-lg shrink-0" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}}>y =</span>
+                                                            {/* 🚀 2. 계산기 아이콘 삭제 후 수식 부분을 누르면 열리게 통합 */}
+                                                            <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-2 py-1.5 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap" title="수식 편집">
+                                                                {g.eq}
+                                                            </div>
+                                                            <div className="flex gap-1 shrink-0">
+                                                                <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 옵션">
+                                                                    ⚙️
+                                                                </button>
+                                                                <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex gap-1 shrink-0">
-                                                            <button onClick={() => openMathPad(g.id, g.eq)} className="bg-purple-600 hover:bg-purple-500 text-white w-8 h-8 flex items-center justify-center rounded font-bold shadow transition">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                                            </button>
-                                                            <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
-                                                        </div>
+                                                        {g.matrixMode !== 'global' && (
+                                                            <div className="text-[10px] text-amber-500/80 font-bold text-right px-1">
+                                                                {g.matrixMode === 'none' ? '* 행렬 변환 미적용' : '* 개별 커스텀 행렬 적용중'}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
