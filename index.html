@@ -66,7 +66,8 @@
         binThresh: { title: "이진화 (Binary Threshold)", desc: "특정 임계값을 기준으로 픽셀을 오직 흰색(255)과 검은색(0)으로만 나눕니다.", formulas: ["if (Gray > Threshold) 255", "else 0"] },
         duo: { title: "듀오톤 (Duotone)", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
         cAdd: { title: "채널별 밝기 (Channel Add)", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
-        cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] }
+        cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
+        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 선형대수학에서 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
     };
 
     function getOptimalGridStep(z) {
@@ -336,9 +337,69 @@
       const [showMatrixChain, setShowMatrixChain] = useState(false);
       const [chainOrder, setChainOrder] = useState(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
 
-      // 🚀 2번 기능 추가: 모바일 드래그 상태 관리 및 자동 스크롤 함수
+      // 🚀 PC용 드래그 상태 관리
       const dragChainRef = useRef(null);
       const [ghostDragInfo, setGhostDragInfo] = useState(null); 
+
+      // 🚀 모바일 전용 세로 모달 드래그 앤 드롭 상태 관리
+      const mobileChainContainerRef = useRef(null);
+      const mobileDragRef = useRef(null);
+      const [mobileGhost, setMobileGhost] = useState(null);
+
+      const handleMobileChainTouchStart = (e, index, id) => {
+          const touch = e.touches[0];
+          const target = e.currentTarget;
+          const rect = target.getBoundingClientRect();
+          
+          mobileDragRef.current = {
+              index, id,
+              offsetY: touch.clientY - rect.top,
+              width: rect.width, height: rect.height,
+              isDragging: true
+          };
+          setMobileGhost({ id, x: rect.left, y: rect.top, width: rect.width, height: rect.height });
+          if(navigator.vibrate) navigator.vibrate(20);
+      };
+
+      const handleMobileChainTouchMove = (e) => {
+          if (!mobileDragRef.current) return;
+          const touch = e.touches[0];
+          e.preventDefault(); // 모바일 튕김 현상(새로고침) 완벽 방지
+          
+          setMobileGhost(prev => ({ ...prev, y: touch.clientY - mobileDragRef.current.offsetY }));
+
+          // 위아래 화면 끝에 닿으면 부드럽게 스크롤
+          const container = mobileChainContainerRef.current;
+          if (container) {
+              const crect = container.getBoundingClientRect();
+              const edge = 50;
+              if (touch.clientY > crect.bottom - edge) container.scrollTop += 15;
+              else if (touch.clientY < crect.top + edge) container.scrollTop -= 15;
+          }
+
+          // 블록 스와핑 로직
+          const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+          const targetEl = elements.find(el => el.hasAttribute && el.hasAttribute('data-mobile-idx'));
+          if (targetEl) {
+              const targetIdx = parseInt(targetEl.getAttribute('data-mobile-idx'));
+              if (targetIdx !== mobileDragRef.current.index) {
+                  setChainOrder(prev => {
+                      const newOrder = [...prev];
+                      const temp = newOrder[mobileDragRef.current.index];
+                      newOrder.splice(mobileDragRef.current.index, 1);
+                      newOrder.splice(targetIdx, 0, temp);
+                      return newOrder;
+                  });
+                  mobileDragRef.current.index = targetIdx;
+                  if(navigator.vibrate) navigator.vibrate(10);
+              }
+          }
+      };
+
+      const handleMobileChainTouchEnd = () => {
+          mobileDragRef.current = null;
+          setMobileGhost(null);
+      }; 
 
       const handleChainTouchStart = (e, index, id) => {
           const touch = e.touches[0];
@@ -1640,13 +1701,72 @@
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
           
-          {/* 🚀 방금 추가한 드래그앤드롭 고스트(Ghost) UI가 화면에 보이도록 연결 */}
-          {ghostDragInfo && (
-              <div 
-                  className="fixed pointer-events-none z-[200] drop-shadow-2xl scale-110 opacity-90 transition-none"
-                  style={{ left: ghostDragInfo.x, top: ghostDragInfo.y, width: ghostDragInfo.width }}
-              >
+          {/* 🚀 PC용 가로 드래그앤드롭 고스트(Ghost) UI */}
+          {ghostDragInfo && !isMobile && (
+              <div className="fixed pointer-events-none z-[200] drop-shadow-2xl scale-110 opacity-90 transition-none"
+                   style={{ left: ghostDragInfo.x, top: ghostDragInfo.y, width: ghostDragInfo.width }}>
                   <MiniMatrix m={getChainMatrix(ghostDragInfo.id).m} label={getChainMatrix(ghostDragInfo.id).label} />
+              </div>
+          )}
+
+          {/* 🚀 모바일용 세로 드래그앤드롭 고스트(Ghost) UI */}
+          {mobileGhost && isMobile && (
+              <div className="fixed pointer-events-none z-[300] drop-shadow-2xl opacity-95 transition-none flex items-center gap-3 bg-zinc-800 border border-indigo-500 px-4 py-3 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+                   style={{ left: mobileGhost.x, top: mobileGhost.y, width: mobileGhost.width, height: mobileGhost.height }}>
+                  <span className="text-indigo-400 font-bold text-lg">{chainOrder.findIndex(id => id === mobileGhost.id) + 1}.</span>
+                  <span className="text-white font-bold text-base flex-1">{getChainMatrix(mobileGhost.id).label}</span>
+                  <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/></svg>
+              </div>
+          )}
+
+          {/* 🚀 모바일 전용 세로 행렬 순서 조립기 모달창 */}
+          {isMobile && showMatrixChain && (
+              <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowMatrixChain(false)}>
+                  <div className="bg-zinc-900 border border-indigo-500/50 rounded-2xl p-5 shadow-2xl w-full max-w-sm flex flex-col gap-4 transform transition-all" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-700 pb-3">
+                          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                              행렬 연산 조립기
+                              {/* 모바일 행렬 조립기용 i 버튼 */}
+                              <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="text-indigo-400 hover:text-white transition bg-zinc-800 rounded-full p-1 border border-zinc-700">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                              </button>
+                          </h3>
+                          <button onClick={() => setShowMatrixChain(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                      </div>
+                      
+                      <p className="text-[11px] text-zinc-400 leading-relaxed -mt-2">
+                          블록의 <b>☰(손잡이)</b> 부분을 위아래로 끌어당겨<br/>먼저 곱해질 행렬의 순서를 바꿀 수 있습니다.
+                      </p>
+
+                      <div className="flex flex-col gap-2.5 overflow-y-auto max-h-[50vh] p-1 pb-4 scrollbar-hide relative"
+                           ref={mobileChainContainerRef}
+                           style={{ touchAction: mobileGhost ? 'none' : 'auto' }}
+                           onTouchMove={mobileGhost ? handleMobileChainTouchMove : undefined}
+                           onTouchEnd={handleMobileChainTouchEnd}
+                           onTouchCancel={handleMobileChainTouchEnd}>
+                          
+                          {chainOrder.map((id, idx) => {
+                              const chainItem = getChainMatrix(id);
+                              const isDragging = mobileGhost && mobileGhost.id === id;
+                              return (
+                                  <div key={id} data-mobile-idx={idx}
+                                       onTouchStart={(e) => handleMobileChainTouchStart(e, idx, id)}
+                                       className={`flex items-center gap-3 bg-zinc-800 border ${isDragging ? 'opacity-0' : 'border-zinc-700 opacity-100'} px-4 py-3 rounded-xl touch-none select-none cursor-grab active:cursor-grabbing shadow-sm`}>
+                                      <span className="text-zinc-500 font-bold text-lg w-4">{idx + 1}.</span>
+                                      <span className="text-white font-bold text-base flex-1">{chainItem.label}</span>
+                                      <div className="bg-black/50 p-1.5 rounded border border-zinc-700 mr-2">
+                                          <div className="grid grid-cols-3 gap-x-1.5 gap-y-0.5 text-center font-mono text-[8px] font-bold text-sky-300">
+                                              <span>{fmt(chainItem.m.a)}</span><span>{fmt(chainItem.m.c)}</span><span>{fmt(chainItem.m.e)}</span>
+                                              <span>{fmt(chainItem.m.b)}</span><span>{fmt(chainItem.m.d)}</span><span>{fmt(chainItem.m.f)}</span>
+                                              <span className="text-zinc-600">0</span><span className="text-zinc-600">0</span><span className="text-zinc-600">1</span>
+                                          </div>
+                                      </div>
+                                      <svg className="w-5 h-5 text-zinc-500 hover:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/></svg>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
               </div>
           )}
 
@@ -2118,6 +2238,13 @@
                   )}
               </button>
 
+              {/* 🚀 PC: 행렬 분해 보기 i 아이콘 추가 */}
+              {showMatrixChain && (
+                  <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-16 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                  </button>
+              )}
+
               <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
               </button>
@@ -2564,33 +2691,10 @@
                     <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
                   </div>
                   {showMatrixChain ? (
-                      <div className="flex items-center w-[120px] overflow-x-auto space-x-1 px-2 scrollbar-hide self-center"
-                           style={{ touchAction: ghostDragInfo ? 'none' : 'auto' }}
-                           onTouchMove={ghostDragInfo ? handleChainTouchMove : undefined}
-                           onTouchEnd={handleChainTouchEnd}
-                           onTouchCancel={handleChainTouchEnd}
-                      >
-                          {chainOrder.map((id, idx) => {
-                              const chainItem = getChainMatrix(id);
-                              const isDragging = ghostDragInfo && ghostDragInfo.id === id;
-                              return (
-                                  <React.Fragment key={id}>
-                                      <div 
-                                          data-chain-idx={idx}
-                                          draggable 
-                                          onDragStart={(e) => handleDragStart(e, idx)}
-                                          onDragOver={handleDragOver}
-                                          onDrop={(e) => handleDrop(e, idx)}
-                                          onTouchStart={(e) => handleChainTouchStart(e, idx, id)}
-                                          onContextMenu={(e) => e.preventDefault()}
-                                          className={`cursor-grab active:cursor-grabbing transition-transform touch-none select-none ${isDragging ? 'opacity-0' : 'opacity-100 hover:scale-105 drop-shadow-lg'}`}
-                                      >
-                                          <MiniMatrix m={chainItem.m} label={chainItem.label} />
-                                      </div>
-                                      {idx < chainOrder.length - 1 && <span className="text-zinc-500 font-bold text-xs shrink-0">×</span>}
-                                  </React.Fragment>
-                              );
-                          })}
+                      <div className="flex items-center justify-center w-[120px] self-center">
+                          <span className="text-indigo-400 font-bold text-[11px] text-center border border-indigo-500/30 bg-indigo-900/20 px-3 py-1.5 rounded-lg shadow-inner">
+                              조립기<br/>실행 중
+                          </span>
                       </div>
                   ) : (
                       <div className="grid grid-cols-3 gap-x-2 gap-y-3 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[140px] mx-1">
