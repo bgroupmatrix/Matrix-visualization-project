@@ -366,7 +366,8 @@
           const touch = e.touches[0];
           e.preventDefault(); // 모바일 튕김 현상(새로고침) 완벽 방지
           
-          setMobileGhost(prev => ({ ...prev, y: touch.clientY - mobileDragRef.current.offsetY }));
+          // 고스트 UI 상태 안전 업데이트
+          setMobileGhost(prev => prev ? { ...prev, y: touch.clientY - mobileDragRef.current.offsetY } : null);
 
           // 위아래 화면 끝에 닿으면 부드럽게 스크롤
           const container = mobileChainContainerRef.current;
@@ -377,15 +378,18 @@
               else if (touch.clientY < crect.top + edge) container.scrollTop -= 15;
           }
 
-          // 블록 스와핑 로직
-          const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-          const targetEl = elements.find(el => el.hasAttribute && el.hasAttribute('data-mobile-idx'));
+          // 🚀 1. 검은 화면 튕김 방어: 요소가 화면 밖으로 나갈 때 null 반환에 의한 크래시를 원천 차단
+          const elements = document.elementsFromPoint(touch.clientX, touch.clientY) || [];
+          const targetEl = Array.from(elements).find(el => el && el.getAttribute && el.getAttribute('data-mobile-idx') !== null);
+          
           if (targetEl) {
-              const targetIdx = parseInt(targetEl.getAttribute('data-mobile-idx'));
-              if (targetIdx !== mobileDragRef.current.index) {
+              const targetIdx = parseInt(targetEl.getAttribute('data-mobile-idx'), 10);
+              // 배열 인덱스 초과 에러 방어
+              if (!isNaN(targetIdx) && targetIdx !== mobileDragRef.current.index && targetIdx >= 0 && targetIdx < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
                       const temp = newOrder[mobileDragRef.current.index];
+                      if (!temp) return prev; // 안전장치
                       newOrder.splice(mobileDragRef.current.index, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
@@ -441,27 +445,34 @@
           e.preventDefault();
           setGhostDragInfo(prev => ({ ...prev, x: touch.clientX - dragChainRef.current.offsetX, y: touch.clientY - dragChainRef.current.offsetY }));
 
-          // 🚀 손가락이 화면 끝에 닿으면 부드럽고 빠르게 자동 스크롤
-          const container = e.currentTarget;
-          const crect = container.getBoundingClientRect();
-          const edgeThreshold = 60;
-          if (touch.clientX > crect.right - edgeThreshold) container.scrollLeft += 20;
-          else if (touch.clientX < crect.left + edgeThreshold) container.scrollLeft -= 20;
+          const container = scrollContainerRef.current;
+          if (container) {
+              const crect = container.getBoundingClientRect();
+              const edgeThreshold = 60;
+              if (touch.clientX > crect.right - edgeThreshold) container.scrollLeft += 20;
+              else if (touch.clientX < crect.left + edgeThreshold) container.scrollLeft -= 20;
+          }
 
-          const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-          const targetEl = elements.find(el => el.hasAttribute && el.hasAttribute('data-chain-idx'));
+          // 🚀 2. 모바일 브라우저 호환성 에러(검은 화면 크래시) 완벽 방어
+          const elements = document.elementsFromPoint(touch.clientX, touch.clientY) || [];
+          // NodeList 반환 에러를 막기 위해 Array.from() 안전장치 추가
+          const targetEl = Array.from(elements).find(el => el && el.getAttribute && el.getAttribute('data-chain-idx') !== null);
+          
           if (targetEl) {
-              const targetIdx = parseInt(targetEl.getAttribute('data-chain-idx'));
-              if (targetIdx !== dragChainRef.current.index) {
+              const targetIdx = parseInt(targetEl.getAttribute('data-chain-idx'), 10);
+              const currentIndex = dragChainRef.current.index;
+              
+              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
-                      const temp = newOrder[dragChainRef.current.index];
-                      newOrder.splice(dragChainRef.current.index, 1);
+                      const temp = newOrder[currentIndex];
+                      if (!temp) return prev; // 안전장치
+                      newOrder.splice(currentIndex, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
                   });
                   dragChainRef.current.index = targetIdx;
-                  if(navigator.vibrate) navigator.vibrate(20);
+                  if(navigator.vibrate) navigator.vibrate(10);
               }
           }
       };
@@ -737,11 +748,16 @@
              isDraggingHandle.current = false;
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
-             if (deltaY < 10) {
-                 const h = mobilePanelHeightRef.current;
-                 // 🚀 높이가 40 이상이면 0으로 완전 숨김, 아니면 85로 펼침
-                 if (h > 40) setMobilePanelHeight(0);
-                 else setMobilePanelHeight(85);
+             
+             // 🚀 1. 버튼 민감도 대폭 상향 (미끄러짐 허용치 10 -> 30) 및 0% <-> 45% 토글
+             if (deltaY < 30) {
+                 const h = handleStartHeight.current; 
+                 // 현재 5% 이상 열려있으면 무조건 0%로 닫고, 닫혀있으면 45%로 염
+                 if (h > 5) {
+                     setMobilePanelHeight(0);
+                 } else {
+                     setMobilePanelHeight(45);
+                 }
              }
           }
         };
