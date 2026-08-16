@@ -280,7 +280,6 @@
       const [points, setPoints] = useState([]); 
       const [isPointListExpanded, setIsPointListExpanded] = useState(true);
       
-      // 🚀 3. 수동 점 추가 입력 폼 State
       const [showManualPointUI, setShowManualPointUI] = useState(false);
       const [manualX, setManualX] = useState("0");
       const [manualY, setManualY] = useState("0");
@@ -516,9 +515,12 @@
              isDraggingHandle.current = false;
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
-             if (deltaY < 5) {
-                 if (mobilePanelHeightRef.current > 20) setMobilePanelHeight(0);
-                 else setMobilePanelHeight(55);
+             // 🚀 2. 모바일 조정판 토글 민감도 개선 (10픽셀 이내 터치는 클릭으로 간주)
+             if (deltaY < 10) {
+                 const h = mobilePanelHeightRef.current;
+                 if (h < 25) setMobilePanelHeight(55);       // 최소화 -> 기본
+                 else if (h < 65) setMobilePanelHeight(85);  // 기본 -> 확대
+                 else setMobilePanelHeight(15);              // 확대 -> 최소화
              }
           }
         };
@@ -624,14 +626,12 @@
         img.src = url;
       };
 
-      // 🚀 3. 수동 점 추가 기능 (버그 방지 클램핑 적용)
       const handleAddManualPoint = () => {
           let x = parseFloat(manualX);
           let y = parseFloat(manualY);
           if (isNaN(x) || !isFinite(x)) x = 0;
           if (isNaN(y) || !isFinite(y)) y = 0;
           
-          // 캔버스 과부하 방지 한계치 설정 (-1000만 ~ +1000만)
           x = Math.max(-1e7, Math.min(1e7, x));
           y = Math.max(-1e7, Math.min(1e7, y));
 
@@ -1047,7 +1047,6 @@
                     let mathY = executeMath(func, mathX, currentConstValues); 
                     
                     if (isNaN(mathY) || !isFinite(mathY)) {
-                        // 오른쪽으로 진행하다가 정의되지 않는 영역으로 들어갈 때
                         if (!first && prevMathX !== null && prevMathY !== null) {
                             let bx = prevMathX, step = mathStep, lastValidY = prevMathY;
                             for(let k=0; k<25; k++){ 
@@ -1098,7 +1097,6 @@
                                 if(!isNaN(ty) && isFinite(ty)){ bx -= step; lastValidY = ty; } 
                             }
                             
-                            // 🚀 미세 델타 탐색으로 log(x)의 -무한대 수직 추락을 포착하여 바닥부터 선 꽂기
                             let delta = Math.max(1e-12, Math.abs(bx) * 1e-6);
                             let tY1 = executeMath(func, bx + delta, currentConstValues);
                             let tY2 = executeMath(func, bx + delta * 100, currentConstValues);
@@ -1204,6 +1202,7 @@
                             onChange={(e) => setTempGraphEq(e.target.value)} 
                             className="flex-1 bg-transparent outline-none text-white tracking-wider font-mono min-w-0"
                             autoFocus autoComplete="off" spellCheck="false"
+                            inputMode="none"
                         />
                     </div>
                     <div className="flex justify-start text-purple-300 font-serif text-2xl tracking-wide min-h-[36px] items-center pl-8 opacity-80"
@@ -1313,7 +1312,6 @@
             </div>
           )}
 
-          {/* 🚀 각 함수별 행렬 개별 설정을 위한 모달 창 */}
           {graphSettingsId !== null && (
             <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-[22rem] shadow-2xl animate-fade-in flex flex-col gap-4">
@@ -1457,7 +1455,6 @@
                         <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 값 딱 떨어지게 표시 (1.00 → 1)</span>
                     </label>
 
-                    {/* 🚀 수학 실험실 전용 옵션 분리 적용 */}
                     <hr className="border-zinc-700/50 my-2" />
                     <span className="text-xs font-bold text-zinc-500">수학 실험실 전용 옵션</span>
                     <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
@@ -1515,10 +1512,10 @@
               <div 
                 onTouchStart={startDraggingHandle}
                 onMouseDown={startDraggingHandle}
-                className="absolute left-1/2 -top-7 w-28 h-7 flex justify-center items-end pb-1.5 cursor-pointer bg-zinc-800 border-t border-zinc-700/50" 
-                style={{ transform: 'translateX(-50%)', clipPath: 'polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)' }}
+                className="absolute left-1/2 -top-10 w-32 h-10 flex justify-center items-end pb-2 cursor-pointer bg-zinc-800 border-t border-zinc-700/50" 
+                style={{ transform: 'translateX(-50%)', clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }}
               >
-                <div className="w-8 h-1 rounded-full bg-zinc-500 pointer-events-none"></div>
+                <div className="w-10 h-1.5 rounded-full bg-zinc-500 pointer-events-none mb-1"></div>
               </div>
             )}
 
@@ -1607,7 +1604,6 @@
 
                     {useMathLab && (
                         <div className="flex flex-col gap-5 mt-1 pl-3 border-l-2 border-indigo-500/30">
-                            
                             <div className="flex flex-col gap-3">
                                 <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
                                   <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
@@ -1619,7 +1615,6 @@
                                         <div className="flex justify-between items-center mb-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
-                                                {/* 🚀 3. 수동 점 추가 버튼 */}
                                                 <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
                                                     +
                                                 </button>
@@ -1635,7 +1630,6 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        {/* 🚀 3. 수동 점 추가 폼 (클램핑 보호막 적용) */}
                                         {showManualPointUI && (
                                             <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-emerald-500/10 mb-1">
                                                 <span className="text-zinc-500 font-mono text-[10px]">X:</span>
@@ -1683,7 +1677,6 @@
                                                     <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
                                                         <div className="flex justify-between items-center w-full gap-2">
                                                             <span className="font-bold italic text-lg shrink-0" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}}>y =</span>
-                                                            {/* 🚀 2. 계산기 아이콘 삭제 후 수식 부분을 누르면 열리게 통합 */}
                                                             <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-2 py-1.5 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap" title="수식 편집">
                                                                 {g.eq}
                                                             </div>
@@ -1818,6 +1811,25 @@
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
               onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
             />
+            
+            {/* 🚀 1. 모바일 확대 축소 버튼을 z-[100] 가장 위로 빼냄 */}
+            <div className={`absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold z-[100] pointer-events-auto ${!isDraggingHandle.current ? 'transition-all duration-300' : ''}`}
+                 style={isMobile ? { bottom: `calc(${mobilePanelHeight}vh + env(safe-area-inset-bottom, 0px) + 24px)`, right: '16px' } : { bottom: '32px', right: '32px' }}>
+              {isMobile && (
+                  <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors" title="리셋">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
+                  </button>
+              )}
+              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition-colors ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 맞춤">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              </button>
+              <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="확대">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+              </button>
+              <button onClick={zoomOut} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="축소">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM7 10h6"/></svg>
+              </button>
+            </div>
 
             {isMobile && (
               <div className="absolute top-4 left-4 z-[60] flex items-center drop-shadow-2xl">
@@ -1857,25 +1869,7 @@
 
             <canvas ref={canvasRef} width={2000} height={1200} className="w-full h-full object-cover z-20 pointer-events-none absolute inset-0" />
             
-            <div className={`absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold z-[60] pointer-events-auto ${!isDraggingHandle.current ? 'transition-all duration-300' : ''}`}
-                 style={isMobile ? { bottom: `calc(${mobilePanelHeight}vh + env(safe-area-inset-bottom, 0px) + 16px)`, right: '16px' } : { bottom: '32px', right: '32px' }}>
-              {isMobile && (
-                  <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors" title="리셋">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
-                  </button>
-              )}
-              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition-colors ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 맞춤">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-              </button>
-              <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="확대">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
-              </button>
-              <button onClick={zoomOut} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="축소">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM7 10h6"/></svg>
-              </button>
-            </div>
           </div>
-
         </div>
       );
     }
