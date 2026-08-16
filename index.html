@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Vision Matrix Pro - Web Edition</title>
+  <title>Vision Matrix Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -32,10 +32,10 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo, useLayoutEffect } = React;
+    const { useState, useEffect, useRef, useLayoutEffect } = React;
 
     const DEFAULT_CONFIG = {
-        scaleXMin: 0.1, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: 0.1, scaleYMax: 5.0, scaleYStep: 0.1,
+        scaleXMin: -5.0, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: -5.0, scaleYMax: 5.0, scaleYStep: 0.1,
         squeezeMin: 0.1, squeezeMax: 3.0, squeezeStep: 0.1, transXMin: -500, transXMax: 500, transXStep: 1, transYMin: -500, transYMax: 500, transYStep: 1,
         rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1
     };
@@ -55,6 +55,10 @@
         mathLab: { title: "수학 실험실 (Math Lab)", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
         graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
         point: { title: "좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
+        polygon: { title: "다각형 그리기 맵핑", desc: "화면을 터치해 꼭짓점을 찍고, 처음 찍은 점을 다시 클릭하면 다각형 도형이 생성됩니다. 행렬 변환 시 뼈대 점들이 어떻게 움직여 도형이 찌그러지는지 확인해보세요." },
+        symmetry: { title: "도형의 대칭이동", desc: "고등학교 1학년 수학 과정의 핵심인 x축, y축, 원점, y=x 직선에 대한 대칭이동을 원클릭으로 수행합니다. 각 버튼을 누르면 그에 맞는 변환 행렬로 자동 셋팅됩니다." },
+        unitSquare: { title: "단위 정사각형 (행렬식/넓이)", desc: "한 변의 길이가 1인 기준 정사각형을 띄웁니다. 행렬 변환 후 이 정사각형의 넓이가 바로 행렬식(Determinant, |ad-bc|)의 값을 의미합니다. 넓이가 어떻게 뻥튀기되는지 관찰하세요.", formulas: ["넓이 변화율 = |ad - bc|"] },
+        origin: { title: "변환 중심점 (Origin)", desc: "기본적으로 모든 도형과 사진의 회전 및 확대는 원점(0,0)을 기준으로 일어납니다. 이 좌표를 조절하면 행렬 변환의 '축'이 바뀌어 전혀 다른 궤적의 이동이 발생합니다." },
         chkGray: { title: "흑백화 (Grayscale)", desc: "빛의 3원색(RGB)에 눈의 민감도를 곱해 무채색으로 변환합니다.", formulas: ["Gray = R*0.299 + G*0.587 + B*0.114", "R = Gray, G = Gray, B = Gray"] },
         chkInv: { title: "색상 반전 (Invert)", desc: "빛의 삼원색 한계치(255)에서 현재 색상을 빼 보색을 만듭니다.", formulas: ["R = 255 - R", "G = 255 - G", "B = 255 - B"] },
         gAdd: { title: "전체 밝기 (Global Add)", desc: "모든 픽셀에 동일한 상수를 더해 화면 전체를 밝게 하거나 어둡게 합니다.", formulas: ["R' = R + Add"] },
@@ -86,28 +90,44 @@
 
     const fmt = (v) => parseFloat(v.toFixed(4)).toString();
 
+    const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 0, g: 0, b: 0 };
+    };
+
     function compileMath(expr, constNames = []) {
         try {
-            let safeExpr = expr
-                .replace(/([0-9.]+)(x|[a-zA-Z_])/gi, '$1*$2') 
-                .replace(/x([a-zA-Z_])/gi, 'x*$1') 
-                .replace(/([0-9.x])\(/gi, '$1*(') 
-                .replace(/\)(x|[0-9a-zA-Z_])/gi, ')*$1') 
-                .replace(/\)\(/g, ')*(') 
-                .replace(/log_([0-9a-zA-Z.]+)\(([^)]+)\)/g, '(Math.log($2)/Math.log($1))')
-                .replace(/sin/g, 'Math.sin')
-                .replace(/cos/g, 'Math.cos')
-                .replace(/tan/g, 'Math.tan')
-                .replace(/abs/g, 'Math.abs')
-                .replace(/sqrt/g, 'Math.sqrt')
-                .replace(/exp\(/g, 'Math.exp(') 
-                .replace(/log\(/g, 'Math.log10(') 
-                .replace(/ln\(/g, 'Math.log(')    
-                .replace(/pi/gi, 'Math.PI')
-                .replace(/\be\b/g, 'Math.E')
-                .replace(/\^/g, '**')
-                .replace(/\bx\b/g, 'v'); 
-            return new Function('v', ...constNames, `return ${safeExpr};`);
+            let s = expr.toLowerCase();
+            s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
+            const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi'];
+            const map = {};
+            keywords.forEach((kw, i) => {
+                const char = String.fromCharCode(0xE000 + i);
+                s = s.split(kw).join(char);
+                map[char] = kw;
+            });
+            s = s.replace(/([a-z])(?=[a-z])/g, '$1*'); 
+            s = s.replace(/([a-z])(?=[\uE000-\uE009])/g, '$1*'); 
+            s = s.replace(/([\uE000-\uE009])(?=[a-z])/g, '$1*'); 
+            s = s.replace(/([0-9.]+)(?=[a-z\uE000-\uE009])/g, '$1*'); 
+            s = s.replace(/([a-z\uE000-\uE009])(?=[0-9.])/g, '$1*'); 
+            s = s.replace(/([0-9a-z])\(/g, '$1*('); 
+            s = s.replace(/\)(?=[0-9a-z\uE000-\uE009])/g, ')*'); 
+            s = s.replace(/\)\(/g, ')*('); 
+            for (const char in map) { s = s.split(char).join(map[char]); }
+            s = s.replace(/sin/g, 'Math.sin')
+                 .replace(/cos/g, 'Math.cos')
+                 .replace(/tan/g, 'Math.tan')
+                 .replace(/log/g, 'Math.log10')
+                 .replace(/ln/g, 'Math.log')
+                 .replace(/abs/g, 'Math.abs')
+                 .replace(/sqrt/g, 'Math.sqrt')
+                 .replace(/exp/g, 'Math.exp')
+                 .replace(/pi/g, 'Math.PI')
+                 .replace(/\be\b/g, 'Math.E')
+                 .replace(/\^/g, '**')
+                 .replace(/\bx\b/g, 'v'); 
+            return new Function('v', ...constNames, `return ${s};`);
         } catch(e) { return () => NaN; }
     }
 
@@ -145,8 +165,7 @@
             }
         };
 
-        const handleChange = (e) => { setLocalVal(e.target.value); };
-        return <input type="text" value={localVal} onChange={handleChange} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} />;
+        return <input type="text" value={localVal} onChange={(e) => setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} />;
     }
 
     function MatrixInput({ value, onChange, isTranslate, matrixFormatExact, className }) {
@@ -180,28 +199,36 @@
         return <input type="text" value={localVal} onChange={e=>setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} style={{ fontSize: getFontSize(), transition: 'font-size 0.2s ease' }} />;
     }
 
-    const ControlRow = ({ label, min, max, step, value, onChange, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null, onOpenInfo = null }) => (
+    const ControlRow = ({ label, min, max, step, value, onChange, onReset = null, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null, onOpenInfo = null }) => (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-center">
           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
             {label}
             {onOpenInfo && ( <button onClick={onOpenInfo} title="설명 보기" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button> )}
-            {syncKey && ( <button onClick={onToggleSync} title="동기화 링크" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
+            {syncKey && ( <button onClick={onToggleSync} title="동기화 링크" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
             {onOpenLogic && ( 
               <button onClick={onOpenLogic} title="설정 변경" className="text-zinc-500 hover:text-white transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button> 
+            )}
+            {onReset && ( 
+              <button onClick={onReset} title="초기화" className="text-zinc-500 hover:text-white transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
               </button> 
             )}
           </span>
-          <CustomNumberInput value={value} validate={(v) => v >= min && v <= max} onChange={onChange} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1 rounded w-20 text-right outline-none focus:border-${colorClass}-500 transition-colors`} />
+          <CustomNumberInput value={value} validate={(v) => v >= min && v <= max} onChange={onChange} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1 rounded w-16 text-right outline-none focus:border-${colorClass}-500 transition-colors`} />
         </div>
         <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} style={{ touchAction: 'pan-y' }} className={`accent-${colorClass}-400 cursor-pointer h-1.5 bg-zinc-700 rounded-lg appearance-none`} />
       </div>
     );
 
-    const ConfigRow = ({ title, prefix, config, setConfig, colorClass }) => {
-        const handleConfigChange = (type, val) => { setConfig(prev => ({ ...prev, [`${prefix}${type}`]: val })); };
-        const resetToDefault = () => { setConfig(prev => ({ ...prev, [`${prefix}Min`]: DEFAULT_CONFIG[`${prefix}Min`], [`${prefix}Max`]: DEFAULT_CONFIG[`${prefix}Max`], [`${prefix}Step`]: DEFAULT_CONFIG[`${prefix}Step`] })); };
+    const ConfigRow = ({ title, prefix, config, setConfig, colorClass, restrictMin = -Infinity }) => {
+        const handleConfigChange = (type, val) => { 
+            if (type === 'Min' && val < restrictMin) val = restrictMin;
+            setConfig(prev => ({ ...prev, [`${prefix}${type}`]: val })); 
+        };
+        const resetToDefault = () => { setConfig(prev => ({ ...prev, [`${prefix}Min`]: Math.max(restrictMin, DEFAULT_CONFIG[`${prefix}Min`]), [`${prefix}Max`]: DEFAULT_CONFIG[`${prefix}Max`], [`${prefix}Step`]: DEFAULT_CONFIG[`${prefix}Step`] })); };
 
         return (
             <div className="flex flex-col gap-2 border-b border-zinc-700 pb-3">
@@ -210,13 +237,28 @@
                     <button onClick={resetToDefault} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition">초기화</button>
                 </div>
                 <div className="flex gap-2">
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소<CustomNumberInput value={config[`${prefix}Min`]} validate={(v) => v <= config[`${prefix}Max`]} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소<CustomNumberInput value={config[`${prefix}Min`]} validate={(v) => v <= config[`${prefix}Max`] && v >= restrictMin} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                     <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최대<CustomNumberInput value={config[`${prefix}Max`]} validate={(v) => v >= config[`${prefix}Min`]} onChange={v => handleConfigChange('Max', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                     <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">간격<CustomNumberInput value={config[`${prefix}Step`]} validate={(v) => Math.abs(v) > 0} onChange={v => handleConfigChange('Step', Math.abs(v))} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                 </div>
             </div>
         );
     };
+
+    const MiniMatrix = ({ m, label }) => (
+        <div className="flex flex-col items-center gap-1 shrink-0">
+            <span className="text-zinc-400 text-[10px] font-bold px-2 py-0.5 bg-zinc-800 rounded-full border border-zinc-700 whitespace-nowrap">{label}</span>
+            <div className="flex items-center justify-center relative w-[70px] h-[60px]">
+              <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+              <div className="grid grid-cols-3 gap-x-1 gap-y-1 text-center font-mono text-[8px] font-bold text-sky-300 flex-1">
+                  <span>{fmt(m.a)}</span><span>{fmt(m.c)}</span><span>{fmt(m.e)}</span>
+                  <span>{fmt(m.b)}</span><span>{fmt(m.d)}</span><span>{fmt(m.f)}</span>
+                  <span className="text-zinc-600">0</span><span className="text-zinc-600">0</span><span className="text-zinc-600">1</span>
+              </div>
+              <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+            </div>
+        </div>
+    );
 
     function StartScreen({ onStart }) {
       return (
@@ -246,21 +288,19 @@
       const [panelWidth, setPanelWidth] = useState(450);
       const isResizingPanel = useRef(false);
 
-      const [mobilePanelHeight, setMobilePanelHeightState] = useState(55); 
-      const mobilePanelHeightRef = useRef(55);
+      const [mobilePanelHeight, setMobilePanelHeightState] = useState(15); 
+      const mobilePanelHeightRef = useRef(15);
       const setMobilePanelHeight = (h) => {
           setMobilePanelHeightState(h);
           mobilePanelHeightRef.current = h;
       };
       
-      const prevPanelHeight = useRef(55);
       const isDraggingHandle = useRef(false);
       const handleStartY = useRef(0);
       const handleStartHeight = useRef(0);
 
       const [logicInfoData, setLogicInfoData] = useState(null); 
       const [useMathLab, setUseMathLab] = useState(false);
-      
       const [showImageInMathLab, setShowImageInMathLab] = useState(false); 
       const [keepViewOnMathLab, setKeepViewOnMathLab] = useState(false); 
       const [mathUnderImage, setMathUnderImage] = useState(false); 
@@ -291,6 +331,58 @@
       const inputRef = useRef(null);
 
       const [graphSettingsId, setGraphSettingsId] = useState(null);
+
+      // 🚀 드래그 앤 드롭 행렬 조립기 State
+      const [showMatrixChain, setShowMatrixChain] = useState(false);
+      const [chainOrder, setChainOrder] = useState(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
+
+      const [useUnitSquare, setUseUnitSquare] = useState(false);
+      const [transformOriginX, setTransformOriginX] = useState(0);
+      const [transformOriginY, setTransformOriginY] = useState(0);
+      
+      const [usePolygonMode, setUsePolygonMode] = useState(false);
+      const [polygonPoints, setPolygonPoints] = useState([]);
+      const [isPolygonClosed, setIsPolygonClosed] = useState(false);
+      const [showManualPolyUI, setShowManualPolyUI] = useState(false);
+      const [polyManualX, setPolyManualX] = useState("0");
+      const [polyManualY, setPolyManualY] = useState("0");
+
+      const [isCalcMode, setIsCalcMode] = useState(false);
+      const [calcPoints, setCalcPoints] = useState([]);
+      const [selectedCalcPoint, setSelectedCalcPoint] = useState(null);
+      const [showManualCalcPointUI, setShowManualCalcPointUI] = useState(false);
+      const [calcManualX, setCalcManualX] = useState("0");
+      const [calcManualY, setCalcManualY] = useState("0");
+
+      useEffect(() => {
+          const neededConsts = new Set();
+          graphs.forEach(g => {
+              if(!g.eq) return;
+              let s = g.eq.toLowerCase();
+              s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
+              const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi', 'e', 'x'];
+              keywords.forEach(kw => { s = s.split(kw).join(''); });
+              const matches = s.match(/[a-z]/g);
+              if(matches) matches.forEach(m => neededConsts.add(m));
+          });
+          
+          setConstants(prev => {
+              let updated = false;
+              let newConstants = prev.filter(c => {
+                  if (neededConsts.has(c.name)) return true;
+                  updated = true; 
+                  return false;
+              });
+
+              neededConsts.forEach(letter => {
+                  if (!newConstants.some(c => c.name === letter)) {
+                      newConstants.push({ name: letter, value: 1.0, min: -10, max: 10, step: 0.1 });
+                      updated = true; 
+                  }
+              });
+              return updated ? newConstants : prev;
+          });
+      }, [graphs]);
 
       const openMathPad = (id, currentEq) => { 
           setEditingGraphId(id); 
@@ -343,12 +435,7 @@
           setMathPadOpen(false); 
       };
 
-      const handleConstClick = (letter) => {
-          handleMathPadKey(letter);
-          if (!constants.some(c => c.name === letter)) {
-              setConstants(prev => [...prev, { name: letter, value: 1.0, min: -10, max: 10, step: 0.1 }]);
-          }
-      };
+      const handleConstClick = (letter) => { handleMathPadKey(letter); };
       
       const addGraph = () => { setGraphs(prev => [...prev, { id: Date.now(), eq: 'x', matrixMode: 'global', customMatrix: {a:1, b:0, c:0, d:1, e:0, f:0} }]); setIsGraphListExpanded(true); };
       const removeGraph = (id) => { 
@@ -426,6 +513,17 @@
       if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
 
       useEffect(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 400; canvas.height = 400;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(100, 100, 200, 200);
+          ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(200, 200, 50, 0, Math.PI * 2); ctx.fill();
+          const img = new Image();
+          img.onload = () => setImageObj(img);
+          img.src = canvas.toDataURL();
+      }, []);
+
+      useEffect(() => {
           setConfig(prev => {
               let next = { ...prev };
               if (useMathLab && !showImageInMathLab) {
@@ -444,36 +542,21 @@
           });
       }, [imageObj, useMathLab, showImageInMathLab]);
 
-      useEffect(() => {
-          if (!isMobile) return;
-          setCamera(prev => {
-              const canvas = canvasRef.current;
-              if (!canvas) return prev;
-              const prevHeightPx = window.innerHeight * (prevPanelHeight.current / 100);
-              const currHeightPx = window.innerHeight * (mobilePanelHeight / 100);
-              const shiftPx = (currHeightPx - prevHeightPx) / 2;
-              const shiftCanvas = shiftPx / prev.z; 
-              return { ...prev, y: prev.y - shiftCanvas };
-          });
-          prevPanelHeight.current = mobilePanelHeight;
-      }, [mobilePanelHeight, isMobile]);
-
       const getOptimalCamera = (img) => {
         let targetZ = 1.0;
         if (img) {
             targetZ = Math.min((2000 * 0.8) / img.width, (1200 * 0.8) / img.height);
             if (targetZ > 1.0) targetZ = 1.0; 
         }
-        const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
-        return { x: 0, y: -(offsetScreenPixels / targetZ), z: targetZ };
+        return { x: 0, y: 0, z: targetZ };
       };
 
       const handleMathLabToggle = (checked) => {
           setUseMathLab(checked);
           if (!keepViewOnMathLab) {
               if (checked) {
-                  const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
-                  setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
+                  if (showImageInMathLab && imageObj) setCamera(getOptimalCamera(imageObj));
+                  else setCamera({ x: 0, y: 0, z: 100.0 });
               } else {
                   setCamera(getOptimalCamera(imageObj));
               }
@@ -515,12 +598,10 @@
              isDraggingHandle.current = false;
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
-             // 🚀 2. 모바일 조정판 토글 민감도 개선 (10픽셀 이내 터치는 클릭으로 간주)
              if (deltaY < 10) {
                  const h = mobilePanelHeightRef.current;
-                 if (h < 25) setMobilePanelHeight(55);       // 최소화 -> 기본
-                 else if (h < 65) setMobilePanelHeight(85);  // 기본 -> 확대
-                 else setMobilePanelHeight(15);              // 확대 -> 최소화
+                 if (h > 50) setMobilePanelHeight(15);
+                 else setMobilePanelHeight(85);
              }
           }
         };
@@ -549,6 +630,30 @@
           handleStartY.current = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
           handleStartHeight.current = mobilePanelHeightRef.current;
           e.stopPropagation();
+      };
+
+      // 🚀 드래그 앤 드롭 핸들러 로직
+      const handleDragStart = (e, index) => {
+          e.dataTransfer.setData('dragIndex', index);
+          e.dataTransfer.effectAllowed = "move";
+      };
+      
+      const handleDrop = (e, targetIndex) => {
+          e.preventDefault();
+          const dragIndexStr = e.dataTransfer.getData('dragIndex');
+          if (!dragIndexStr) return;
+          const dragIndex = parseInt(dragIndexStr);
+          if (dragIndex === targetIndex) return;
+          
+          const newOrder = [...chainOrder];
+          const [draggedItem] = newOrder.splice(dragIndex, 1);
+          newOrder.splice(targetIndex, 0, draggedItem);
+          setChainOrder(newOrder);
+      };
+      
+      const handleDragOver = (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
       };
 
       const [syncKeys, setSyncKeys] = useState(new Set());
@@ -584,8 +689,8 @@
 
       const resetAll = (img = imageObj) => {
         if (useMathLab && !keepViewOnMathLab) {
-            const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
-            setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
+            if (showImageInMathLab && img) setCamera(getOptimalCamera(img));
+            else setCamera({ x: 0, y: 0, z: 100.0 });
         } else if (!useMathLab) {
             setCamera(getOptimalCamera(img));
         }
@@ -596,6 +701,7 @@
         setScaleY(clamp(1.0, config.scaleYMin, config.scaleYMax));
         setTranslateX(clamp(0, config.transXMin, config.transXMax));
         setTranslateY(clamp(0, config.transYMin, config.transYMax));
+        setTransformOriginX(0); setTransformOriginY(0);
         setRotation(clamp(0, config.rotMin, config.rotMax));
         setShearX(clamp(0, config.shearXMin, config.shearXMax));
         setShearY(clamp(0, config.shearYMin, config.shearYMax));
@@ -611,6 +717,7 @@
         setBAdd(0); setBMul(clamp(1.0, config.contMin, config.contMax));
         
         setUseDuotone(false); 
+        setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
       };
 
       const handleImageUpload = (e) => {
@@ -627,14 +734,9 @@
       };
 
       const handleAddManualPoint = () => {
-          let x = parseFloat(manualX);
-          let y = parseFloat(manualY);
-          if (isNaN(x) || !isFinite(x)) x = 0;
-          if (isNaN(y) || !isFinite(y)) y = 0;
-          
-          x = Math.max(-1e7, Math.min(1e7, x));
-          y = Math.max(-1e7, Math.min(1e7, y));
-
+          let x = parseFloat(manualX); let y = parseFloat(manualY);
+          if (isNaN(x)) x = 0; if (isNaN(y)) y = 0;
+          x = Math.max(-1e7, Math.min(1e7, x)); y = Math.max(-1e7, Math.min(1e7, y));
           setPoints(prev => {
               const newLabel = String.fromCharCode(65 + prev.length % 26);
               return [...prev, { id: Date.now(), label: newLabel, x, y }];
@@ -642,24 +744,90 @@
           setShowManualPointUI(false);
       };
 
+      const handleAddManualCalcPoint = () => {
+          let x = parseFloat(calcManualX); let y = parseFloat(calcManualY);
+          if (isNaN(x)) x = 0; if (isNaN(y)) y = 0;
+          x = Math.max(-1e7, Math.min(1e7, x)); y = Math.max(-1e7, Math.min(1e7, y));
+          setCalcPoints(prev => [...prev, { id: Date.now(), x, y }]);
+          setShowManualCalcPointUI(false);
+          setIsCalcMode(false);
+      };
+
+      const handleAddManualPolyPoint = () => {
+          let x = parseFloat(polyManualX); let y = parseFloat(polyManualY);
+          if (isNaN(x)) x = 0; if (isNaN(y)) y = 0;
+          x = Math.max(-1e7, Math.min(1e7, x)); y = Math.max(-1e7, Math.min(1e7, y));
+          setPolygonPoints(prev => [...prev, { x, y }]);
+          setShowManualPolyUI(false);
+      };
+
+      const applySymmetry = (type) => {
+          handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
+          handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); handleSyncChange('squeeze', 1.0);
+          if (type === 'X') {
+              setUseRefl(false); setRotation(0); handleSyncChange('scaleX', 1); handleSyncChange('scaleY', -1); 
+          } else if (type === 'Y') {
+              setUseRefl(false); setRotation(0); handleSyncChange('scaleX', -1); handleSyncChange('scaleY', 1); 
+          } else if (type === 'ORIGIN') {
+              setUseRefl(false); setRotation(180); handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1);
+          } else if (type === 'YX') {
+              setUseRefl(true); setReflAngle(45); handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1); setRotation(0);
+          }
+      };
+
       const constValues = constants.map(c => c.value);
 
+      // 🚀 드래그 가능한 행렬 블록 맵핑
+      const getChainMatrix = (id) => {
+          switch(id) {
+              case 'translate': return { m: new DOMMatrix().translate(translateX, translateY), label: '이동' };
+              case 'origin': return { m: new DOMMatrix().translate(transformOriginX, -transformOriginY), label: '+중심점' };
+              case 'origin_back': return { m: new DOMMatrix().translate(-transformOriginX, transformOriginY), label: '-중심점' };
+              case 'rotate': 
+                  if (useRefl) {
+                      const theta = (reflAngle * Math.PI) / 180;
+                      return { m: new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]), label: '반사' };
+                  } else {
+                      const v = rotation * Math.PI / 180;
+                      let rM = new DOMMatrix([
+                          executeMath(compiledLogic.m00, v, constValues), executeMath(compiledLogic.m10, v, constValues),
+                          executeMath(compiledLogic.m01, v, constValues), executeMath(compiledLogic.m11, v, constValues),
+                          0, 0
+                      ]);
+                      return { m: rM, label: '회전' };
+                  }
+              case 'scale': return { m: new DOMMatrix().scale(scaleX * squeeze, scaleY * (1 / squeeze)), label: '크기' };
+              case 'shear': return { m: new DOMMatrix([1, shearY, shearX, 1, 0, 0]), label: '전단(Shear)' };
+              default: return { m: new DOMMatrix(), label: '알수없음' };
+          }
+      };
+
+      // 🚀 1. 행렬 연산 엔진 (드래그 앤 드롭 순서 적용)
       let matrix = new DOMMatrix();
-      matrix = matrix.translate(translateX, translateY);
-      if (useRefl) {
-          const theta = (reflAngle * Math.PI) / 180;
-          matrix = matrix.multiply(new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]));
-      } else { 
-          let v = rotation * Math.PI / 180;
-          let rM = new DOMMatrix([
-              executeMath(compiledLogic.m00, v, constValues), executeMath(compiledLogic.m10, v, constValues),
-              executeMath(compiledLogic.m01, v, constValues), executeMath(compiledLogic.m11, v, constValues),
-              0, 0
-          ]);
-          matrix = matrix.multiply(rM);
+      
+      if (showMatrixChain) {
+          chainOrder.forEach(id => {
+              matrix = matrix.multiply(getChainMatrix(id).m);
+          });
+      } else {
+          matrix = matrix.translate(translateX, translateY); 
+          matrix = matrix.translate(transformOriginX, -transformOriginY); 
+          if (useRefl) {
+              const theta = (reflAngle * Math.PI) / 180;
+              matrix = matrix.multiply(new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]));
+          } else { 
+              let v = rotation * Math.PI / 180;
+              let rM = new DOMMatrix([
+                  executeMath(compiledLogic.m00, v, constValues), executeMath(compiledLogic.m10, v, constValues),
+                  executeMath(compiledLogic.m01, v, constValues), executeMath(compiledLogic.m11, v, constValues),
+                  0, 0
+              ]);
+              matrix = matrix.multiply(rM);
+          }
+          matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
+          matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
+          matrix = matrix.translate(-transformOriginX, transformOriginY); 
       }
-      matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
-      matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
 
       const getMatrixColor = (currentStr, defaultFixed, defaultExact) => {
           const target = matrixFormatExact ? defaultExact : defaultFixed;
@@ -671,12 +839,9 @@
           return isTranslate ? val.toFixed(0) : val.toFixed(2);
       };
 
-      let m00Str = formatMatrixVal(matrix.a, false);
-      let m10Str = formatMatrixVal(matrix.b, false);
-      let m01Str = formatMatrixVal(matrix.c, false);
-      let m11Str = formatMatrixVal(matrix.d, false);
-      let m02Str = formatMatrixVal(matrix.e, true);
-      let m12Str = formatMatrixVal(matrix.f, true);
+      let m00Str = formatMatrixVal(matrix.a, false); let m10Str = formatMatrixVal(matrix.b, false);
+      let m01Str = formatMatrixVal(matrix.c, false); let m11Str = formatMatrixVal(matrix.d, false);
+      let m02Str = formatMatrixVal(matrix.e, true); let m12Str = formatMatrixVal(matrix.f, true);
 
       const handleMatrixUpdate = (key, v) => {
           setConfig(prev => {
@@ -700,9 +865,9 @@
           if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
       };
 
-      const addMathPoint = (clientX, clientY) => {
+      const processCanvasClick = (clientX, clientY) => {
           const canvas = canvasRef.current;
-          if (!canvas) return;
+          if (!canvas) return false;
           const rect = canvas.getBoundingClientRect();
           const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
           
@@ -718,9 +883,80 @@
           let screenX = canvasX - cx - camera.x;
           let screenY = canvasY - cy - camera.y;
 
+          let hitPoint = null;
+          for (let p of calcPoints) {
+              let mathPt = new DOMPoint(p.x, -p.y);
+              let tPt = mathPt.matrixTransform(matrix);
+              let drawX = tPt.x * camera.z;
+              let drawY = tPt.y * camera.z;
+              let distSq = (screenX - drawX) ** 2 + (screenY - drawY) ** 2;
+              if (distSq < (25 / camera.z) ** 2 || distSq < 400) { 
+                  hitPoint = p; break; 
+              }
+          }
+
+          if (hitPoint) {
+              setSelectedCalcPoint(hitPoint);
+              return true;
+          }
+
+          if (isCalcMode) {
+              let mathX = screenX / camera.z;
+              let mathY = screenY / camera.z;
+              let mathPt = new DOMPoint(mathX, mathY);
+              let invMat = matrix.inverse();
+              let basePt = mathPt.matrixTransform(invMat);
+              
+              let logicX = Math.round((basePt.x) * 100) / 100; 
+              let logicY = Math.round((-basePt.y) * 100) / 100;
+              
+              setCalcPoints(prev => [...prev, { id: Date.now(), x: logicX, y: logicY }]);
+              setIsCalcMode(false);
+              return true;
+          }
+
+          if (usePolygonMode && !isPolygonClosed) {
+              let mathX = screenX / camera.z;
+              let mathY = screenY / camera.z;
+              let mathPt = new DOMPoint(mathX, mathY);
+              let invMat = matrix.inverse();
+              let basePt = mathPt.matrixTransform(invMat);
+              let logicX = Math.round((basePt.x) * 10) / 10;
+              let logicY = Math.round((-basePt.y) * 10) / 10;
+
+              if (polygonPoints.length >= 3) {
+                  let firstP = polygonPoints[0];
+                  let fMath = new DOMPoint(firstP.x, -firstP.y).matrixTransform(matrix);
+                  let fDrawX = fMath.x * camera.z;
+                  let fDrawY = fMath.y * camera.z;
+                  let dist = Math.hypot(screenX - fDrawX, screenY - fDrawY);
+                  if (dist < 20) {
+                      setIsPolygonClosed(true);
+                      return true;
+                  }
+              }
+              setPolygonPoints(prev => [...prev, { x: logicX, y: logicY }]);
+              return true;
+          }
+
+          return false;
+      };
+
+      const addMathPoint = (clientX, clientY) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const rect = canvas.getBoundingClientRect();
+          const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+          const offsetX = (rect.width - canvas.width * scale) / 2;
+          const offsetY = (rect.height - canvas.height * scale) / 2;
+          const canvasX = (clientX - rect.left - offsetX) / scale;
+          const canvasY = (clientY - rect.top - offsetY) / scale;
+          const cx = canvas.width / 2; const cy = canvas.height / 2;
+          let screenX = canvasX - cx - camera.x;
+          let screenY = canvasY - cy - camera.y;
+
           let mathX = screenX / camera.z;
           let mathY = screenY / camera.z;
-
           let mathPt = new DOMPoint(mathX, mathY);
           let invMat = matrix.inverse();
           let basePt = mathPt.matrixTransform(invMat);
@@ -757,8 +993,11 @@
       };
       const handleMouseUpOrLeave = (e) => { 
         isDraggingRef.current = false; setIsDragUI(false); 
-        if (e.type === 'mouseup' && dragDistRef.current < 5 && useMathLab && usePointMode) {
-            addMathPoint(e.clientX, e.clientY);
+        if (e.type === 'mouseup' && dragDistRef.current < 5) {
+            const handled = processCanvasClick(e.clientX, e.clientY);
+            if (!handled && useMathLab && usePointMode) {
+                addMathPoint(e.clientX, e.clientY);
+            }
         }
       };
 
@@ -826,8 +1065,11 @@
           if (e.touches.length < 2) initialPinchDist.current = null;
           if (e.touches.length === 0) {
               isDraggingRef.current = false; setIsDragUI(false);
-              if (dragDistRef.current < 5 && useMathLab && usePointMode && e.changedTouches.length > 0) {
-                  addMathPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+              if (dragDistRef.current < 5 && e.changedTouches.length > 0) {
+                  const handled = processCanvasClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                  if (!handled && useMathLab && usePointMode) {
+                      addMathPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                  }
               }
           } else if (e.touches.length === 1) {
               lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -864,8 +1106,7 @@
       
       const goHome = () => {
           if (useMathLab && !keepViewOnMathLab) {
-              const offsetScreenPixels = isMobile ? (window.innerHeight * (mobilePanelHeight / 100)) / 2 : 0;
-              setCamera({ x: 0, y: -(offsetScreenPixels / 100.0), z: 100.0 });
+              setCamera({ x: 0, y: 0, z: 100.0 });
           } else {
               setCamera(getOptimalCamera(imageObj));
           }
@@ -876,14 +1117,25 @@
       useLayoutEffect(() => {
         if (!imageObj) return;
         const cCanvas = colorCacheRef.current;
-        cCanvas.width = imageObj.width; cCanvas.height = imageObj.height;
+        
+        let iw = imageObj.width;
+        let ih = imageObj.height;
+        const MAX_SIZE = 1000;
+        if (iw > MAX_SIZE || ih > MAX_SIZE) {
+            const scale = Math.min(MAX_SIZE / iw, MAX_SIZE / ih);
+            iw = Math.round(iw * scale);
+            ih = Math.round(ih * scale);
+        }
+        
+        cCanvas.width = iw; 
+        cCanvas.height = ih;
         const cCtx = cCanvas.getContext('2d', { willReadFrequently: true });
-        cCtx.drawImage(imageObj, 0, 0);
+        cCtx.drawImage(imageObj, 0, 0, iw, ih);
 
         const doColorMath = rAdd !== 0 || rMul !== 1 || gAdd !== 0 || gMul !== 1 || bAdd !== 0 || bMul !== 1 || chkGray || binThresh >= 0 || chkInvert || globalAdd !== 0 || globalMul !== 1.0 || useDuotone;
 
         if (doColorMath) {
-          const imgData = cCtx.getImageData(0, 0, cCanvas.width, cCanvas.height);
+          const imgData = cCtx.getImageData(0, 0, iw, ih);
           const data = imgData.data;
           const cDark = hexToRgb(colorDark); const cLight = hexToRgb(colorLight);
           for (let i = 0; i < data.length; i += 4) {
@@ -941,15 +1193,21 @@
           
           ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
           ctx.beginPath();
-          regularMarksX.forEach(valX => { let screenX = cx + camera.x + valX * z; ctx.moveTo(screenX, -100000); ctx.lineTo(screenX, 100000); });
-          regularMarksY.forEach(valY => { let screenY = cy + camera.y - valY * z; ctx.moveTo(-100000, screenY); ctx.lineTo(100000, screenY); });
+          regularMarksX.forEach(valX => { 
+              let screenX = cx + camera.x + valX * z; 
+              if (isFinite(screenX)) { ctx.moveTo(screenX, -h); ctx.lineTo(screenX, h * 2); }
+          });
+          regularMarksY.forEach(valY => { 
+              let screenY = cy + camera.y - valY * z; 
+              if (isFinite(screenY)) { ctx.moveTo(-w, screenY); ctx.lineTo(w * 2, screenY); }
+          });
           ctx.stroke();
 
           ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
           ctx.beginPath();
           let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
-          ctx.moveTo(sOriginX, -100000); ctx.lineTo(sOriginX, 100000);
-          ctx.moveTo(-100000, sOriginY); ctx.lineTo(100000, sOriginY);
+          if (isFinite(sOriginX)) { ctx.moveTo(sOriginX, -h); ctx.lineTo(sOriginX, h * 2); }
+          if (isFinite(sOriginY)) { ctx.moveTo(-w, sOriginY); ctx.lineTo(w * 2, sOriginY); }
           ctx.stroke();
         };
 
@@ -961,6 +1219,7 @@
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             regularMarksX.forEach(valX => {
                 let screenX = cx + camera.x + valX * z;
+                if (!isFinite(screenX)) return;
                 let textY = Math.max(15, Math.min(h - 25, sOriginY + 15));
                 let str = formatNumber(valX);
                 ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, screenX, textY);
@@ -970,6 +1229,7 @@
             ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
             regularMarksY.forEach(valY => {
                 let screenY = cy + camera.y - valY * z;
+                if (!isFinite(screenY)) return;
                 let textX = Math.max(15, Math.min(w - 70, sOriginX - 10));
                 let str = formatNumber(valY);
                 ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, screenY);
@@ -978,16 +1238,76 @@
         };
 
         const drawImageLayer = () => {
+            if (!imageObj || !colorCacheRef.current) return;
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y); 
             ctx.scale(z, z); 
             ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
-            if (imageObj && colorCacheRef.current) {
-              ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
-            } else if (!imageObj) {
-              ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(-100, -100, 200, 200);
-              ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
+            ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
+            ctx.restore();
+        };
+
+        const drawUnitSquare = () => {
+            if (!useMathLab || !useUnitSquare) return;
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y);
+            
+            let pts = [ new DOMPoint(0,0), new DOMPoint(1,0), new DOMPoint(1,-1), new DOMPoint(0,-1) ];
+            ctx.beginPath();
+            pts.forEach((p, i) => {
+                let tPt = p.matrixTransform(matrix);
+                if (!isFinite(tPt.x) || !isFinite(tPt.y)) return;
+                if (i===0) ctx.moveTo(tPt.x*z, tPt.y*z);
+                else ctx.lineTo(tPt.x*z, tPt.y*z);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(234, 179, 8, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            let o = new DOMPoint(0,0).matrixTransform(matrix);
+            let det = matrix.a * matrix.d - matrix.b * matrix.c;
+            if(isFinite(o.x) && isFinite(o.y)) {
+                ctx.font = '900 24px sans-serif';
+                ctx.fillStyle = '#fde68a';
+                ctx.shadowColor = 'black'; ctx.shadowBlur = 6;
+                ctx.fillText(`넓이: ${Math.abs(det).toFixed(2)}`, o.x*z + 15, o.y*z + 25);
             }
+            ctx.restore();
+        };
+
+        const drawPolygon = () => {
+            if (!useMathLab || !usePolygonMode || polygonPoints.length === 0) return;
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y);
+            
+            ctx.beginPath();
+            polygonPoints.forEach((p, i) => {
+                let pt = new DOMPoint(p.x, -p.y).matrixTransform(matrix);
+                if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                if (i===0) ctx.moveTo(pt.x*z, pt.y*z);
+                else ctx.lineTo(pt.x*z, pt.y*z);
+            });
+            if (isPolygonClosed) {
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
+                ctx.fill();
+            }
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            polygonPoints.forEach((p, idx) => {
+                let pt = new DOMPoint(p.x, -p.y).matrixTransform(matrix);
+                if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                ctx.beginPath();
+                ctx.arc(pt.x*z, pt.y*z, 6, 0, Math.PI*2);
+                ctx.fillStyle = (idx === 0 && !isPolygonClosed) ? '#ef4444' : '#a855f7'; 
+                ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            });
             ctx.restore();
         };
 
@@ -1058,18 +1378,18 @@
                             let delta = Math.max(1e-12, Math.abs(bx) * 1e-6);
                             let tY1 = executeMath(func, bx - delta, currentConstValues);
                             let tY2 = executeMath(func, bx - delta * 100, currentConstValues);
-                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2;
-                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2;
+                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2 && tY1 < -3;
+                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2 && tY1 > 3;
 
-                            if (isPlunging && lastValidY < 0) {
+                            if (isPlunging) {
                                 let aPt = new DOMPoint(bx, 1e7).matrixTransform(gMatrix);
-                                ctx.lineTo(aPt.x * z, viewMaxY);
-                            } else if (isShooting && lastValidY > 0) {
+                                if (isFinite(aPt.x)) ctx.lineTo(aPt.x * z, viewMaxY);
+                            } else if (isShooting) {
                                 let aPt = new DOMPoint(bx, -1e7).matrixTransform(gMatrix);
-                                ctx.lineTo(aPt.x * z, viewMinY);
+                                if (isFinite(aPt.x)) ctx.lineTo(aPt.x * z, viewMinY);
                             } else {
                                 let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
-                                ctx.lineTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
+                                if (isFinite(bPt.x) && isFinite(bPt.y)) ctx.lineTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
                             }
                         }
                         first = true; prevMathY = null; prevMathX = null; continue;
@@ -1078,7 +1398,13 @@
                     if (prevMathY !== null) {
                         let dyScreen = Math.abs(mathY - prevMathY) * z;
                         if (dyScreen > h && mathY * prevMathY < 0) {
-                            first = true; 
+                            let midY = executeMath(func, mathX - mathStep/2, currentConstValues);
+                            let minY = Math.min(prevMathY, mathY);
+                            let maxY = Math.max(prevMathY, mathY);
+                            let margin = Math.max(1, Math.abs(maxY - minY) * 0.1);
+                            if (isNaN(midY) || midY < minY - margin || midY > maxY + margin) {
+                                first = true; 
+                            }
                         }
                     }
                     
@@ -1100,30 +1426,30 @@
                             let delta = Math.max(1e-12, Math.abs(bx) * 1e-6);
                             let tY1 = executeMath(func, bx + delta, currentConstValues);
                             let tY2 = executeMath(func, bx + delta * 100, currentConstValues);
-                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2;
-                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2;
+                            let isPlunging = !isNaN(tY1) && !isNaN(tY2) && tY1 < tY2 && tY1 < -3;
+                            let isShooting = !isNaN(tY1) && !isNaN(tY2) && tY1 > tY2 && tY1 > 3;
 
                             if (isPlunging) {
                                 let aPt = new DOMPoint(bx, 1e7).matrixTransform(gMatrix);
-                                ctx.moveTo(aPt.x * z, viewMaxY);
+                                if (isFinite(aPt.x)) ctx.moveTo(aPt.x * z, viewMaxY);
                                 let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
-                                ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
+                                if (isFinite(bPt.x) && isFinite(bPt.y)) ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
                             } else if (isShooting) {
                                 let aPt = new DOMPoint(bx, -1e7).matrixTransform(gMatrix);
-                                ctx.moveTo(aPt.x * z, viewMinY);
+                                if (isFinite(aPt.x)) ctx.moveTo(aPt.x * z, viewMinY);
                                 let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
-                                ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
+                                if (isFinite(bPt.x) && isFinite(bPt.y)) ctx.lineTo(bPt.x * z, Math.max(viewMinY, Math.min(viewMaxY, bPt.y * z)));
                             } else {
                                 let bPt = new DOMPoint(bx, -lastValidY).matrixTransform(gMatrix);
-                                ctx.moveTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
+                                if (isFinite(bPt.x) && isFinite(bPt.y)) ctx.moveTo(Math.max(viewMinX, Math.min(viewMaxX, bPt.x*z)), Math.max(viewMinY, Math.min(viewMaxY, bPt.y*z)));
                             }
-                            ctx.lineTo(drawX, drawY);
+                            if (isFinite(drawX) && isFinite(drawY)) ctx.lineTo(drawX, drawY);
                         } else {
-                            ctx.moveTo(drawX, drawY);
+                            if (isFinite(drawX) && isFinite(drawY)) ctx.moveTo(drawX, drawY);
                         }
                         first = false;
                     } else {
-                        ctx.lineTo(drawX, drawY);
+                        if (isFinite(drawX) && isFinite(drawY)) ctx.lineTo(drawX, drawY);
                     }
                     prevMathY = mathY;
                     prevMathX = mathX;
@@ -1142,6 +1468,8 @@
                 let tPt = pt.matrixTransform(matrix);
                 let drawX = tPt.x * z;
                 let drawY = tPt.y * z;
+                if (!isFinite(drawX) || !isFinite(drawY)) return;
+                
                 ctx.beginPath();
                 ctx.arc(drawX, drawY, 6, 0, 2 * Math.PI);
                 ctx.fillStyle = '#10b981'; 
@@ -1159,29 +1487,69 @@
             ctx.restore();
         };
 
+        const drawCalcPoints = () => {
+            if (calcPoints.length === 0) return;
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y);
+            calcPoints.forEach(p => {
+                let pt = new DOMPoint(p.x, -p.y);
+                let tPt = pt.matrixTransform(matrix);
+                let drawX = tPt.x * z;
+                let drawY = tPt.y * z;
+                if (!isFinite(drawX) || !isFinite(drawY)) return;
+                
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, 12, 0, 2 * Math.PI);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('?', drawX, drawY);
+                
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 4;
+                ctx.fillText(`(${p.x}, ${p.y})`, drawX + 18, drawY - 18);
+                ctx.shadowBlur = 0;
+            });
+            ctx.restore();
+        };
+
         if (!imageUnderGrid) {
             drawGridLines();
             drawNumbers();
         }
         
-        if (useMathLab && mathUnderImage) { drawMathFunctions(); drawMathPoints(); }
+        if (useMathLab && mathUnderImage) { drawUnitSquare(); drawPolygon(); drawMathFunctions(); drawMathPoints(); }
 
         if (isImageActive) drawImageLayer();
 
-        if (useMathLab && !mathUnderImage) { drawMathFunctions(); drawMathPoints(); }
+        if (useMathLab && !mathUnderImage) { drawUnitSquare(); drawPolygon(); drawMathFunctions(); drawMathPoints(); }
 
         if (imageUnderGrid) {
             drawGridLines();
             drawNumbers();
         }
 
+        drawCalcPoints();
+
         if (useRefl) {
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y); ctx.translate(translateX * z, translateY * z); ctx.rotate(-(reflAngle * Math.PI) / 180); 
-            ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-100000, 0); ctx.lineTo(100000, 0); ctx.stroke(); ctx.restore();
+            ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); 
+            if (isFinite(-w*5)) ctx.moveTo(-w * 5, 0); 
+            if (isFinite(w*5)) ctx.lineTo(w * 5, 0); 
+            ctx.stroke(); ctx.restore();
         }
 
-      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab]); 
+      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab, calcPoints, useUnitSquare, usePolygonMode, polygonPoints, isPolygonClosed]); 
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
@@ -1200,6 +1568,7 @@
                         <input 
                             ref={inputRef} type="text" value={tempGraphEq} 
                             onChange={(e) => setTempGraphEq(e.target.value)} 
+                            onKeyDown={(e) => { if (e.key === 'Enter') applyMathPad(); }}
                             className="flex-1 bg-transparent outline-none text-white tracking-wider font-mono min-w-0"
                             autoFocus autoComplete="off" spellCheck="false"
                             inputMode="none"
@@ -1310,6 +1679,106 @@
                 )}
               </div>
             </div>
+          )}
+
+          {selectedCalcPoint && (
+              <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
+                  <div className="bg-zinc-900 border border-zinc-600 rounded-2xl p-6 shadow-2xl max-w-lg w-full flex flex-col gap-4 transform transition-all" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-700 pb-3">
+                          <h3 className="text-white font-bold text-xl flex items-center gap-2">
+                              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                              행렬 연산 과정
+                          </h3>
+                          <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                      </div>
+                      
+                      <div className="bg-[#1e293b] p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner">
+                          
+                          <div className="flex items-center gap-1 md:gap-3 text-sm md:text-lg mb-6 justify-center">
+                              <div className="flex items-center">
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="grid grid-cols-3 gap-x-2 md:gap-x-3 gap-y-2 text-center text-sky-300 mx-1 w-max">
+                                      <span>{fmt(matrix.a)}</span><span>{fmt(matrix.c)}</span><span>{fmt(matrix.e)}</span>
+                                      <span>{fmt(matrix.b)}</span><span>{fmt(matrix.d)}</span><span>{fmt(matrix.f)}</span>
+                                      <span className="text-slate-500">0</span><span className="text-slate-500">0</span><span className="text-slate-500">1</span>
+                                  </div>
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                              </div>
+                              <span className="text-slate-400 font-sans font-bold">×</span>
+                              <div className="flex items-center">
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="flex flex-col gap-y-2 text-center text-amber-300 mx-1 w-max">
+                                      <span>{selectedCalcPoint.x}</span>
+                                      <span>{selectedCalcPoint.y}</span>
+                                      <span className="text-slate-500">1</span>
+                                  </div>
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                              </div>
+                              <span className="text-slate-400 font-sans font-bold">=</span>
+                              <div className="flex items-center">
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="flex flex-col gap-y-2 text-center text-emerald-300 mx-1 w-max font-bold">
+                                      <span>X'</span>
+                                      <span>Y'</span>
+                                      <span className="text-slate-500 font-normal">1</span>
+                                  </div>
+                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 text-sm md:text-base border-t border-slate-700/50 pt-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-emerald-300 font-bold w-6">X'</span> <span className="font-sans">=</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.a)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.c)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-sky-300">{fmt(matrix.e)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 pl-9 font-sans flex-wrap">
+                                  = <span className="text-slate-300 font-mono">{fmt(matrix.a * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.c * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.e)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 text-sm md:text-base border-t border-slate-700/50 pt-4 mt-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-emerald-300 font-bold w-6">Y'</span> <span className="font-sans">=</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.b)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.d)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-sky-300">{fmt(matrix.f)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 pl-9 font-sans flex-wrap">
+                                  = <span className="text-slate-300 font-mono">{fmt(matrix.b * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.d * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.f)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="mt-2 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[13px] text-indigo-200 leading-relaxed shadow-sm">
+                          <b className="text-indigo-400 block mb-1 flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              왜 (X, Y)를 세로로 세워서 곱하나요?
+                          </b>
+                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 순서대로 곱해 더하는 규칙을 따릅니다. 2차원 좌표 $(X, Y)$를 $3 \times 3$ 행렬에 곱해 정상적인 $X', Y'$ 결과를 얻으려면, 좌표를 <strong className="text-white">세로로 세운 열 벡터(Column Vector)</strong> 형태로 대입해야만 수학적으로 올바른 연산이 성립하기 때문입니다.
+                      </div>
+                      
+                      <div className="flex justify-end gap-3 mt-2">
+                           <button onClick={() => {
+                               setCalcPoints(prev => prev.filter(p => p.id !== selectedCalcPoint.id));
+                               setSelectedCalcPoint(null);
+                           }} className="flex items-center gap-1 px-4 py-2 bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 rounded-lg transition font-bold text-sm">
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                               지우기
+                           </button>
+                           <button onClick={() => setSelectedCalcPoint(null)} className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition shadow-lg font-bold text-sm">
+                               확인
+                           </button>
+                      </div>
+                  </div>
+              </div>
           )}
 
           {graphSettingsId !== null && (
@@ -1459,7 +1928,15 @@
                     <span className="text-xs font-bold text-zinc-500">수학 실험실 전용 옵션</span>
                     <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
                         <div className="relative">
-                            <input type="checkbox" checked={showImageInMathLab} onChange={(e) => setShowImageInMathLab(e.target.checked)} className="peer sr-only" />
+                            <input type="checkbox" checked={showImageInMathLab} onChange={(e) => {
+                                const val = e.target.checked;
+                                setShowImageInMathLab(val);
+                                if (val && useMathLab && imageObj && !keepViewOnMathLab) {
+                                    setCamera(getOptimalCamera(imageObj));
+                                } else if (!val && useMathLab && !keepViewOnMathLab) {
+                                    setCamera({ x: 0, y: 0, z: 100.0 });
+                                }
+                            }} className="peer sr-only" />
                             <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
                             <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                         </div>
@@ -1494,7 +1971,7 @@
                     <ConfigRow title="X축 전단 (Shear X)" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
                     <ConfigRow title="Y축 전단 (Shear Y)" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
                     <ConfigRow title="스퀴즈 (Squeeze)" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
-                    <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" />
+                    <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
                   </div>
                 )}
               </div>
@@ -1529,30 +2006,67 @@
                 </label>
                 <button onClick={() => resetAll(imageObj)} className="px-5 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-base font-bold transition shadow shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
-                  리셋
+                  전체 리셋
                 </button>
               </div>
             </div>
 
-            <div className="hidden md:flex p-8 bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative">
-              <div className="flex items-center justify-between relative w-full py-4 h-[180px]">
-                <div className="flex items-center justify-center w-8 h-full">
-                  <span className="text-zinc-400 font-serif text-[80px] leading-[0]" style={{ transform: 'scale(0.6, 2.5)' }}>(</span>
-                </div>
-                <div className="grid grid-cols-3 gap-x-4 gap-y-5 text-center font-mono text-2xl md:text-3xl font-bold tracking-tighter w-full max-w-[360px] mx-2 py-1 self-center">
-                  <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
-                  <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
-                  <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
-                  <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
-                  <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
-                  <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                  <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
-                  <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
-                  <div className="text-zinc-600 pointer-events-none w-full text-center">1</div>
-                </div>
-                <div className="flex items-center justify-center w-8 h-full">
-                  <span className="text-zinc-400 font-serif text-[80px] leading-[0]" style={{ transform: 'scale(0.6, 2.5)' }}>)</span>
-                </div>
+            <div className="hidden md:flex bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative px-4 py-6 min-h-[220px]">
+              
+              <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해하여 보기">
+                  {showMatrixChain ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                  ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  )}
+              </button>
+
+              <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              </button>
+              
+              <div className="flex items-center justify-center relative w-full h-[180px]">
+                  {showMatrixChain ? (
+                      <div className="flex items-center w-full overflow-x-auto space-x-2 px-14 scrollbar-hide py-2">
+                          {chainOrder.map((id, idx) => {
+                              const chainItem = getChainMatrix(id);
+                              return (
+                                  <React.Fragment key={id}>
+                                      <div 
+                                          draggable 
+                                          onDragStart={(e) => handleDragStart(e, idx)}
+                                          onDragOver={handleDragOver}
+                                          onDrop={(e) => handleDrop(e, idx)}
+                                          className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform drop-shadow-lg"
+                                      >
+                                          <MiniMatrix m={chainItem.m} label={chainItem.label} />
+                                      </div>
+                                      {idx < chainOrder.length - 1 && <span className="text-zinc-500 font-bold text-sm shrink-0">×</span>}
+                                  </React.Fragment>
+                              );
+                          })}
+                      </div>
+                  ) : (
+                      <div className="flex items-center justify-center w-full max-w-[380px]">
+                          <div className="flex items-center justify-center w-8">
+                            <span className="text-zinc-400 font-serif text-[80px] leading-[0]" style={{ transform: 'scale(0.6, 2.5)' }}>(</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-x-4 gap-y-5 text-center font-mono text-2xl md:text-3xl font-bold tracking-tighter w-full mx-2 py-1">
+                            <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
+                            <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
+                            <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
+                            <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
+                            <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
+                            <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
+                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
+                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
+                            <div className="text-zinc-600 pointer-events-none w-full text-center">1</div>
+                          </div>
+                          <div className="flex items-center justify-center w-8">
+                            <span className="text-zinc-400 font-serif text-[80px] leading-[0]" style={{ transform: 'scale(0.6, 2.5)' }}>)</span>
+                          </div>
+                      </div>
+                  )}
               </div>
             </div>
 
@@ -1565,24 +2079,26 @@
               {activeTab === 'geo' && (
                 <div className="flex flex-col gap-5 md:gap-6 pb-20">
                   <div className="space-y-4">
-                    <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
-                    <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
-                    <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
+                    <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
+                    <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
+                    <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
                   </div>
                   <hr className="border-zinc-800" />
                   <div className="space-y-4">
-                    <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
-                    <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
+                    <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
+                    <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
                   </div>
                   <hr className="border-zinc-800" />
                   <div className="space-y-4">
-                    <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
+                    <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
                   </div>
                   <hr className="border-zinc-800" />
                   <div className="space-y-4">
-                    <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
-                    <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                    <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
+                    <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
                   </div>
+                  
+                  <hr className="border-zinc-800" />
                   
                   <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
                     <label className="flex items-center gap-2 text-rose-400 font-bold text-sm md:text-base w-max cursor-pointer">
@@ -1590,12 +2106,31 @@
                       반사 변환 직선 (y = ax) 켜기
                       <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.refl); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                     </label>
-                    <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} colorClass="rose" />
+                    <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} onReset={() => setReflAngle(90)} colorClass="rose" />
                   </div>
 
                   <hr className="border-zinc-800" />
                   
-                  <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4">
+                  <div className="p-4 bg-teal-900/10 rounded-xl border border-teal-500/30 flex flex-col gap-3">
+                      <span className="text-teal-400 font-bold text-sm flex items-center gap-1.5">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                          변환 중심점 (Origin)
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                      </span>
+                      <div className="flex gap-2">
+                          <div className="flex-1 flex flex-col gap-1 min-w-0">
+                              <span className="text-[10px] text-zinc-500 text-center">X 좌표</span>
+                              <CustomNumberInput value={transformOriginX} onChange={setTransformOriginX} className="w-full bg-zinc-950 border border-zinc-700 text-teal-400 font-bold px-2 py-1.5 rounded outline-none text-center" />
+                          </div>
+                          <div className="flex-1 flex flex-col gap-1 min-w-0">
+                              <span className="text-[10px] text-zinc-500 text-center">Y 좌표</span>
+                              <CustomNumberInput value={transformOriginY} onChange={setTransformOriginY} className="w-full bg-zinc-950 border border-zinc-700 text-teal-400 font-bold px-2 py-1.5 rounded outline-none text-center" />
+                          </div>
+                      </div>
+                      <button onClick={() => {setTransformOriginX(0); setTransformOriginY(0);}} className="mt-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs py-1.5 rounded transition border border-zinc-700">원점(0,0)으로 리셋</button>
+                  </div>
+
+                  <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4 mt-2">
                     <label className="flex items-center gap-2 text-indigo-400 font-black text-base w-max cursor-pointer">
                       <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="w-5 h-5 accent-indigo-500 cursor-pointer" /> 
                       수학 실험실 (Math Lab)
@@ -1603,7 +2138,8 @@
                     </label>
 
                     {useMathLab && (
-                        <div className="flex flex-col gap-5 mt-1 pl-3 border-l-2 border-indigo-500/30">
+                        <div className="flex flex-col gap-6 mt-1 pl-3 border-l-2 border-indigo-500/30">
+                            
                             <div className="flex flex-col gap-3">
                                 <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
                                   <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
@@ -1616,7 +2152,7 @@
                                             <div className="flex items-center gap-2">
                                                 <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
                                                 <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
-                                                    +
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                                                 </button>
                                             </div>
                                             <div className="flex gap-1">
@@ -1658,13 +2194,13 @@
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
-                                  <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
+                                <label className="flex items-center gap-2 text-sky-400 font-bold text-sm w-max cursor-pointer">
+                                  <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
                                   함수(f(x)) 맵핑
                                   <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                 </label>
                                 {useGraph && (
-                                    <div className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-lg border border-purple-500/20">
+                                    <div className="flex flex-col gap-2 bg-sky-900/10 p-3 rounded-lg border border-sky-500/20">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-zinc-400 text-xs font-bold">함수 목록 ({graphs.length})</span>
                                             <button onClick={() => setIsGraphListExpanded(!isGraphListExpanded)} className="text-zinc-400 hover:text-white w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700">
@@ -1677,12 +2213,12 @@
                                                     <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
                                                         <div className="flex justify-between items-center w-full gap-2">
                                                             <span className="font-bold italic text-lg shrink-0" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}}>y =</span>
-                                                            <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 text-purple-400 px-2 py-1.5 rounded cursor-pointer hover:border-purple-500 font-mono text-sm overflow-x-auto whitespace-nowrap" title="수식 편집">
+                                                            <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 text-sky-400 px-2 py-1.5 rounded cursor-pointer hover:border-sky-500 font-mono text-sm overflow-x-auto whitespace-nowrap" title="수식 편집 (여기를 클릭하세요)">
                                                                 {g.eq}
                                                             </div>
                                                             <div className="flex gap-1 shrink-0">
-                                                                <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 옵션">
-                                                                    ⚙️
+                                                                <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                                                                 </button>
                                                                 <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
                                                             </div>
@@ -1704,8 +2240,8 @@
                                         )}
                                         
                                         {isGraphListExpanded && constants.length > 0 && (
-                                            <div className="mt-4 pt-4 border-t border-purple-500/30 flex flex-col gap-3">
-                                                <span className="text-zinc-400 text-xs font-bold">🎛️ 동적 상수(Constant) 연동</span>
+                                            <div className="mt-4 pt-4 border-t border-sky-500/30 flex flex-col gap-3">
+                                                <span className="text-zinc-400 text-xs font-bold">동적 상수(Constant) 연동</span>
                                                 {constants.map(c => (
                                                     <div key={c.name} className="flex flex-col gap-1">
                                                         <ControlRow 
@@ -1713,27 +2249,9 @@
                                                             min={c.min} max={c.max} step={c.step} 
                                                             value={c.value} 
                                                             onChange={v => updateConstant(c.name, 'value', v)} 
+                                                            onReset={() => updateConstant(c.name, 'value', 1.0)}
                                                             colorClass="indigo" 
-                                                            onOpenLogic={() => toggleConstConfig(c.name)}
                                                         />
-                                                        {activeConstConfig === c.name && (
-                                                            <div className="flex flex-col gap-2 p-3 bg-zinc-950 rounded-lg border border-zinc-800 mt-1 mb-3">
-                                                                <div className="flex gap-2">
-                                                                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소
-                                                                        <CustomNumberInput value={c.min} validate={v=>v<=c.max} onChange={v=>updateConstant(c.name, 'min', v)} className="bg-black border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded text-center w-full"/>
-                                                                    </label>
-                                                                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최대
-                                                                        <CustomNumberInput value={c.max} validate={v=>v>=c.min} onChange={v=>updateConstant(c.name, 'max', v)} className="bg-black border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded text-center w-full"/>
-                                                                    </label>
-                                                                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">간격
-                                                                        <CustomNumberInput value={c.step} validate={v=>v>0} onChange={v=>updateConstant(c.name, 'step', v)} className="bg-black border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded text-center w-full"/>
-                                                                    </label>
-                                                                </div>
-                                                                <button onClick={() => deleteConstant(c.name)} className="w-full mt-1 py-1.5 bg-rose-900/20 text-rose-400 border border-rose-500/30 rounded text-xs font-bold hover:bg-rose-900/40 transition">
-                                                                    상수 삭제
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -1741,6 +2259,74 @@
                                     </div>
                                 )}
                             </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
+                                  <input type="checkbox" checked={usePolygonMode} onChange={(e) => setUsePolygonMode(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
+                                  다각형(도형) 그리기 맵핑
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.polygon); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                </label>
+                                {usePolygonMode && (
+                                    <div className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-lg border border-purple-500/20">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-zinc-400 text-xs font-bold">도형 꼭짓점 ({polygonPoints.length})</span>
+                                                <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                </button>
+                                            </div>
+                                            {polygonPoints.length > 0 && (
+                                                <button onClick={() => {setPolygonPoints([]); setIsPolygonClosed(false);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="초기화">
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                        {showManualPolyUI && (
+                                            <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-purple-500/10 mb-1">
+                                                <span className="text-zinc-500 font-mono text-[10px]">X:</span>
+                                                <CustomNumberInput value={polyManualX} onChange={setPolyManualX} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
+                                                <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
+                                                <CustomNumberInput value={polyManualY} onChange={setPolyManualY} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
+                                                <button onClick={handleAddManualPolyPoint} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
+                                            </div>
+                                        )}
+                                        {polygonPoints.length === 0 ? 
+                                            <span className="text-zinc-500 text-[11px] py-1 leading-relaxed">화면을 클릭하여 꼭짓점을 여러 개 찍은 뒤, <b>빨간색으로 표시된 첫 번째 점</b>을 다시 누르면 도형이 완성됩니다.</span> :
+                                            <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto scrollbar-hide pr-1 mt-1">
+                                                {polygonPoints.map((p, i) => (
+                                                    <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 && !isPolygonClosed ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
+                                                        <span>Pt {i+1}</span>
+                                                        <span>({p.x}, {p.y})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        }
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <span className="text-rose-400 font-bold text-sm flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                    도형의 대칭이동
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.symmetry); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                </span>
+                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                    <button onClick={() => applySymmetry('X')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">X축 대칭</button>
+                                    <button onClick={() => applySymmetry('Y')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">Y축 대칭</button>
+                                    <button onClick={() => applySymmetry('ORIGIN')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">원점 대칭</button>
+                                    <button onClick={() => applySymmetry('YX')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">y=x 직선 대칭</button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-2 text-amber-400 font-bold text-sm w-max cursor-pointer">
+                                  <input type="checkbox" checked={useUnitSquare} onChange={(e) => setUseUnitSquare(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
+                                  단위 정사각형 (행렬식/넓이) 시각화
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.unitSquare); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                </label>
+                            </div>
+
                         </div>
                     )}
                   </div>
@@ -1761,9 +2347,9 @@
                     </label>
                   </div>
                   <div className="space-y-4">
-                    <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
-                    <ControlRow label="전체 명암비 (x)" min={config.contMin} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
-                    <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
+                    <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} onReset={() => handleSyncChange('globalAdd', 0)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
+                    <ControlRow label="전체 명암비 (x)" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} onReset={() => handleSyncChange('globalMul', 1.0)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
+                    <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} onReset={() => setBinThresh(-1)} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
                   </div>
 
                   <div className="p-3 bg-purple-900/20 rounded-xl border border-purple-500/30 flex flex-col gap-3">
@@ -1779,16 +2365,16 @@
 
                   <hr className="border-zinc-800" />
                   <div className="space-y-4 p-3 border-l-2 border-red-500">
-                    <ControlRow label="Red 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Red 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="Red 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} onReset={() => handleSyncChange('rAdd', 0)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Red 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} onReset={() => handleSyncChange('rMul', 1.0)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-green-500">
-                    <ControlRow label="Green 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Green 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="Green 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} onReset={() => handleSyncChange('gAdd', 0)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Green 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} onReset={() => handleSyncChange('gMul', 1.0)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-blue-500 mb-8">
-                    <ControlRow label="Blue 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Blue 명암비" min={config.contMin} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="Blue 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} onReset={() => handleSyncChange('bAdd', 0)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="Blue 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} onReset={() => handleSyncChange('bMul', 1.0)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                 </div>
               )}
@@ -1807,12 +2393,33 @@
           <div className={`flex items-center justify-center relative overflow-hidden bg-zinc-950 h-full ${isMobile ? 'w-full absolute inset-0 z-10' : 'flex-1 z-10'}`}>
             
             <div 
-              className={`absolute inset-0 z-[55] touch-none ${(useMathLab && usePointMode) ? 'cursor-default' : (isDragUI ? 'cursor-grabbing' : 'cursor-grab')}`}
+              className={`absolute inset-0 z-[55] touch-none ${isCalcMode || usePolygonMode ? 'cursor-default' : ((useMathLab && usePointMode) ? 'cursor-default' : (isDragUI ? 'cursor-grabbing' : 'cursor-grab'))}`}
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
               onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
             />
             
-            {/* 🚀 1. 모바일 확대 축소 버튼을 z-[100] 가장 위로 빼냄 */}
+            <canvas ref={canvasRef} width={2000} height={1200} className="w-full h-full object-cover z-20 pointer-events-none absolute inset-0" />
+
+            {isCalcMode && (
+                <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[70] pointer-events-none">
+                    <div className="bg-amber-500/90 text-white px-5 py-2.5 rounded-full font-bold text-sm md:text-base shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse flex items-center gap-3 pointer-events-auto">
+                        <span>화면을 터치하여 계산 과정을 볼 점을 찍어주세요</span>
+                        <button onClick={() => setShowManualCalcPointUI(!showManualCalcPointUI)} className="bg-white text-amber-600 px-3 py-1 rounded-full text-xs hover:bg-amber-100 transition whitespace-nowrap shadow-sm">
+                            직접 입력
+                        </button>
+                    </div>
+                    {showManualCalcPointUI && (
+                        <div className="flex gap-2 items-center bg-black/80 p-2.5 rounded-lg border border-amber-500/50 shadow-xl pointer-events-auto">
+                            <span className="text-zinc-400 font-mono text-xs">X:</span>
+                            <CustomNumberInput value={calcManualX} onChange={setCalcManualX} className="w-16 bg-zinc-900 text-amber-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-amber-500" />
+                            <span className="text-zinc-400 font-mono text-xs">Y:</span>
+                            <CustomNumberInput value={calcManualY} onChange={setCalcManualY} className="w-16 bg-zinc-900 text-amber-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-amber-500" />
+                            <button onClick={handleAddManualCalcPoint} className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
+                        </div>
+                    )}
+                </div>
+            )}
+
             <div className={`absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold z-[100] pointer-events-auto ${!isDraggingHandle.current ? 'transition-all duration-300' : ''}`}
                  style={isMobile ? { bottom: `calc(${mobilePanelHeight}vh + env(safe-area-inset-bottom, 0px) + 24px)`, right: '16px' } : { bottom: '32px', right: '32px' }}>
               {isMobile && (
@@ -1832,22 +2439,57 @@
             </div>
 
             {isMobile && (
-              <div className="absolute top-4 left-4 z-[60] flex items-center drop-shadow-2xl">
+              <div className="absolute top-4 left-4 z-[60] flex items-center drop-shadow-2xl pointer-events-auto">
                 <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-3 relative w-[200px] h-[140px] flex justify-between items-center">
+                  
+                  <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute -top-3 left-4 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${showMatrixChain ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해하여 보기">
+                      {showMatrixChain ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                      ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                      )}
+                  </button>
+
+                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${isCalcMode ? 'bg-amber-500 border-amber-400 text-white animate-pulse' : 'bg-zinc-800 border-zinc-600 text-amber-400 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  </button>
+
                   <div className="flex items-center justify-center w-4 h-full">
                     <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-3 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[140px] mx-1">
-                    <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
-                    <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
-                    <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
-                    <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
-                    <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
-                    <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
-                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
-                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">1</div>
-                  </div>
+                  {showMatrixChain ? (
+                      <div className="flex items-center w-[120px] overflow-x-auto space-x-1 px-2 scrollbar-hide self-center">
+                          {chainOrder.map((id, idx) => {
+                              const chainItem = getChainMatrix(id);
+                              return (
+                                  <React.Fragment key={id}>
+                                      <div 
+                                          draggable 
+                                          onDragStart={(e) => handleDragStart(e, idx)}
+                                          onDragOver={handleDragOver}
+                                          onDrop={(e) => handleDrop(e, idx)}
+                                          className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform drop-shadow-lg"
+                                      >
+                                          <MiniMatrix m={chainItem.m} label={chainItem.label} />
+                                      </div>
+                                      {idx < chainOrder.length - 1 && <span className="text-zinc-500 font-bold text-xs shrink-0">×</span>}
+                                  </React.Fragment>
+                              );
+                          })}
+                      </div>
+                  ) : (
+                      <div className="grid grid-cols-3 gap-x-2 gap-y-3 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[140px] mx-1">
+                        <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
+                        <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
+                        <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
+                        <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
+                        <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
+                        <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">1</div>
+                      </div>
+                  )}
                   <div className="flex items-center justify-center w-4 h-full">
                     <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>)</span>
                   </div>
@@ -1861,14 +2503,6 @@
               </div>
             )}
 
-            {useRefl && (
-              <div className={`absolute ${isMobile ? 'top-[165px] left-4' : 'top-8 left-8'} z-[60] text-rose-500 font-bold text-sm md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm pointer-events-none`}>
-                Reflection Axis: {Math.abs(reflAngle - 90) < 0.01 ? "x = 0" : `y = ${Math.tan(reflAngle * Math.PI / 180).toFixed(2)}x`}
-              </div>
-            )}
-
-            <canvas ref={canvasRef} width={2000} height={1200} className="w-full h-full object-cover z-20 pointer-events-none absolute inset-0" />
-            
           </div>
         </div>
       );
