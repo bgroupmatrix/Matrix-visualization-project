@@ -336,6 +336,83 @@
       const [showMatrixChain, setShowMatrixChain] = useState(false);
       const [chainOrder, setChainOrder] = useState(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
 
+      // 🚀 2번 기능 추가: 모바일 드래그 상태 관리 및 자동 스크롤 함수
+      const dragChainRef = useRef(null);
+      const [ghostDragInfo, setGhostDragInfo] = useState(null); 
+
+      const handleChainTouchStart = (e, index, id) => {
+          const touch = e.touches[0];
+          const target = e.currentTarget;
+          const rect = target.getBoundingClientRect();
+          
+          dragChainRef.current = {
+              index, id,
+              startX: touch.clientX, startY: touch.clientY,
+              offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top,
+              width: rect.width,
+              timeout: setTimeout(() => {
+                  if(dragChainRef.current) {
+                      dragChainRef.current.isDragging = true;
+                      setGhostDragInfo({ 
+                          id, 
+                          x: touch.clientX - dragChainRef.current.offsetX, 
+                          y: touch.clientY - dragChainRef.current.offsetY,
+                          width: dragChainRef.current.width 
+                      });
+                      if(navigator.vibrate) navigator.vibrate(50);
+                  }
+              }, 200) // 0.2초간 꾹 누르면 드래그 시작
+          };
+      };
+
+      const handleChainTouchMove = (e) => {
+          if (!dragChainRef.current) return;
+          const touch = e.touches[0];
+
+          if (!dragChainRef.current.isDragging) {
+              if (Math.abs(touch.clientX - dragChainRef.current.startX) > 10 || Math.abs(touch.clientY - dragChainRef.current.startY) > 10) {
+                  clearTimeout(dragChainRef.current.timeout);
+                  dragChainRef.current = null;
+              }
+              return;
+          }
+
+          e.preventDefault();
+          setGhostDragInfo(prev => ({ ...prev, x: touch.clientX - dragChainRef.current.offsetX, y: touch.clientY - dragChainRef.current.offsetY }));
+
+          // 🚀 손가락이 화면 끝에 닿으면 부드럽고 빠르게 자동 스크롤
+          const container = e.currentTarget;
+          const crect = container.getBoundingClientRect();
+          const edgeThreshold = 60;
+          if (touch.clientX > crect.right - edgeThreshold) container.scrollLeft += 20;
+          else if (touch.clientX < crect.left + edgeThreshold) container.scrollLeft -= 20;
+
+          const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+          const targetEl = elements.find(el => el.hasAttribute && el.hasAttribute('data-chain-idx'));
+          if (targetEl) {
+              const targetIdx = parseInt(targetEl.getAttribute('data-chain-idx'));
+              if (targetIdx !== dragChainRef.current.index) {
+                  setChainOrder(prev => {
+                      const newOrder = [...prev];
+                      const temp = newOrder[dragChainRef.current.index];
+                      newOrder.splice(dragChainRef.current.index, 1);
+                      newOrder.splice(targetIdx, 0, temp);
+                      return newOrder;
+                  });
+                  dragChainRef.current.index = targetIdx;
+                  if(navigator.vibrate) navigator.vibrate(20);
+              }
+          }
+      };
+
+      const handleChainTouchEnd = () => {
+          if (dragChainRef.current) {
+              clearTimeout(dragChainRef.current.timeout);
+              dragChainRef.current = null;
+              setGhostDragInfo(null);
+          }
+      };
+
       const [useUnitSquare, setUseUnitSquare] = useState(false);
       const [transformOriginX, setTransformOriginX] = useState(0);
       const [transformOriginY, setTransformOriginY] = useState(0);
@@ -474,6 +551,7 @@
       const lastMouseRef = useRef({ x: 0, y: 0 });
       const initialPinchDist = useRef(null);
       const dragDistRef = useRef(0);
+      const lastTouchTime = useRef(0); // 🚀 고스트 클릭 방어용 타이머
       
       const [isDragUI, setIsDragUI] = useState(false);
 
@@ -600,7 +678,8 @@
              const deltaY = Math.abs(handleStartY.current - clientY);
              if (deltaY < 10) {
                  const h = mobilePanelHeightRef.current;
-                 if (h > 50) setMobilePanelHeight(15);
+                 // 🚀 높이가 40 이상이면 0으로 완전 숨김, 아니면 85로 펼침
+                 if (h > 40) setMobilePanelHeight(0);
                  else setMobilePanelHeight(85);
              }
           }
@@ -981,6 +1060,7 @@
       };
 
       const handleMouseDown = (e) => { 
+          if (Date.now() - lastTouchTime.current < 500) return; // 터치 직후 마우스 이벤트 무시
           isDraggingRef.current = true; setIsDragUI(true); dragDistRef.current = 0; 
           lastMouseRef.current = { x: e.clientX, y: e.clientY }; 
       };
@@ -992,6 +1072,10 @@
         lastMouseRef.current = { x: e.clientX, y: e.clientY };
       };
       const handleMouseUpOrLeave = (e) => { 
+        if (Date.now() - lastTouchTime.current < 500) {
+            isDraggingRef.current = false; setIsDragUI(false); 
+            return;
+        }
         isDraggingRef.current = false; setIsDragUI(false); 
         if (e.type === 'mouseup' && dragDistRef.current < 5) {
             const handled = processCanvasClick(e.clientX, e.clientY);
@@ -1002,6 +1086,7 @@
       };
 
       const handleTouchStart = (e) => {
+        lastTouchTime.current = Date.now();
         dragDistRef.current = 0;
         if (e.touches.length === 1) {
             isDraggingRef.current = true; setIsDragUI(true); 
@@ -1039,7 +1124,7 @@
                 if (newZ > 500000) newZ = 500000;
                 if (newZ < 1e-6) newZ = 1e-6;
                 const actualRatio = newZ / prev.z;
-
+                
                 const canvas = canvasRef.current; 
                 const rect = canvas.getBoundingClientRect();
                 const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
@@ -1062,6 +1147,7 @@
       };
 
       const handleTouchEnd = (e) => {
+          lastTouchTime.current = Date.now(); // 터치 종료 기록
           if (e.touches.length < 2) initialPinchDist.current = null;
           if (e.touches.length === 0) {
               isDraggingRef.current = false; setIsDragUI(false);
@@ -1554,6 +1640,16 @@
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
           
+          {/* 🚀 방금 추가한 드래그앤드롭 고스트(Ghost) UI가 화면에 보이도록 연결 */}
+          {ghostDragInfo && (
+              <div 
+                  className="fixed pointer-events-none z-[200] drop-shadow-2xl scale-110 opacity-90 transition-none"
+                  style={{ left: ghostDragInfo.x, top: ghostDragInfo.y, width: ghostDragInfo.width }}
+              >
+                  <MiniMatrix m={getChainMatrix(ghostDragInfo.id).m} label={getChainMatrix(ghostDragInfo.id).label} />
+              </div>
+          )}
+
           {mathPadOpen && (
             <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col">
@@ -1681,99 +1777,100 @@
             </div>
           )}
 
+          {/* 🚀 3번 기능 개선: 모바일 계산과정 UI 폰트/간격 축소 및 가로스크롤 최적화 */}
           {selectedCalcPoint && (
-              <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
-                  <div className="bg-zinc-900 border border-zinc-600 rounded-2xl p-6 shadow-2xl max-w-lg w-full flex flex-col gap-4 transform transition-all" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-between items-center border-b border-zinc-700 pb-3">
-                          <h3 className="text-white font-bold text-xl flex items-center gap-2">
-                              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 md:p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
+                  <div className="bg-zinc-900 border border-zinc-600 rounded-2xl p-4 md:p-6 shadow-2xl max-w-lg w-full flex flex-col gap-3 md:gap-4 transform transition-all" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-700 pb-2 md:pb-3">
+                          <h3 className="text-white font-bold text-sm md:text-xl flex items-center gap-2">
+                              <svg className="w-4 h-4 md:w-5 md:h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                               행렬 연산 과정
                           </h3>
-                          <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                          <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-lg md:text-xl">✕</button>
                       </div>
                       
-                      <div className="bg-[#1e293b] p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner">
+                      <div className="bg-[#1e293b] p-3 md:p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner scrollbar-hide">
                           
-                          <div className="flex items-center gap-1 md:gap-3 text-sm md:text-lg mb-6 justify-center">
+                          <div className="flex items-center gap-1 md:gap-3 text-[11px] md:text-lg mb-4 md:mb-6 justify-center min-w-max">
                               <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="grid grid-cols-3 gap-x-2 md:gap-x-3 gap-y-2 text-center text-sky-300 mx-1 w-max">
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="grid grid-cols-3 gap-x-1.5 md:gap-x-3 gap-y-1 md:gap-y-2 text-center text-sky-300 mx-0.5 md:mx-1 w-max">
                                       <span>{fmt(matrix.a)}</span><span>{fmt(matrix.c)}</span><span>{fmt(matrix.e)}</span>
                                       <span>{fmt(matrix.b)}</span><span>{fmt(matrix.d)}</span><span>{fmt(matrix.f)}</span>
                                       <span className="text-slate-500">0</span><span className="text-slate-500">0</span><span className="text-slate-500">1</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
                               </div>
-                              <span className="text-slate-400 font-sans font-bold">×</span>
+                              <span className="text-slate-400 font-sans font-bold px-1">×</span>
                               <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="flex flex-col gap-y-2 text-center text-amber-300 mx-1 w-max">
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-amber-300 mx-0.5 md:mx-1 w-max">
                                       <span>{selectedCalcPoint.x}</span>
                                       <span>{selectedCalcPoint.y}</span>
                                       <span className="text-slate-500">1</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
                               </div>
-                              <span className="text-slate-400 font-sans font-bold">=</span>
+                              <span className="text-slate-400 font-sans font-bold px-1">=</span>
                               <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="flex flex-col gap-y-2 text-center text-emerald-300 mx-1 w-max font-bold">
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
+                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-emerald-300 mx-0.5 md:mx-1 w-max font-bold">
                                       <span>X'</span>
                                       <span>Y'</span>
                                       <span className="text-slate-500 font-normal">1</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[40px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
                               </div>
                           </div>
 
-                          <div className="flex flex-col gap-3 text-sm md:text-base border-t border-slate-700/50 pt-4">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-emerald-300 font-bold w-6">X'</span> <span className="font-sans">=</span> 
+                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 min-w-max">
+                              <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                  <span className="text-emerald-300 font-bold w-4 md:w-6">X'</span> <span className="font-sans">=</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.a)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.c)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-sky-300">{fmt(matrix.e)}</span>
                               </div>
-                              <div className="flex items-center gap-2 pl-9 font-sans flex-wrap">
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans flex-wrap">
                                   = <span className="text-slate-300 font-mono">{fmt(matrix.a * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.c * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.e)}</span>
                               </div>
-                              <div className="flex items-center gap-2 pl-9 font-sans">
-                                  = <span className="text-emerald-400 font-bold text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
                               </div>
                           </div>
 
-                          <div className="flex flex-col gap-3 text-sm md:text-base border-t border-slate-700/50 pt-4 mt-4">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-emerald-300 font-bold w-6">Y'</span> <span className="font-sans">=</span> 
+                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 mt-2 md:mt-4 min-w-max">
+                              <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                  <span className="text-emerald-300 font-bold w-4 md:w-6">Y'</span> <span className="font-sans">=</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.b)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.d)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-sky-300">{fmt(matrix.f)}</span>
                               </div>
-                              <div className="flex items-center gap-2 pl-9 font-sans flex-wrap">
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans flex-wrap">
                                   = <span className="text-slate-300 font-mono">{fmt(matrix.b * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.d * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.f)}</span>
                               </div>
-                              <div className="flex items-center gap-2 pl-9 font-sans">
-                                  = <span className="text-emerald-400 font-bold text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
                               </div>
                           </div>
                       </div>
 
-                      <div className="mt-2 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[13px] text-indigo-200 leading-relaxed shadow-sm">
-                          <b className="text-indigo-400 block mb-1 flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <div className="mt-1 md:mt-2 p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
+                          <b className="text-indigo-400 block mb-0.5 md:mb-1 flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                               왜 (X, Y)를 세로로 세워서 곱하나요?
                           </b>
-                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 순서대로 곱해 더하는 규칙을 따릅니다. 2차원 좌표 $(X, Y)$를 $3 \times 3$ 행렬에 곱해 정상적인 $X', Y'$ 결과를 얻으려면, 좌표를 <strong className="text-white">세로로 세운 열 벡터(Column Vector)</strong> 형태로 대입해야만 수학적으로 올바른 연산이 성립하기 때문입니다.
+                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 $(X, Y)$를 $3 \times 3$ 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 열 벡터(Column Vector)</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
                       </div>
                       
-                      <div className="flex justify-end gap-3 mt-2">
+                      <div className="flex justify-end gap-2 md:gap-3 mt-1 md:mt-2">
                            <button onClick={() => {
                                setCalcPoints(prev => prev.filter(p => p.id !== selectedCalcPoint.id));
                                setSelectedCalcPoint(null);
-                           }} className="flex items-center gap-1 px-4 py-2 bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 rounded-lg transition font-bold text-sm">
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                           }} className="flex items-center gap-1 px-3 md:px-4 py-1.5 md:py-2 bg-rose-900/30 hover:bg-rose-900/50 text-rose-400 rounded-lg transition font-bold text-xs md:text-sm">
+                               <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                지우기
                            </button>
-                           <button onClick={() => setSelectedCalcPoint(null)} className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition shadow-lg font-bold text-sm">
+                           <button onClick={() => setSelectedCalcPoint(null)} className="px-5 md:px-6 py-1.5 md:py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition shadow-lg font-bold text-xs md:text-sm">
                                확인
                            </button>
                       </div>
@@ -2027,17 +2124,26 @@
               
               <div className="flex items-center justify-center relative w-full h-[180px]">
                   {showMatrixChain ? (
-                      <div className="flex items-center w-full overflow-x-auto space-x-2 px-14 scrollbar-hide py-2">
+                      <div className="flex items-center w-full overflow-x-auto space-x-2 px-14 scrollbar-hide py-2"
+                           style={{ touchAction: ghostDragInfo ? 'none' : 'auto' }}
+                           onTouchMove={ghostDragInfo ? handleChainTouchMove : undefined}
+                           onTouchEnd={handleChainTouchEnd}
+                           onTouchCancel={handleChainTouchEnd}
+                      >
                           {chainOrder.map((id, idx) => {
                               const chainItem = getChainMatrix(id);
+                              const isDragging = ghostDragInfo && ghostDragInfo.id === id;
                               return (
                                   <React.Fragment key={id}>
                                       <div 
+                                          data-chain-idx={idx}
                                           draggable 
                                           onDragStart={(e) => handleDragStart(e, idx)}
                                           onDragOver={handleDragOver}
                                           onDrop={(e) => handleDrop(e, idx)}
-                                          className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform drop-shadow-lg"
+                                          onTouchStart={(e) => handleChainTouchStart(e, idx, id)}
+                                          onContextMenu={(e) => e.preventDefault()}
+                                          className={`cursor-grab active:cursor-grabbing transition-transform touch-none select-none ${isDragging ? 'opacity-0' : 'opacity-100 hover:scale-105 drop-shadow-lg'}`}
                                       >
                                           <MiniMatrix m={chainItem.m} label={chainItem.label} />
                                       </div>
@@ -2458,17 +2564,26 @@
                     <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
                   </div>
                   {showMatrixChain ? (
-                      <div className="flex items-center w-[120px] overflow-x-auto space-x-1 px-2 scrollbar-hide self-center">
+                      <div className="flex items-center w-[120px] overflow-x-auto space-x-1 px-2 scrollbar-hide self-center"
+                           style={{ touchAction: ghostDragInfo ? 'none' : 'auto' }}
+                           onTouchMove={ghostDragInfo ? handleChainTouchMove : undefined}
+                           onTouchEnd={handleChainTouchEnd}
+                           onTouchCancel={handleChainTouchEnd}
+                      >
                           {chainOrder.map((id, idx) => {
                               const chainItem = getChainMatrix(id);
+                              const isDragging = ghostDragInfo && ghostDragInfo.id === id;
                               return (
                                   <React.Fragment key={id}>
                                       <div 
+                                          data-chain-idx={idx}
                                           draggable 
                                           onDragStart={(e) => handleDragStart(e, idx)}
                                           onDragOver={handleDragOver}
                                           onDrop={(e) => handleDrop(e, idx)}
-                                          className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform drop-shadow-lg"
+                                          onTouchStart={(e) => handleChainTouchStart(e, idx, id)}
+                                          onContextMenu={(e) => e.preventDefault()}
+                                          className={`cursor-grab active:cursor-grabbing transition-transform touch-none select-none ${isDragging ? 'opacity-0' : 'opacity-100 hover:scale-105 drop-shadow-lg'}`}
                                       >
                                           <MiniMatrix m={chainItem.m} label={chainItem.label} />
                                       </div>
