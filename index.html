@@ -757,6 +757,7 @@
 
             setCamera(prev => {
                 let newZ = prev.z * zRatio;
+                // 모바일 GPU 블랙스크린 방지를 위해 최대 한계치 조정
                 if (newZ > 1e7) newZ = 1e7;
                 if (newZ < 1e-7) newZ = 1e-7;
                 const actualRatio = newZ / prev.z;
@@ -881,65 +882,74 @@
 
         ctx.clearRect(0, 0, w, h);
 
-        let customMarksX = [];
-        let customMarksY = [];
-        let hw = 0; let hh = 0;
-        
-        if (!useMathLab) {
-            if (imageObj) {
-                hw = imageObj.width / 2;
-                hh = imageObj.height / 2;
-                customMarksX.push(hw, -hw);
-                customMarksY.push(hh, -hh);
-            } else {
-                hw = 100;
-                hh = 100;
-                customMarksX.push(hw, -hw);
-                customMarksY.push(hh, -hh);
-            }
-        }
-
-        // 🚀 축과 그리드가 화면 밖으로 이동해도 선이 끊기지 않도록 여유 스캔 범위 추가
-        let minXIter = Math.floor(((-cx - camera.x) / z) / gridStep) - 2;
-        let maxXIter = Math.ceil(((w - cx - camera.x) / z) / gridStep) + 2;
-        if (maxXIter - minXIter > 200) { minXIter = -100; maxXIter = 100; }
-        
-        let minYIter = Math.floor(((-cy - camera.y) / z) / gridStep) - 2;
-        let maxYIter = Math.ceil(((h - cy - camera.y) / z) / gridStep) + 2;
-        if (maxYIter - minYIter > 200) { minYIter = -100; maxYIter = 100; }
-
-        let regularMarksX = [];
-        for (let i = minXIter; i <= maxXIter; i++) { if (i !== 0) regularMarksX.push(i * gridStep); }
-        let regularMarksY = [];
-        for (let i = minYIter; i <= maxYIter; i++) { if (i !== 0) regularMarksY.push(-i * gridStep); }
-
-        const drawGridLines = () => {
+        const drawGridAndAxes = () => {
           if (hideGrid) return;
+          const logicalLeft = (-cx - camera.x) / z, logicalRight = (w - cx - camera.x) / z;
+          const logicalTop = (-cy - camera.y) / z, logicalBottom = (h - cy - camera.y) / z;
           
+          let minXIter = Math.floor(logicalLeft / gridStep);
+          let maxXIter = Math.ceil(logicalRight / gridStep);
+          let minYIter = Math.floor(logicalTop / gridStep);
+          let maxYIter = Math.ceil(logicalBottom / gridStep);
+
+          // 브라우저 렌더링 부하를 막기 위해 최대 그리기 갯수 제한 (블랙스크린 방지)
+          if (maxXIter - minXIter > 300) { minXIter = -150; maxXIter = 150; }
+          if (maxYIter - minYIter > 300) { minYIter = -150; maxYIter = 150; }
+
           ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
           ctx.beginPath();
-          // 🚀 그리드 선 끊김 완벽 방지 (-100000 ~ 100000 무한대 길이로 그림)
-          regularMarksX.forEach(valX => { let screenX = cx + camera.x + valX * z; ctx.moveTo(screenX, -100000); ctx.lineTo(screenX, 100000); });
-          regularMarksY.forEach(valY => { let screenY = cy + camera.y - valY * z; ctx.moveTo(-100000, screenY); ctx.lineTo(100000, screenY); });
+          // 선을 화면 밖으로 무한히 그리지 않고, 캔버스 크기(0 ~ h)에 딱 맞게 그려서 모바일 오류 방지
+          for (let i = minXIter; i <= maxXIter; i++) { 
+              let screenX = cx + camera.x + i * gridStep * z; 
+              ctx.moveTo(screenX, 0); ctx.lineTo(screenX, h); 
+          }
+          for (let i = minYIter; i <= maxYIter; i++) { 
+              let screenY = cy + camera.y + i * gridStep * z; 
+              ctx.moveTo(0, screenY); ctx.lineTo(w, screenY); 
+          }
           ctx.stroke();
 
           ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
           ctx.beginPath();
           let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
-          // 🚀 X, Y축 끊김 완벽 방지
-          ctx.moveTo(sOriginX, -100000); ctx.lineTo(sOriginX, 100000);
-          ctx.moveTo(-100000, sOriginY); ctx.lineTo(100000, sOriginY);
+          ctx.moveTo(sOriginX, 0); ctx.lineTo(sOriginX, h);
+          ctx.moveTo(0, sOriginY); ctx.lineTo(w, sOriginY);
           ctx.stroke();
+
+          // 🚀 사진 테두리에 숫자 띄우는 기능 완전히 삭제 (오리지널 롤백)
+          ctx.font = `bold 14px monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          for (let i = minXIter; i <= maxXIter; i++) {
+              if (i === 0) continue;
+              let valX = i * gridStep;
+              let screenX = cx + camera.x + valX * z;
+              let textY = Math.max(15, Math.min(h - 25, sOriginY + 15)); // 항상 x축 아래
+              let str = formatNumber(valX);
+              ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, screenX, textY);
+              ctx.fillStyle = 'white'; ctx.fillText(str, screenX, textY);
+          }
+
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          for (let i = minYIter; i <= maxYIter; i++) {
+              if (i === 0) continue;
+              let valY = -i * gridStep;
+              let screenY = cy + camera.y + i * gridStep * z;
+              let textX = Math.max(15, Math.min(w - 70, sOriginX - 10)); // 항상 y축 왼쪽
+              let str = formatNumber(valY);
+              ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, screenY);
+              ctx.fillStyle = 'white'; ctx.fillText(str, textX, screenY);
+          }
         };
 
-        // 1. 그리드 선을 먼저 그립니다.
-        if (!imageUnderGrid) drawGridLines();
+        if (!imageUnderGrid) drawGridAndAxes();
 
-        // 2. 그 다음 사진을 그립니다. (숫자보다 아래에 깔리게 순서 변경)
         ctx.save();
         ctx.translate(cx + camera.x, cy + camera.y); 
         ctx.scale(z, z); 
         ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+        
         if (!useMathLab) {
             if (imageObj && colorCacheRef.current) {
               ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
@@ -950,86 +960,12 @@
         }
         ctx.restore();
 
-        if (imageUnderGrid) drawGridLines();
-
-        // 🚀 3. 숫자를 맨 마지막에 덮어 그려서 사진 밑으로 절대 가려지지 않게 함!
-        if (!hideGrid) {
-            let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
-            ctx.font = `bold 14px monospace`;
-            
-            // 🎯 일반 눈금 
-            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-            regularMarksX.forEach(valX => {
-                // 🚀 사진이나 도형 '내부'에 있는 숫자는 아예 그리지 않음! (사진 위에 숫자 방지)
-                if (!useMathLab && valX > -hw + 1e-5 && valX < hw - 1e-5) return; 
-                
-                let screenX = cx + camera.x + valX * z;
-                let str = formatNumber(valX);
-                
-                let textY = Math.max(15, Math.min(h - 25, sOriginY + 15));
-                ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, screenX, textY);
-                ctx.fillStyle = 'white'; ctx.fillText(str, screenX, textY);
-            });
-
-            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-            regularMarksY.forEach(valY => {
-                // 🚀 사진이나 도형 '내부'에 있는 숫자는 아예 그리지 않음! (사진 위에 숫자 방지)
-                if (!useMathLab && valY > -hh + 1e-5 && valY < hh - 1e-5) return;
-
-                let screenY = cy + camera.y - valY * z;
-                let str = formatNumber(valY);
-                
-                let textX = Math.max(15, Math.min(w - 70, sOriginX - 10));
-                ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, screenY);
-                ctx.fillStyle = 'white'; ctx.fillText(str, textX, screenY);
-            });
-
-            // 🎯 사진/도형 끝단 숫자 (사진 영역 밖으로 띄워서 표시 & 완벽히 겹치면 원래 자리로 융합)
-            if (!useMathLab) {
-                // X축 끝단
-                customMarksX.forEach(mark => {
-                    let isExactGrid = regularMarksX.some(rx => Math.abs(rx - mark) < 1e-5);
-                    if (isExactGrid) return; // 🌟 단위가 딱 맞으면 스킵 (일반 눈금 자리에 그려짐)
-                    
-                    let screenX = cx + camera.x + mark * z;
-                    let textY = Math.max(15, Math.min(h - 25, sOriginY - 8)); // 🌟 X축 선 위로 띄움
-                    let str = formatNumber(mark);
-                    
-                    ctx.textAlign = mark > 0 ? 'left' : 'right'; 
-                    ctx.textBaseline = 'bottom';
-                    let drawX = mark > 0 ? screenX + 14 : screenX - 14; // 🌟 좌우로 확실히 밀어서 겹침 방지
-
-                    ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, drawX, textY);
-                    ctx.fillStyle = 'white'; ctx.fillText(str, drawX, textY);
-                    
-                    ctx.beginPath(); ctx.moveTo(screenX, sOriginY - 6); ctx.lineTo(screenX, sOriginY + 6); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
-                });
-
-                // Y축 끝단
-                customMarksY.forEach(mark => {
-                    let isExactGrid = regularMarksY.some(ry => Math.abs(ry - mark) < 1e-5);
-                    if (isExactGrid) return; // 🌟 단위가 딱 맞으면 스킵
-                    
-                    let screenY = cy + camera.y - mark * z;
-                    let textX = Math.max(15, Math.min(w - 70, sOriginX + 10)); // 🌟 Y축 선 오른쪽으로 띄움
-                    let str = formatNumber(mark);
-                    
-                    ctx.textAlign = 'left'; 
-                    ctx.textBaseline = mark > 0 ? 'bottom' : 'top'; 
-                    let drawY = mark > 0 ? screenY - 18 : screenY + 18; // 🌟 상하로 확실히 밀어서 겹침 방지
-
-                    ctx.lineWidth = 6; ctx.strokeStyle = '#09090b'; ctx.strokeText(str, textX, drawY);
-                    ctx.fillStyle = 'white'; ctx.fillText(str, textX, drawY);
-                    
-                    ctx.beginPath(); ctx.moveTo(sOriginX - 6, screenY); ctx.lineTo(sOriginX + 6, screenY); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
-                });
-            }
-        }
+        // 🚀 사진 위에 격자가 그려질 수 있도록 롤백 완료
+        if (imageUnderGrid) drawGridAndAxes();
 
         const constNames = constants.map(c => c.name);
         const currentConstValues = constants.map(c => c.value);
 
-        // 🚀 딥줌(Deep Zoom)시 함수 꺾임 및 과부하를 막는 경량화 렌더 엔진
         if (useMathLab && useGraph && graphs.length > 0) {
             graphs.forEach((g, idx) => {
                 if (!g) return;
@@ -1056,8 +992,8 @@
                     maxMathX = Math.max(maxMathX, mathPt.x);
                 });
 
-                // 🚀 화면 픽셀 해상도 기준으로 항상 최적의 점(최대 3000개)만 가볍게 샘플링
-                let steps = Math.min(3000, w * 1.5);
+                // 🚀 화면 픽셀 기준으로 3000번 분할하여 스캔 (모바일/웹 공통 부하 완벽 제거)
+                let steps = 3000;
                 let mathStep = (maxMathX - minMathX) / steps;
                 if (mathStep <= 0 || !isFinite(mathStep)) mathStep = 0.01;
 
@@ -1065,7 +1001,8 @@
                 let first = true;
                 let prevMathY = null;
                 
-                const LIMIT = 1000000; // 충분히 넓은 렌더링 한계 (선 안 꺾임)
+                // 모바일 GPU 보호 한계선
+                const LIMIT = 15000;
 
                 for (let mathX = startMathX; mathX <= maxMathX; mathX += mathStep) {
                     let mathY = executeMath(func, mathX, currentConstValues); 
@@ -1077,9 +1014,10 @@
                     if (prevMathY !== null) {
                         let dyScreen = Math.abs(mathY - prevMathY) * z;
                         if (dyScreen > h && mathY * prevMathY < 0) {
-                            first = true; // 점근선 끊기
+                            first = true;
                         }
                     }
+                    prevMathY = mathY;
                     
                     let pt = new DOMPoint(mathX, -mathY);
                     let transformedPt = pt.matrixTransform(matrix);
@@ -1098,7 +1036,6 @@
                     } else {
                         ctx.lineTo(drawX, drawY);
                     }
-                    prevMathY = mathY;
                 }
                 ctx.stroke();
                 ctx.restore();
@@ -1660,24 +1597,27 @@
 
             {isMobile && (
               <div className="absolute top-4 left-4 z-[60] flex items-center drop-shadow-2xl">
-                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-3 relative w-[180px] h-[110px] flex justify-between items-center">
+                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-3 relative w-[200px] h-[140px] flex justify-between items-center">
                   <div className="flex items-center justify-center w-4 h-full">
-                    <span className="text-zinc-400 font-serif text-[50px] leading-[0]" style={{ transform: 'scale(0.7, 2.4)' }}>(</span>
+                    <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-x-2 gap-y-2 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[130px] mx-1">
+                  <div className="grid grid-cols-3 gap-x-2 gap-y-3 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[140px] mx-1">
                     <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
                     <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
                     <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
                     <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                     <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
                     <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
+                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
+                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
+                    <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">1</div>
                   </div>
                   <div className="flex items-center justify-center w-4 h-full">
-                    <span className="text-zinc-400 font-serif text-[50px] leading-[0]" style={{ transform: 'scale(0.7, 2.4)' }}>)</span>
+                    <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>)</span>
                   </div>
                 </div>
 
-                <label className="ml-3 w-14 h-[110px] flex flex-col gap-1.5 items-center justify-center bg-zinc-800/90 hover:bg-zinc-700 backdrop-blur border border-zinc-700 text-zinc-300 rounded-lg font-bold transition cursor-pointer shadow-xl pointer-events-auto">
+                <label className="ml-3 w-14 h-[140px] flex flex-col gap-1.5 items-center justify-center bg-zinc-800/90 hover:bg-zinc-700 backdrop-blur border border-zinc-700 text-zinc-300 rounded-lg font-bold transition cursor-pointer shadow-xl pointer-events-auto">
                     <svg className="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span className="text-[10px] text-zinc-400">사진 열기</span>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -1686,27 +1626,27 @@
             )}
 
             {useRefl && (
-              <div className={`absolute ${isMobile ? 'top-[135px] left-4' : 'top-8 left-8'} z-[60] text-rose-500 font-bold text-sm md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm pointer-events-none`}>
+              <div className={`absolute ${isMobile ? 'top-[165px] left-4' : 'top-8 left-8'} z-[60] text-rose-500 font-bold text-sm md:text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] bg-zinc-900/60 px-3 py-2 md:px-5 md:py-3 rounded-lg border border-rose-500/30 shadow-2xl backdrop-blur-sm pointer-events-none`}>
                 Reflection Axis: {Math.abs(reflAngle - 90) < 0.01 ? "x = 0" : `y = ${Math.tan(reflAngle * Math.PI / 180).toFixed(2)}x`}
               </div>
             )}
 
             <canvas ref={canvasRef} width={2000} height={1200} className="w-full h-full object-cover z-20 pointer-events-none absolute inset-0" />
             
-            <div className="absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold z-[60] transition-all duration-300 pointer-events-auto"
+            <div className={`absolute flex flex-col bg-zinc-800/90 backdrop-blur rounded-xl border border-zinc-700 shadow-2xl overflow-hidden text-lg font-bold z-[60] pointer-events-auto ${!isDraggingHandle.current ? 'transition-all duration-300' : ''}`}
                  style={isMobile ? { bottom: `calc(${mobilePanelHeight}vh + env(safe-area-inset-bottom, 0px) + 16px)`, right: '16px' } : { bottom: '32px', right: '32px' }}>
               {isMobile && (
-                  <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition" title="리셋">
+                  <button onClick={() => resetAll(imageObj)} className="px-3 py-3 md:px-4 md:py-4 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors" title="리셋">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
                   </button>
               )}
-              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 맞춤">
+              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition-colors ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 맞춤">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
               </button>
-              <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition" title="확대">
+              <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="확대">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
               </button>
-              <button onClick={zoomOut} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition" title="축소">
+              <button onClick={zoomOut} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="축소">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM7 10h6"/></svg>
               </button>
             </div>
