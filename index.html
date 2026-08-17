@@ -51,7 +51,7 @@
         rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 평면 회전시키는 변환입니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
         shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
         shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
-        refl: { title: "반사 변환 (Reflection)", desc: "원점을 지나는 특정 직선(y = ax)을 거울 삼아 이미지를 반대편으로 대칭 이동시킵니다.", matrix: [['cos(2θ)', 'sin(2θ)', '0'], ['sin(2θ)', '-cos(2θ)', '0'], ['0', '0', '1']] },
+        refl: { title: "반사 변환 (Reflection)", desc: "변환 중심점을 지나는 직선을 거울 삼아 이미지를 대칭시킵니다. (각도는 X축 기준)", matrix: [['cos(2θ)', 'sin(2θ)', '0'], ['sin(2θ)', '-cos(2θ)', '0'], ['0', '0', '1']] },
         mathLab: { title: "수학 실험실 (Math Lab)", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
         graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
         point: { title: "좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
@@ -364,38 +364,62 @@
       const handleMobileChainTouchMove = (e) => {
           if (!mobileDragRef.current) return;
           const touch = e.touches[0];
-          e.preventDefault(); // 모바일 튕김 현상(새로고침) 완벽 방지
           
-          // 고스트 UI 상태 안전 업데이트
+          if (!mobileDragRef.current.isDragging) return;
+
+          e.preventDefault(); 
           setMobileGhost(prev => prev ? { ...prev, y: touch.clientY - mobileDragRef.current.offsetY } : null);
 
-          // 위아래 화면 끝에 닿으면 부드럽게 스크롤
+          let targetIdx = -1;
           const container = mobileChainContainerRef.current;
+          
           if (container) {
               const crect = container.getBoundingClientRect();
               const edge = 50;
+              // 위아래 모서리에 닿으면 자동 스크롤
               if (touch.clientY > crect.bottom - edge) container.scrollTop += 15;
               else if (touch.clientY < crect.top + edge) container.scrollTop -= 15;
+
+              // 🚀 1. elementsFromPoint 호환성 에러 제거 및 자체 충돌 계산
+              const children = Array.from(container.children);
+              for (let i = 0; i < children.length; i++) {
+                  const child = children[i];
+                  const attr = child.getAttribute('data-mobile-idx');
+                  if (attr !== null) {
+                      const rect = child.getBoundingClientRect();
+                      
+                      // 손가락이 해당 블록 영역(세로) 안에 있는지 확인
+                      if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                          const tIdx = parseInt(attr, 10);
+                          const cIdx = mobileDragRef.current.index;
+                          
+                          if (tIdx !== cIdx) {
+                              // 🚀 2. 무한 진동(크래시) 방지: 블록의 '절반(Midpoint)'을 넘었을 때만 위치 교체
+                              const midY = rect.top + rect.height / 2;
+                              if ((cIdx < tIdx && touch.clientY > midY) || (cIdx > tIdx && touch.clientY < midY)) {
+                                  targetIdx = tIdx;
+                              }
+                          }
+                          break;
+                      }
+                  }
+              }
           }
 
-          // 🚀 1. 검은 화면 튕김 방어: 요소가 화면 밖으로 나갈 때 null 반환에 의한 크래시를 원천 차단
-          const elements = document.elementsFromPoint(touch.clientX, touch.clientY) || [];
-          const targetEl = Array.from(elements).find(el => el && el.getAttribute && el.getAttribute('data-mobile-idx') !== null);
-          
-          if (targetEl) {
-              const targetIdx = parseInt(targetEl.getAttribute('data-mobile-idx'), 10);
-              // 배열 인덱스 초과 에러 방어
-              if (!isNaN(targetIdx) && targetIdx !== mobileDragRef.current.index && targetIdx >= 0 && targetIdx < chainOrder.length) {
+          // 상태 업데이트 및 위치 교환
+          if (targetIdx !== -1) {
+              const currentIndex = mobileDragRef.current.index;
+              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
-                      const temp = newOrder[mobileDragRef.current.index];
-                      if (!temp) return prev; // 안전장치
-                      newOrder.splice(mobileDragRef.current.index, 1);
+                      const temp = newOrder[currentIndex];
+                      if (!temp) return prev;
+                      newOrder.splice(currentIndex, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
                   });
                   mobileDragRef.current.index = targetIdx;
-                  if(navigator.vibrate) navigator.vibrate(10);
+                  if (navigator.vibrate) navigator.vibrate(10);
               }
           }
       };
@@ -445,34 +469,53 @@
           e.preventDefault();
           setGhostDragInfo(prev => ({ ...prev, x: touch.clientX - dragChainRef.current.offsetX, y: touch.clientY - dragChainRef.current.offsetY }));
 
-          const container = scrollContainerRef.current;
+          let targetIdx = -1;
+          const container = e.currentTarget;
           if (container) {
               const crect = container.getBoundingClientRect();
               const edgeThreshold = 60;
               if (touch.clientX > crect.right - edgeThreshold) container.scrollLeft += 20;
               else if (touch.clientX < crect.left + edgeThreshold) container.scrollLeft -= 20;
+              
+              // 🚀 1. 수동 좌표 계산으로 고스트 UI가 터치를 가리는 문제 해결
+              const children = Array.from(container.children);
+              for (let i = 0; i < children.length; i++) {
+                  const child = children[i];
+                  const attr = child.getAttribute('data-chain-idx');
+                  if (attr !== null) {
+                      const rect = child.getBoundingClientRect();
+                      
+                      // 손가락이 해당 블록 영역 안에 있는지 확인
+                      if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                          const tIdx = parseInt(attr, 10);
+                          const cIdx = dragChainRef.current.index;
+                          
+                          if (tIdx !== cIdx) {
+                              // 🚀 2. 무한 진동(Oscillation) 크래시 방지: 블록의 '절반(Midpoint)'을 넘었을 때만 교체
+                              const midX = rect.left + rect.width / 2;
+                              if ((cIdx < tIdx && touch.clientX > midX) || (cIdx > tIdx && touch.clientX < midX)) {
+                                  targetIdx = tIdx;
+                              }
+                          }
+                          break;
+                      }
+                  }
+              }
           }
 
-          // 🚀 2. 모바일 브라우저 호환성 에러(검은 화면 크래시) 완벽 방어
-          const elements = document.elementsFromPoint(touch.clientX, touch.clientY) || [];
-          // NodeList 반환 에러를 막기 위해 Array.from() 안전장치 추가
-          const targetEl = Array.from(elements).find(el => el && el.getAttribute && el.getAttribute('data-chain-idx') !== null);
-          
-          if (targetEl) {
-              const targetIdx = parseInt(targetEl.getAttribute('data-chain-idx'), 10);
+          if (targetIdx !== -1) {
               const currentIndex = dragChainRef.current.index;
-              
               if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
                       const temp = newOrder[currentIndex];
-                      if (!temp) return prev; // 안전장치
+                      if (!temp) return prev;
                       newOrder.splice(currentIndex, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
                   });
                   dragChainRef.current.index = targetIdx;
-                  if(navigator.vibrate) navigator.vibrate(10);
+                  if (navigator.vibrate) navigator.vibrate(10);
               }
           }
       };
@@ -749,14 +792,12 @@
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
              
-             // 🚀 1. 버튼 민감도 대폭 상향 (미끄러짐 허용치 10 -> 30) 및 0% <-> 45% 토글
-             if (deltaY < 30) {
+             if (deltaY < 40) { // 🚀 터치 미끄러짐 허용 범위를 40으로 초강화
                  const h = handleStartHeight.current; 
-                 // 현재 5% 이상 열려있으면 무조건 0%로 닫고, 닫혀있으면 45%로 염
-                 if (h > 5) {
+                 if (h > 40) { // 85% 등 열려있을 때 누르면 0%
                      setMobilePanelHeight(0);
-                 } else {
-                     setMobilePanelHeight(45);
+                 } else { // 0% 또는 15% 등 닫혀있을 때 누르면 85%
+                     setMobilePanelHeight(85);
                  }
              }
           }
@@ -941,8 +982,9 @@
               case 'origin_back': return { m: new DOMMatrix().translate(-transformOriginX, transformOriginY), label: '-중심점' };
               case 'rotate': 
                   if (useRefl) {
-                      const theta = (reflAngle * Math.PI) / 180;
-                      return { m: new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]), label: '반사' };
+                      // 🚀 브라우저 캔버스의 Y축 역전으로 인한 부호 오류를 막기 위해 DOMMatrix 내장함수 체이닝 사용
+                      const rMat = new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle);
+                      return { m: rMat, label: '반사' };
                   } else {
                       const v = rotation * Math.PI / 180;
                       let rM = new DOMMatrix([
@@ -969,8 +1011,8 @@
           matrix = matrix.translate(translateX, translateY); 
           matrix = matrix.translate(transformOriginX, -transformOriginY); 
           if (useRefl) {
-              const theta = (reflAngle * Math.PI) / 180;
-              matrix = matrix.multiply(new DOMMatrix([Math.cos(2*theta), Math.sin(2*theta), Math.sin(2*theta), -Math.cos(2*theta), 0, 0]));
+              // 🚀 메인 행렬에도 DOMMatrix 내장함수 체이닝 사용
+              matrix = matrix.multiply(new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle));
           } else { 
               let v = rotation * Math.PI / 180;
               let rM = new DOMMatrix([
@@ -1263,7 +1305,36 @@
               if (newZ > 500000) newZ = 500000;
               if (newZ < 1e-6) newZ = 1e-6;
               const actualRatio = newZ / prev.z;
-              return { x: prev.x * actualRatio, y: prev.y * actualRatio, z: newZ }; 
+
+              const canvas = canvasRef.current;
+              if (!canvas) return { x: prev.x * actualRatio, y: prev.y * actualRatio, z: newZ };
+              
+              const rect = canvas.getBoundingClientRect();
+              const scale_c = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+              
+              // 🚀 1. object-cover 로 인해 잘려나간 캔버스의 진짜 Offset 여백 계산 추가
+              const offsetX = (rect.width - canvas.width * scale_c) / 2;
+              const offsetY = (rect.height - canvas.height * scale_c) / 2;
+              
+              // 🚀 2. 모바일 패널 높이를 뺀 '실제 눈에 보이는 화면'의 정중앙 계산
+              const panelH = isMobile ? (mobilePanelHeightRef.current || 0) : 0;
+              const focalX = rect.width / 2;
+              const focalY = (rect.height * (1 - panelH / 100)) / 2; 
+
+              // 🚀 3. Offset을 반영하여 화면 좌표를 캔버스 좌표로 올바르게 변환
+              const canvasX = (focalX - offsetX) / scale_c;
+              const canvasY = (focalY - offsetY) / scale_c;
+
+              const cx = canvas.width / 2; 
+              const cy = canvas.height / 2;
+              
+              const logicX = canvasX - cx - prev.x; 
+              const logicY = canvasY - cy - prev.y;
+
+              const newCamX = prev.x - logicX * (actualRatio - 1);
+              const newCamY = prev.y - logicY * (actualRatio - 1);
+
+              return { x: newCamX, y: newCamY, z: newZ }; 
           });
       };
       
@@ -1705,7 +1776,10 @@
 
         if (useRefl) {
             ctx.save();
-            ctx.translate(cx + camera.x, cy + camera.y); ctx.translate(translateX * z, translateY * z); ctx.rotate(-(reflAngle * Math.PI) / 180); 
+            ctx.translate(cx + camera.x, cy + camera.y); 
+            // 🚀 1-3. 반사 기준선이 '변환 중심점'을 올바르게 통과하도록 수정
+            ctx.translate((translateX + transformOriginX) * z, (translateY - transformOriginY) * z); 
+            ctx.rotate(-(reflAngle * Math.PI) / 180); 
             ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); 
             if (isFinite(-w*5)) ctx.moveTo(-w * 5, 0); 
             if (isFinite(w*5)) ctx.lineTo(w * 5, 0); 
@@ -1875,7 +1949,7 @@
           )}
 
           {logicInfoData && (
-            <div className="fixed inset-0 z-[120] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4" onClick={() => setLogicInfoData(null)}>
+            <div className="fixed inset-0 z-[400] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4" onClick={() => setLogicInfoData(null)}>
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-md shadow-2xl animate-fade-in flex flex-col gap-4" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                   <h3 className="text-white font-bold text-lg md:text-xl flex items-center gap-2">
@@ -2222,10 +2296,17 @@
               <div 
                 onTouchStart={startDraggingHandle}
                 onMouseDown={startDraggingHandle}
-                className="absolute left-1/2 -top-10 w-32 h-10 flex justify-center items-end pb-2 cursor-pointer bg-zinc-800 border-t border-zinc-700/50" 
-                style={{ transform: 'translateX(-50%)', clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }}
+                onClick={() => {
+                    const h = mobilePanelHeightRef.current;
+                    if (h > 5) setMobilePanelHeight(0);
+                    else setMobilePanelHeight(50);
+                }}
+                className="absolute left-1/2 -top-8 w-40 h-8 flex justify-center items-end cursor-pointer z-50 drop-shadow-[0_-3px_5px_rgba(0,0,0,0.4)]" 
+                style={{ transform: 'translateX(-50%)' }}
               >
-                <div className="w-10 h-1.5 rounded-full bg-zinc-500 pointer-events-none mb-1"></div>
+                <div className="w-full h-full bg-zinc-900 flex justify-center items-start pt-2" style={{ clipPath: 'polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)' }}>
+                    <div className="w-12 h-1.5 rounded-full bg-zinc-500/80 pointer-events-none"></div>
+                </div>
               </div>
             )}
 
