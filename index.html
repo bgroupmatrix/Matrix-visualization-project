@@ -340,6 +340,7 @@
       const [tempGraphEq, setTempGraphEq] = useState("");
       const [editingGraphId, setEditingGraphId] = useState(null);
       const inputRef = useRef(null);
+      const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
 
       const [graphSettingsId, setGraphSettingsId] = useState(null);
 
@@ -350,6 +351,15 @@
       // 🚀 PC용 드래그 상태 관리
       const dragChainRef = useRef(null);
       const [ghostDragInfo, setGhostDragInfo] = useState(null); 
+
+      // 🚀 그림자 팝업 메뉴 드래그 상태 관리
+      const dragMenuRef = useRef({ isDragging: false, startX: 0, startY: 0, initLeft: 0, initTop: 0 });
+      const [shadowMenuPos, setShadowMenuPos] = useState(null);
+
+      // 그림자 메뉴가 닫히면 위치를 초기화하여 다음번 열릴 때 기본 위치에 뜨게 함
+      useEffect(() => {
+          if (!showShadowMenu) setShadowMenuPos(null);
+      }, [showShadowMenu]); 
 
       // 🚀 모바일 전용 세로 모달 드래그 앤 드롭 상태 관리
       const mobileChainContainerRef = useRef(null);
@@ -543,8 +553,19 @@
       const [transformOriginY, setTransformOriginY] = useState(0);
       
       const [usePolygonMode, setUsePolygonMode] = useState(false);
+      const [polygons, setPolygons] = useState([]);
       const [polygonPoints, setPolygonPoints] = useState([]);
-      const [isPolygonClosed, setIsPolygonClosed] = useState(false);
+      
+      // 🚀 도형 좌표 목록을 열고 닫는 토글 상태 관리
+      const [expandedPolys, setExpandedPolys] = useState(new Set());
+      const togglePoly = (idx) => {
+          setExpandedPolys(prev => {
+              const next = new Set(prev);
+              if (next.has(idx)) next.delete(idx);
+              else next.add(idx);
+              return next;
+          });
+      };
       const [showManualPolyUI, setShowManualPolyUI] = useState(false);
       const [polyManualX, setPolyManualX] = useState("0");
       const [polyManualY, setPolyManualY] = useState("0");
@@ -633,7 +654,112 @@
           setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 0);
       };
       
+      const MathParserGLSL = {
+          parse: function(expr) {
+              let s = expr.toLowerCase().replace(/\s+/g, '');
+              if (s.includes('=')) { let p = s.split('='); s = `(${p[0]})-(${p[1]})`; } 
+              else { s = `y-(${s})`; }
+              s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(LOGE($2)/LOGE($1))');
+              s = s.replace(/ln\(/g, 'LOGE('); s = s.replace(/log\(/g, 'LOG10(');
+              s = s.replace(/sin\(/g, 'SIN('); s = s.replace(/cos\(/g, 'COS(');
+              s = s.replace(/tan\(/g, 'TAN('); s = s.replace(/abs\(/g, 'ABS(');
+              s = s.replace(/sqrt\(/g, 'SQRT('); s = s.replace(/exp\(/g, 'EXP(');
+              s = s.replace(/\bpi\b/g, 'PI_CONST'); s = s.replace(/\be\b/g, 'E_CONST');
+              let tokens = []; let regex = /(LOGE|LOG10|SIN|COS|TAN|ABS|SQRT|EXP|PI_CONST|E_CONST|[a-z0-9_.]+|[-+*/^()])/gi;
+              let match; while ((match = regex.exec(s)) !== null) tokens.push(match[0]);
+              if(tokens.length === 0) return s;
+              let mappedTokens = tokens.map(t => {
+                  if (t === 'LOGE') return 'safeLog'; if (t === 'LOG10') return 'logBase10';
+                  if (t === 'SIN') return 'sin'; if (t === 'COS') return 'cos';
+                  if (t === 'TAN') return 'tan'; if (t === 'ABS') return 'abs';
+                  if (t === 'SQRT') return 'safeSqrt'; if (t === 'EXP') return 'exp';
+                  if (t === 'PI_CONST') return '3.14159265359'; if (t === 'E_CONST') return '2.71828182846';
+                  return t;
+              });
+              let out = [];
+              for (let i = 0; i < mappedTokens.length; i++) {
+                  let t = mappedTokens[i]; out.push(t);
+                  if (i < mappedTokens.length - 1) {
+                      let next = mappedTokens[i+1];
+                      let isVal1 = /^[0-9.]+$|^[a-z]$|^3\.14159265359$|^2\.71828182846$|^\)$/.test(t);
+                      let isVal2 = /^[0-9.]+$|^[a-z]$|^3\.14159265359$|^2\.71828182846$|^\($/.test(next);
+                      let isFunc = /^(sin|cos|tan|logBase10|safeLog|abs|safeSqrt|exp)$/.test(next);
+                      if (isVal1 && (isVal2 || isFunc)) out.push('*');
+                  }
+              }
+              let glsl = "";
+              for (let i = 0; i < out.length; i++) {
+                  let t = out[i];
+                  if (/^\d+$/.test(t)) glsl += t + '.0'; else if (/^\d+\.$/.test(t)) glsl += t + '0'; else glsl += t;
+              }
+              let replacePow = (str) => {
+                  let temp = str; let idx; let iters = 0;
+                  // 🚀 무한 루프 뻗음 방지
+                  while((idx = temp.lastIndexOf('^')) !== -1 && iters++ < 50) {
+                      let l = idx - 1, r = idx + 1; let leftStr = "", rightStr = "";
+                      if (temp[l] === ')') { let brackets = 1; l--; while (l >= 0 && brackets > 0) { if (temp[l] === ')') brackets++; if (temp[l] === '(') brackets--; l--; } leftStr = temp.substring(l + 1, idx);
+                      } else { while (l >= 0 && /[a-zA-Z0-9_.]/.test(temp[l])) l--; leftStr = temp.substring(l + 1, idx); }
+                      if (temp[r] === '(') { let brackets = 1; r++; while (r < temp.length && brackets > 0) { if (temp[r] === '(') brackets++; if (temp[r] === ')') brackets--; r++; } rightStr = temp.substring(idx + 1, r);
+                      } else { while (r < temp.length && /[a-zA-Z0-9_.]/.test(temp[r])) r++; rightStr = temp.substring(idx + 1, r); }
+                      temp = temp.substring(0, l + 1) + 'safePow(' + leftStr + ',' + rightStr + ')' + temp.substring(r);
+                  } return temp;
+              };
+              return replacePow(glsl);
+          }
+      };
+
+      const MathParserJS = {
+          parse: function(expr) {
+              let s = expr.toLowerCase().replace(/\s+/g, '');
+              if (s.startsWith('y=')) s = s.split('=')[1];
+              s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(LOGE($2)/LOGE($1))');
+              s = s.replace(/ln\(/g, 'LOGE('); s = s.replace(/log\(/g, 'LOG10(');
+              s = s.replace(/sin\(/g, 'SIN('); s = s.replace(/cos\(/g, 'COS(');
+              s = s.replace(/tan\(/g, 'TAN('); s = s.replace(/abs\(/g, 'ABS(');
+              s = s.replace(/sqrt\(/g, 'SQRT('); s = s.replace(/exp\(/g, 'EXP(');
+              s = s.replace(/\bpi\b/g, 'PI_CONST'); s = s.replace(/\be\b/g, 'E_CONST'); s = s.replace(/\^/g, '**');
+              let tokens = s.match(/(LOGE|LOG10|SIN|COS|TAN|ABS|SQRT|EXP|PI_CONST|E_CONST|[a-z0-9_.]+|[-+*/()**])/gi);
+              if (!tokens) return s;
+              let mappedTokens = tokens.map(t => {
+                  if (t === 'LOGE') return 'Math.log'; if (t === 'LOG10') return 'Math.log10';
+                  if (t === 'SIN') return 'Math.sin'; if (t === 'COS') return 'Math.cos';
+                  if (t === 'TAN') return 'Math.tan'; if (t === 'ABS') return 'Math.abs';
+                  if (t === 'SQRT') return 'Math.sqrt'; if (t === 'EXP') return 'Math.exp';
+                  if (t === 'PI_CONST') return 'Math.PI'; if (t === 'E_CONST') return 'Math.E';
+                  return t;
+              });
+              let out = [];
+              for (let i = 0; i < mappedTokens.length; i++) {
+                  let t = mappedTokens[i]; out.push(t);
+                  if (i < mappedTokens.length - 1) {
+                      let next = mappedTokens[i+1];
+                      let isVal1 = /^[0-9.]+$|^[a-z]$|Math\.(PI|E)|^\)$/i.test(t);
+                      let isVal2 = /^[0-9.]+$|^[a-z]$|Math\.|^\($/i.test(next);
+                      if (isVal1 && isVal2 && !/^[-+*/]$/.test(t) && !/^[-+*/]$/.test(next) && t !== '**' && next !== '**') out.push('*');
+                  }
+              } return out.join('');
+          }
+      };
+
       const applyMathPad = () => { 
+          // 🚀 문법 안전 검사: 괄호 불일치, 연산자 중복 시 프로그램 다운(블랙스크린) 차단
+          try {
+              let s = (tempGraphEq || 'x').toLowerCase().replace(/\s+/g, '');
+              if (s.includes('=')) s = s.split('=')[1];
+              
+              let openCount = (s.match(/\(/g) || []).length;
+              let closeCount = (s.match(/\)/g) || []).length;
+              if (openCount !== closeCount) throw new Error("괄호 불일치");
+              
+              let testStr = s.replace(/\*\*/g, '^');
+              if (/[-+*/^]{2,}/.test(testStr)) throw new Error("연산자 중복");
+              if (s.includes('()') || /^[+*/^]/.test(s) || /[-+*/^]$/.test(s)) throw new Error("수식 미완성");
+          } catch(e) {
+              setMathError("⚠️ 수식 문법이 올바르지 않습니다.");
+              return;
+          }
+          
+          setMathError("");
           setGraphs(prev => prev.map(g => g.id === editingGraphId ? { ...g, eq: tempGraphEq || 'x' } : g));
           setMathPadOpen(false); 
       };
@@ -690,6 +816,109 @@
       const [autoResetOnLoad, setAutoResetOnLoad] = useState(false);
       const [matrixFormatExact, setMatrixFormatExact] = useState(false); 
       const [isLightMode, setIsLightMode] = useState(false); // 🚀 화이트 모드 상태 추가
+      
+      // 🚀 실시간 그림자 애니메이션 & 다중 그림자 상태 관리
+      const [shadowStates, setShadowStates] = useState([]);
+      const [showShadowMenu, setShowShadowMenu] = useState(false);
+      const [selectedShadowId, setSelectedShadowId] = useState(null); // 개별 선택된 그림자 ID
+
+      // 🚀 배경 모드(수학 모드/이미지 함께 보기 등)가 바뀔 때 기존 그림자 격리 및 자동 청소
+      useEffect(() => {
+          setShadowStates([]);
+          setShowShadowMenu(false);
+          setSelectedShadowId(null);
+      }, [useMathLab, showImageInMathLab]);
+
+      const handleSaveState = () => {
+          const glImage = document.createElement('canvas');
+          if (canvasGLRef.current) {
+              glImage.width = canvasGLRef.current.width;
+              glImage.height = canvasGLRef.current.height;
+              glImage.getContext('2d').drawImage(canvasGLRef.current, 0, 0);
+          }
+
+          setShadowStates(prev => [...prev, {
+              id: Date.now(),
+              isImageActive: !useMathLab || showImageInMathLab,
+              isMathActive: useMathLab,
+              glImage: canvasGLRef.current ? glImage : null,
+              matrix: new DOMMatrix([matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]),
+              camOrigin: { x: camera.x, y: camera.y, z: camera.z },
+              params: { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, useRefl, reflAngle, transformOriginX, transformOriginY },
+              // 🚀 수학 도형들까지 완벽하게 분리 저장하여 그림자 전용 렌더링에 사용
+              graphs: JSON.parse(JSON.stringify(graphs)),
+              polygons: JSON.parse(JSON.stringify(polygons)),
+              points: JSON.parse(JSON.stringify(points))
+          }]);
+          
+          handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1); 
+          handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
+          handleSyncChange('rotation', 0); handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); 
+          handleSyncChange('squeeze', 1);
+          setUseRefl(false); setReflAngle(90); setTransformOriginX(0); setTransformOriginY(0);
+      };
+
+      const handleLoadState = (targetId) => {
+          const target = shadowStates.find(s => s.id === targetId);
+          if (!target) return;
+          const p = target.params;
+          handleSyncChange('scaleX', p.scaleX); handleSyncChange('scaleY', p.scaleY);
+          handleSyncChange('translateX', p.translateX); handleSyncChange('translateY', p.translateY);
+          handleSyncChange('rotation', p.rotation); handleSyncChange('shearX', p.shearX); handleSyncChange('shearY', p.shearY);
+          handleSyncChange('squeeze', p.squeeze);
+          setUseRefl(p.useRefl); setReflAngle(p.reflAngle); setTransformOriginX(p.transformOriginX); setTransformOriginY(p.transformOriginY);
+          setShowShadowMenu(false);
+      };
+
+      const playAnimation = (mode) => {
+          setShowShadowMenu(false);
+          if (shadowStates.length === 0) return;
+          const duration = 1500; 
+
+          const runAnim = (targetParams, onComplete) => {
+              const startP = { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, rotation: 0, shearX: 0, shearY: 0, squeeze: 1 };
+              handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1); 
+              handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
+              handleSyncChange('rotation', 0); handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); 
+              handleSyncChange('squeeze', 1);
+              setUseRefl(targetParams.useRefl); setReflAngle(targetParams.reflAngle); 
+              setTransformOriginX(targetParams.transformOriginX); setTransformOriginY(targetParams.transformOriginY);
+
+              const startTime = performance.now();
+              const animate = (time) => {
+                  let progress = (time - startTime) / duration;
+                  if (progress > 1) progress = 1;
+                  const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                  setScaleX(startP.scaleX + (targetParams.scaleX - startP.scaleX) * ease);
+                  setScaleY(startP.scaleY + (targetParams.scaleY - startP.scaleY) * ease);
+                  setTranslateX(startP.translateX + (targetParams.translateX - startP.translateX) * ease);
+                  setTranslateY(startP.translateY + (targetParams.translateY - startP.translateY) * ease);
+                  setRotation(startP.rotation + (targetParams.rotation - startP.rotation) * ease);
+                  setShearX(startP.shearX + (targetParams.shearX - startP.shearX) * ease);
+                  setShearY(startP.shearY + (targetParams.shearY - startP.shearY) * ease);
+                  setSqueeze(startP.squeeze + (targetParams.squeeze - startP.squeeze) * ease);
+
+                  if (progress < 1) requestAnimationFrame(animate);
+                  else if (onComplete) setTimeout(onComplete, 500); // 전체 재생 시 0.5초 대기 후 다음 그림자로
+              };
+              requestAnimationFrame(animate);
+          };
+
+          if (mode === 'all') {
+              let idx = 0;
+              const playNext = () => {
+                  if (idx < shadowStates.length) {
+                      runAnim(shadowStates[idx].params, playNext);
+                      idx++;
+                  }
+              };
+              playNext();
+          } else {
+              const target = shadowStates.find(s => s.id === mode);
+              if (target) runAnim(target.params);
+          }
+      };
       
       const [config, setConfig] = useState(DEFAULT_CONFIG);
       const [activeTab, setActiveTab] = useState('geo');
@@ -778,6 +1007,25 @@
 
       useEffect(() => {
         const handleMouseMoveGlobal = (e) => {
+          // 🚀 그림자 팝업 메뉴 드래그 처리
+          if (dragMenuRef.current?.isDragging) {
+              let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+              let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+              
+              let newLeft = dragMenuRef.current.initLeft + (clientX - dragMenuRef.current.startX);
+              let newTop = dragMenuRef.current.initTop + (clientY - dragMenuRef.current.startY);
+              
+              // 화면 밖으로 나가지 못하도록 방어
+              if (newLeft < 0) newLeft = 0;
+              if (newTop < 0) newTop = 0;
+              if (newLeft > window.innerWidth - 80) newLeft = window.innerWidth - 80;
+              if (newTop > window.innerHeight - 40) newTop = window.innerHeight - 40;
+              
+              setShadowMenuPos({ left: newLeft, top: newTop });
+              if (e.cancelable) e.preventDefault();
+              return;
+          }
+
           if (isResizingPanel.current) {
             let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             let newWidth = clientX;
@@ -797,11 +1045,13 @@
         };
 
         const handleMouseUpGlobal = (e) => {
-          if (isResizingPanel.current) {
-             isResizingPanel.current = false; 
-             document.body.style.cursor = 'default'; 
+          // 🚀 그림자 팝업 메뉴 드래그 종료 처리
+          if (dragMenuRef.current?.isDragging) {
+              dragMenuRef.current.isDragging = false;
+              return;
           }
-          if (isDraggingHandle.current) {
+
+          if (isResizingPanel.current) {
              isDraggingHandle.current = false;
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
@@ -968,6 +1218,23 @@
           let x = parseFloat(polyManualX); let y = parseFloat(polyManualY);
           if (isNaN(x)) x = 0; if (isNaN(y)) y = 0;
           x = Math.max(-1e7, Math.min(1e7, x)); y = Math.max(-1e7, Math.min(1e7, y));
+
+          // 🚀 1. 점 입력 후 텍스트 칸을 '0'으로 완벽히 초기화
+          setPolyManualX("0");
+          setPolyManualY("0");
+
+          // 🚀 2. 입력한 좌표가 맨 처음 찍은 점의 좌표와 동일한지 검사
+          if (polygonPoints.length >= 2) {
+              let firstP = polygonPoints[0];
+              // 부동소수점 오차를 고려해 1e-5 이내로 같으면 동일한 점으로 판정
+              if (Math.abs(firstP.x - x) < 1e-5 && Math.abs(firstP.y - y) < 1e-5) {
+                  setPolygons(prev => [...prev, polygonPoints]); // 완성된 다각형 목록에 추가
+                  setPolygonPoints([]); // 현재 그리고 있는 점 목록 비우기 (마지막 중복 점 표시 X)
+                  setShowManualPolyUI(false);
+                  return;
+              }
+          }
+
           setPolygonPoints(prev => [...prev, { x, y }]);
           setShowManualPolyUI(false);
       };
@@ -1077,86 +1344,88 @@
           if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
       };
 
+      // 🚀 통합 정밀 타격 엔진: "모니터 화면 픽셀(Screen Pixel)" 기준으로 거리를 재고, 빈 공간(투명 픽셀)을 무시합니다.
+      // 🚀 통합 정밀 타격 엔진: "모니터 화면 픽셀(Screen Pixel)" 기준으로 거리를 재고, 빈 공간(투명 픽셀)을 무시합니다.
+      const getHitShadowId = (screenX, screenY) => {
+          let canvasPt = new DOMPoint(screenX / camera.z, screenY / camera.z);
+          let mathPt = new DOMPoint(screenX / camera.z, -screenY / camera.z);
+
+          for (let i = shadowStates.length - 1; i >= 0; i--) {
+              let shadow = shadowStates[i];
+              let invMat = shadow.matrix.inverse();
+              let baseCanvasPt = canvasPt.matrixTransform(invMat);
+              let baseMathPt = mathPt.matrixTransform(invMat);
+              let hit = false;
+              
+              // 1. 사진 정밀 타격 (투명한 허공 무시 + 억지로 넓히던 인식 범위 완전 제거)
+              if (shadow.isImageActive && imageObj && colorCacheRef.current) {
+                  let imgScale = (shadow.isMathActive && shadow.isImageActive) ? (1.0 / pixelsPerUnit) : 1.0;
+                  let scaledX = baseCanvasPt.x / imgScale;
+                  let scaledY = baseCanvasPt.y / imgScale;
+                  if (scaledX >= -imageObj.width/2 && scaledX <= imageObj.width/2 && scaledY >= -imageObj.height/2 && scaledY <= imageObj.height/2) {
+                      let ctxCache = colorCacheRef.current.getContext('2d', { willReadFrequently: true });
+                      let ratioX = colorCacheRef.current.width / imageObj.width; 
+                      let ratioY = colorCacheRef.current.height / imageObj.height;
+                      let px = Math.floor((scaledX + imageObj.width/2) * ratioX); 
+                      let py = Math.floor((scaledY + imageObj.height/2) * ratioY);
+                      if (px >= 0 && px < colorCacheRef.current.width && py >= 0 && py < colorCacheRef.current.height) {
+                          if (ctxCache.getImageData(px, py, 1, 1).data[3] > 20) hit = true; // 투명도 검사로 빈 허공 클릭 무시
+                      }
+                  }
+              }
+              
+              // 2. 단위 정사각형 타격
+              if (!hit && shadow.isMathActive && useUnitSquare) {
+                  if (baseMathPt.x >= 0 && baseMathPt.x <= 1 && baseMathPt.y >= 0 && baseMathPt.y <= 1) hit = true; 
+              }
+              
+              // 3. 수학 함수 선(Line) 타격 (화면상 15픽셀 이내인지 직접 계산)
+              if (!hit && shadow.isMathActive && shadow.graphs) {
+                  for (let g of shadow.graphs) {
+                      if (!g.eq) continue;
+                      let s = g.eq.toLowerCase().replace(/\s+/g, '');
+                      if (s.includes('=') && !s.startsWith('y=')) {
+                          if (baseMathPt.x >= -15 && baseMathPt.x <= 15 && baseMathPt.y >= -15 && baseMathPt.y <= 15) { hit = true; break; }
+                      } else {
+                          try {
+                              let jsEq = MathParserJS.parse(s);
+                              let func = new Function('x', ...constants.map(c=>c.name), `return ${jsEq};`);
+                              let y = func(baseMathPt.x, ...constants.map(c=>c.value));
+                              if (isFinite(y)) {
+                                  let curvePt = new DOMPoint(baseMathPt.x, y).matrixTransform(shadow.matrix);
+                                  let drawX = curvePt.x * camera.z; let drawY = -curvePt.y * camera.z;
+                                  if (Math.hypot(screenX - drawX, screenY - drawY) < 15) { hit = true; break; } // 🚀 함수 선 15px 반경 지정
+                              }
+                          } catch(e) {}
+                      }
+                  }
+              }
+              
+              // 4. 다각형 및 점 타격 (화면상 15픽셀 이내)
+              if (!hit && shadow.isMathActive && shadow.polygons) {
+                  for (let poly of shadow.polygons) {
+                      for (let p of poly) {
+                          let pt = new DOMPoint(p.x, p.y).matrixTransform(shadow.matrix);
+                          if (Math.hypot(screenX - pt.x * camera.z, screenY + pt.y * camera.z) < 15) { hit = true; break; }
+                      }
+                  }
+              }
+              if (!hit && shadow.isMathActive && shadow.points) {
+                  for (let p of shadow.points) {
+                      let pt = new DOMPoint(p.x, p.y).matrixTransform(shadow.matrix);
+                      if (Math.hypot(screenX - pt.x * camera.z, screenY + pt.y * camera.z) < 15) { hit = true; break; }
+                  }
+              }
+              
+              if (hit) return shadow.id;
+          }
+          return null;
+      };
+
       const processCanvasClick = (clientX, clientY) => {
           const canvas = canvasRef.current;
           if (!canvas) return false;
-          const rect = canvas.getBoundingClientRect();
-          const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
-          
-          const offsetX = (rect.width - canvas.width * scale) / 2;
-          const offsetY = (rect.height - canvas.height * scale) / 2;
-          
-          const canvasX = (clientX - rect.left - offsetX) / scale;
-          const canvasY = (clientY - rect.top - offsetY) / scale;
-          
-          const cx = canvas.width / 2;
-          const cy = canvas.height / 2;
-          
-          let screenX = canvasX - cx - camera.x;
-          let screenY = canvasY - cy - camera.y;
 
-          let hitPoint = null;
-          for (let p of calcPoints) {
-              let mathPt = new DOMPoint(p.x, -p.y);
-              let tPt = mathPt.matrixTransform(matrix);
-              let drawX = tPt.x * camera.z;
-              let drawY = tPt.y * camera.z;
-              let distSq = (screenX - drawX) ** 2 + (screenY - drawY) ** 2;
-              if (distSq < (25 / camera.z) ** 2 || distSq < 400) { 
-                  hitPoint = p; break; 
-              }
-          }
-
-          if (hitPoint) {
-              setSelectedCalcPoint(hitPoint);
-              return true;
-          }
-
-          if (isCalcMode) {
-              let mathX = screenX / camera.z;
-              let mathY = screenY / camera.z;
-              let mathPt = new DOMPoint(mathX, mathY);
-              let invMat = matrix.inverse();
-              let basePt = mathPt.matrixTransform(invMat);
-              
-              let logicX = Math.round((basePt.x) * 100) / 100; 
-              let logicY = Math.round((-basePt.y) * 100) / 100;
-              
-              setCalcPoints(prev => [...prev, { id: Date.now(), x: logicX, y: logicY }]);
-              setIsCalcMode(false);
-              return true;
-          }
-
-          if (usePolygonMode && !isPolygonClosed) {
-              let mathX = screenX / camera.z;
-              let mathY = screenY / camera.z;
-              let mathPt = new DOMPoint(mathX, mathY);
-              let invMat = matrix.inverse();
-              let basePt = mathPt.matrixTransform(invMat);
-              let logicX = Math.round((basePt.x) * 10) / 10;
-              let logicY = Math.round((-basePt.y) * 10) / 10;
-
-              if (polygonPoints.length >= 3) {
-                  let firstP = polygonPoints[0];
-                  let fMath = new DOMPoint(firstP.x, -firstP.y).matrixTransform(matrix);
-                  let fDrawX = fMath.x * camera.z;
-                  let fDrawY = fMath.y * camera.z;
-                  let dist = Math.hypot(screenX - fDrawX, screenY - fDrawY);
-                  if (dist < 20) {
-                      setIsPolygonClosed(true);
-                      return true;
-                  }
-              }
-              setPolygonPoints(prev => [...prev, { x: logicX, y: logicY }]);
-              return true;
-          }
-
-          return false;
-      };
-
-      const addMathPoint = (clientX, clientY) => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
           const rect = canvas.getBoundingClientRect();
           const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
           const offsetX = (rect.width - canvas.width * scale) / 2;
@@ -1164,18 +1433,70 @@
           const canvasX = (clientX - rect.left - offsetX) / scale;
           const canvasY = (clientY - rect.top - offsetY) / scale;
           const cx = canvas.width / 2; const cy = canvas.height / 2;
+
           let screenX = canvasX - cx - camera.x;
           let screenY = canvasY - cy - camera.y;
+          
+          let hitShadowId = getHitShadowId(screenX, screenY);
 
-          let mathX = screenX / camera.z;
-          let mathY = screenY / camera.z;
+          if (hitShadowId !== null) {
+              setSelectedShadowId(hitShadowId);
+              setShowShadowMenu(true);
+              return true; 
+          } else if (showShadowMenu) {
+              setShowShadowMenu(false);
+              setSelectedShadowId(null);
+              return true; 
+          }
+
+          let hitPoint = null;
+          for (let p of calcPoints) {
+              let pt = new DOMPoint(p.x, p.y);
+              let tPt = pt.matrixTransform(matrix);
+              let drawX = tPt.x * camera.z; let drawY = -tPt.y * camera.z; 
+              if (Math.hypot(screenX - drawX, screenY - drawY) < 30) { hitPoint = p; break; }
+          }
+          if (hitPoint) { setSelectedCalcPoint(hitPoint); return true; }
+
+          let mathX = screenX / camera.z; let mathY = -screenY / camera.z; 
           let mathPt = new DOMPoint(mathX, mathY);
-          let invMat = matrix.inverse();
-          let basePt = mathPt.matrixTransform(invMat);
+
+          if (isCalcMode) {
+              let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
+              let logicX = Math.round((basePt.x) * 100) / 100; let logicY = Math.round((basePt.y) * 100) / 100;
+              setCalcPoints(prev => [...prev, { id: Date.now(), x: logicX, y: logicY }]);
+              setIsCalcMode(false); return true;
+          }
+
+          if (usePolygonMode) {
+              let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
+              let logicX = Math.round((basePt.x) * 10) / 10; let logicY = Math.round((basePt.y) * 10) / 10;
+              if (polygonPoints.length >= 3) {
+                  let firstP = polygonPoints[0];
+                  let fMath = new DOMPoint(firstP.x, firstP.y).matrixTransform(matrix);
+                  let fDrawX = fMath.x * camera.z; let fDrawY = -fMath.y * camera.z;
+                  if (Math.hypot(screenX - fDrawX, screenY - fDrawY) < 20) {
+                      setPolygons(prev => [...prev, polygonPoints]); setPolygonPoints([]); return true;
+                  }
+              }
+              setPolygonPoints(prev => [...prev, { x: logicX, y: logicY }]); return true;
+          }
+          return false;
+      };
+
+      const addMathPoint = (clientX, clientY) => {
+          const canvas = canvasRef.current; if (!canvas) return;
+          const rect = canvas.getBoundingClientRect(); const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+          const offsetX = (rect.width - canvas.width * scale) / 2; const offsetY = (rect.height - canvas.height * scale) / 2;
+          const canvasX = (clientX - rect.left - offsetX) / scale; const canvasY = (clientY - rect.top - offsetY) / scale;
+          const cx = canvas.width / 2; const cy = canvas.height / 2;
+          let screenX = canvasX - cx - camera.x; let screenY = canvasY - cy - camera.y;
+
+          let mathX = screenX / camera.z; let mathY = -screenY / camera.z;
+          let mathPt = new DOMPoint(mathX, mathY);
+          let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
           
-          let logicX = Math.round((basePt.x) * 10) / 10;
-          let logicY = Math.round((-basePt.y) * 10) / 10;
-          
+          let logicX = Math.round((basePt.x) * 10) / 10; let logicY = Math.round((basePt.y) * 10) / 10;
           setPoints(prev => {
               const newLabel = String.fromCharCode(65 + prev.length % 26);
               return [...prev, { id: Date.now(), label: newLabel, x: logicX, y: logicY }];
@@ -1183,27 +1504,42 @@
       };
 
       const calculateDelta = (clientX, clientY) => {
-          const canvas = canvasRef.current;
-          if (!canvas) return { dx: 0, dy: 0 };
-          const rect = canvas.getBoundingClientRect();
-          const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
-          const dx = (clientX - lastMouseRef.current.x) / scale;
-          const dy = (clientY - lastMouseRef.current.y) / scale;
+          const canvas = canvasRef.current; if (!canvas) return { dx: 0, dy: 0 };
+          const rect = canvas.getBoundingClientRect(); const scale = Math.max(rect.width / canvas.width, rect.height / canvas.height);
+          const dx = (clientX - lastMouseRef.current.x) / scale; const dy = (clientY - lastMouseRef.current.y) / scale;
           return { dx, dy };
       };
 
       const handleMouseDown = (e) => { 
-          if (Date.now() - lastTouchTime.current < 500) return; // 터치 직후 마우스 이벤트 무시
+          if (Date.now() - lastTouchTime.current < 500) return;
           isDraggingRef.current = true; setIsDragUI(true); dragDistRef.current = 0; 
           lastMouseRef.current = { x: e.clientX, y: e.clientY }; 
       };
+
       const handleMouseMove = (e) => {
-        if (!isDraggingRef.current) return;
-        const { dx, dy } = calculateDelta(e.clientX, e.clientY);
-        dragDistRef.current += Math.abs(dx) + Math.abs(dy); 
-        setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-        lastMouseRef.current = { x: e.clientX, y: e.clientY };
+          if (isDraggingRef.current) {
+              const { dx, dy } = calculateDelta(e.clientX, e.clientY);
+              dragDistRef.current += Math.abs(dx) + Math.abs(dy); 
+              setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+              lastMouseRef.current = { x: e.clientX, y: e.clientY };
+          } else {
+              if (canvasRef.current) {
+                  const rect = canvasRef.current.getBoundingClientRect();
+                  const scale = Math.max(rect.width / canvasRef.current.width, rect.height / canvasRef.current.height);
+                  const offsetX = (rect.width - canvasRef.current.width * scale) / 2;
+                  const offsetY = (rect.height - canvasRef.current.height * scale) / 2;
+                  const canvasX = (e.clientX - rect.left - offsetX) / scale;
+                  const canvasY = (e.clientY - rect.top - offsetY) / scale;
+                  const cx = canvasRef.current.width / 2; const cy = canvasRef.current.height / 2;
+                  let screenX = canvasX - cx - camera.x; let screenY = canvasY - cy - camera.y;
+
+                  // 🚀 위에서 정의한 getHitShadowId를 사용하여 호버(Hover) 상태도 100% 동일하게 동기화
+                  let hitId = getHitShadowId(screenX, screenY);
+                  if (e.target && e.target.style) e.target.style.cursor = hitId !== null ? 'pointer' : 'default';
+              }
+          }
       };
+
       const handleMouseUpOrLeave = (e) => { 
         if (Date.now() - lastTouchTime.current < 500) {
             isDraggingRef.current = false; setIsDragUI(false); 
@@ -1488,96 +1824,126 @@
             });
         };
 
-        const drawImageLayer = () => {
+        // 🚀 그림자 렌더링 시, 현재 화면 모드가 아닌 '그림자가 저장될 당시의 모드'를 기준으로 그리도록 수정
+        const drawImageLayer = (renderMatrix = matrix, alpha = 1.0, isMath = useMathLab, showImg = showImageInMathLab) => {
             if (!imageObj || !colorCacheRef.current) return;
             ctx.save();
+            ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y); 
             ctx.scale(z, z); 
-            ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+            ctx.transform(renderMatrix.a, renderMatrix.b, renderMatrix.c, renderMatrix.d, renderMatrix.e, renderMatrix.f);
             
-            // 🚀 2-A. 사진 픽셀 스케일 비율 적용 (예: 10px = 1단위면 1/10 크기로 축소)
-            let imgScale = (useMathLab && showImageInMathLab) ? (1.0 / pixelsPerUnit) : 1.0;
+            let imgScale = (isMath && showImg) ? (1.0 / pixelsPerUnit) : 1.0;
             ctx.scale(imgScale, imgScale);
             
             ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
             ctx.restore();
         };
 
-        const drawUnitSquare = () => {
+        const drawUnitSquare = (renderMatrix = matrix, alpha = 1.0) => {
             if (!useMathLab || !useUnitSquare) return;
             ctx.save();
+            ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y);
             
-            let pts = [ new DOMPoint(0,0), new DOMPoint(1,0), new DOMPoint(1,-1), new DOMPoint(0,-1) ];
+            let pts = [ new DOMPoint(0,0), new DOMPoint(1,0), new DOMPoint(1,1), new DOMPoint(0,1) ]; // 🚀 수학 기준 (위쪽이 +)
             ctx.beginPath();
             pts.forEach((p, i) => {
-                let tPt = p.matrixTransform(matrix);
+                let tPt = p.matrixTransform(renderMatrix);
                 if (!isFinite(tPt.x) || !isFinite(tPt.y)) return;
-                if (i===0) ctx.moveTo(tPt.x*z, tPt.y*z);
-                else ctx.lineTo(tPt.x*z, tPt.y*z);
+                if (i===0) ctx.moveTo(tPt.x*z, -tPt.y*z);
+                else ctx.lineTo(tPt.x*z, -tPt.y*z);
             });
             ctx.closePath();
-            ctx.fillStyle = 'rgba(234, 179, 8, 0.3)';
+            ctx.fillStyle = `rgba(234, 179, 8, 0.3)`;
             ctx.fill();
-            ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+            ctx.strokeStyle = `rgba(245, 158, 11, 0.8)`;
             ctx.lineWidth = 2;
             ctx.stroke();
             
-            let o = new DOMPoint(0,0).matrixTransform(matrix);
-            let det = matrix.a * matrix.d - matrix.b * matrix.c;
+            let o = new DOMPoint(0,0).matrixTransform(renderMatrix);
+            let det = renderMatrix.a * renderMatrix.d - renderMatrix.b * renderMatrix.c;
             if(isFinite(o.x) && isFinite(o.y)) {
                 ctx.font = '900 24px sans-serif';
                 ctx.fillStyle = '#fde68a';
                 ctx.shadowColor = 'black'; ctx.shadowBlur = 6;
-                ctx.fillText(`넓이: ${Math.abs(det).toFixed(2)}`, o.x*z + 15, o.y*z + 25);
+                ctx.fillText(`넓이: ${Math.abs(det).toFixed(2)}`, o.x*z + 15, -o.y*z + 25);
             }
             ctx.restore();
         };
 
-        const drawPolygon = () => {
-            if (!useMathLab || !usePolygonMode || polygonPoints.length === 0) return;
+        const drawPolygon = (renderMatrix = matrix, alpha = 1.0) => {
+            if (!useMathLab || !usePolygonMode) return;
+            if (polygons.length === 0 && polygonPoints.length === 0) return;
             ctx.save();
+            ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y);
             
-            ctx.beginPath();
-            polygonPoints.forEach((p, i) => {
-                let pt = new DOMPoint(p.x, -p.y).matrixTransform(matrix);
-                if (!isFinite(pt.x) || !isFinite(pt.y)) return;
-                if (i===0) ctx.moveTo(pt.x*z, pt.y*z);
-                else ctx.lineTo(pt.x*z, pt.y*z);
-            });
-            if (isPolygonClosed) {
-                ctx.closePath();
-                ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
-                ctx.fill();
-            }
-            ctx.strokeStyle = '#a855f7';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            polygonPoints.forEach((p, idx) => {
-                let pt = new DOMPoint(p.x, -p.y).matrixTransform(matrix);
-                if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+            polygons.forEach((poly) => {
                 ctx.beginPath();
-                ctx.arc(pt.x*z, pt.y*z, 6, 0, Math.PI*2);
-                ctx.fillStyle = (idx === 0 && !isPolygonClosed) ? '#ef4444' : '#a855f7'; 
+                poly.forEach((p, i) => {
+                    let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix); // 🚀 p.y 정상화
+                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    if (i===0) ctx.moveTo(pt.x*z, -pt.y*z);
+                    else ctx.lineTo(pt.x*z, -pt.y*z);
+                });
+                ctx.closePath();
+                ctx.fillStyle = `rgba(168, 85, 247, 0.4)`;
                 ctx.fill();
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.strokeStyle = `#a855f7`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                poly.forEach((p) => {
+                    let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
+                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    ctx.beginPath();
+                    ctx.arc(pt.x*z, -pt.y*z, 6, 0, Math.PI*2);
+                    ctx.fillStyle = `#a855f7`; 
+                    ctx.fill();
+                    ctx.strokeStyle = `#fff`; ctx.lineWidth = 2; ctx.stroke();
+                });
             });
+
+            if (polygonPoints.length > 0 && renderMatrix === matrix) {
+                ctx.beginPath();
+                polygonPoints.forEach((p, i) => {
+                    let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
+                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    if (i===0) ctx.moveTo(pt.x*z, -pt.y*z);
+                    else ctx.lineTo(pt.x*z, -pt.y*z);
+                });
+                ctx.strokeStyle = `#a855f7`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                polygonPoints.forEach((p, idx) => {
+                    let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
+                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    ctx.beginPath();
+                    ctx.arc(pt.x*z, -pt.y*z, 6, 0, Math.PI*2);
+                    ctx.fillStyle = (idx === 0) ? `#ef4444` : `#a855f7`; 
+                    ctx.fill();
+                    ctx.strokeStyle = `#fff`; 
+                    ctx.lineWidth = 2; ctx.stroke();
+                });
+            }
             ctx.restore();
         };
 
-      const drawMathFunctions = () => {
+      const drawMathFunctions = (renderMatrix = matrix, alpha = 1.0) => {
             const canvasGL = canvasGLRef.current;
             const canvas2D = canvasRef.current; 
-            
             if (!canvasGL || !canvas2D) return;
-            const gl = canvasGL.getContext('webgl2', { premultipliedAlpha: false });
+            const gl = canvasGL.getContext('webgl2', { premultipliedAlpha: false, preserveDrawingBuffer: true });
             const ctx = canvas2D.getContext('2d');
             if (!gl || !ctx) return;
             
-            gl.clearColor(0.0, 0.0, 0.0, 0.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            // 본체 그릴 때만 WebGL 지우기 (그림자 때는 지우면 안됨)
+            if (alpha === 1.0) {
+                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
 
             if (!useMathLab || !useGraph || graphs.length === 0) return;
 
@@ -1590,63 +1956,53 @@
                     let s = expr.toLowerCase().replace(/\s+/g, '');
                     if (s.includes('=')) { let p = s.split('='); s = `(${p[0]})-(${p[1]})`; } 
                     else { s = `y-(${s})`; }
-                    s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
-                    
-                    let tokens = [];
-                    let regex = /(sin|cos|tan|log|ln|abs|sqrt|exp|pi|e|[a-z]|[0-9.]+|[-+*/^()])/g;
-                    let match;
-                    while ((match = regex.exec(s)) !== null) tokens.push(match[0]);
-                    
+                    s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(LOGE($2)/LOGE($1))');
+                    s = s.replace(/ln\(/g, 'LOGE(');
+                    s = s.replace(/log\(/g, 'LOG10(');
+                    s = s.replace(/sin\(/g, 'SIN(');
+                    s = s.replace(/cos\(/g, 'COS(');
+                    s = s.replace(/tan\(/g, 'TAN(');
+                    s = s.replace(/abs\(/g, 'ABS(');
+                    s = s.replace(/sqrt\(/g, 'SQRT(');
+                    s = s.replace(/exp\(/g, 'EXP(');
+                    s = s.replace(/\bpi\b/g, 'PI_CONST');
+                    s = s.replace(/\be\b/g, 'E_CONST');
+                    let tokens = []; let regex = /(LOGE|LOG10|SIN|COS|TAN|ABS|SQRT|EXP|PI_CONST|E_CONST|[a-z0-9_.]+|[-+*/^()])/gi;
+                    let match; while ((match = regex.exec(s)) !== null) tokens.push(match[0]);
+                    let mappedTokens = tokens.map(t => {
+                        if (t === 'LOGE') return 'safeLog'; if (t === 'LOG10') return 'logBase10';
+                        if (t === 'SIN') return 'sin'; if (t === 'COS') return 'cos';
+                        if (t === 'TAN') return 'tan'; if (t === 'ABS') return 'abs';
+                        if (t === 'SQRT') return 'safeSqrt'; if (t === 'EXP') return 'exp';
+                        if (t === 'PI_CONST') return '3.14159265359'; if (t === 'E_CONST') return '2.71828182846';
+                        return t;
+                    });
                     let out = [];
-                    for (let i = 0; i < tokens.length; i++) {
-                        let t = tokens[i];
-                        out.push(t);
-                        if (i < tokens.length - 1) {
-                            let next = tokens[i+1];
-                            let isVal1 = /^[0-9.]+$|^[a-z]$|^pi$|^e$|^\)$/.test(t);
-                            let isVal2 = /^[0-9.]+$|^[a-z]$|^pi$|^e$|^\($/.test(next);
-                            let isFunc = /^(sin|cos|tan|log|ln|abs|sqrt|exp)$/.test(next);
+                    for (let i = 0; i < mappedTokens.length; i++) {
+                        let t = mappedTokens[i]; out.push(t);
+                        if (i < mappedTokens.length - 1) {
+                            let next = mappedTokens[i+1];
+                            let isVal1 = /^[0-9.]+$|^[a-z]$|^3\.14159265359$|^2\.71828182846$|^\)$/.test(t);
+                            let isVal2 = /^[0-9.]+$|^[a-z]$|^3\.14159265359$|^2\.71828182846$|^\($/.test(next);
+                            let isFunc = /^(sin|cos|tan|logBase10|safeLog|abs|safeSqrt|exp)$/.test(next);
                             if (isVal1 && (isVal2 || isFunc)) out.push('*');
                         }
                     }
-                    
                     let glsl = "";
                     for (let i = 0; i < out.length; i++) {
                         let t = out[i];
-                        if (t === 'ln') glsl += 'safeLog';
-                        else if (t === 'log') glsl += 'logBase10';
-                        else if (t === 'sqrt') glsl += 'safeSqrt';
-                        else if (t === 'pi') glsl += '3.14159265359';
-                        else if (t === 'e') glsl += '2.71828182846';
-                        else if (/^\d+$/.test(t)) glsl += t + '.0'; 
-                        else if (/^\d+\.$/.test(t)) glsl += t + '0';
-                        else glsl += t;
+                        if (/^\d+$/.test(t)) glsl += t + '.0'; else if (/^\d+\.$/.test(t)) glsl += t + '0'; else glsl += t;
                     }
-                    
                     let replacePow = (str) => {
-                        let temp = str; let idx;
-                        while((idx = temp.lastIndexOf('^')) !== -1) {
-                            let l = idx - 1, r = idx + 1;
-                            let leftStr = "", rightStr = "";
-                            if (temp[l] === ')') {
-                                let brackets = 1; l--;
-                                while (l >= 0 && brackets > 0) { if (temp[l] === ')') brackets++; if (temp[l] === '(') brackets--; l--; }
-                                leftStr = temp.substring(l + 1, idx);
-                            } else {
-                                while (l >= 0 && /[a-zA-Z0-9_.]/.test(temp[l])) l--;
-                                leftStr = temp.substring(l + 1, idx);
-                            }
-                            if (temp[r] === '(') {
-                                let brackets = 1; r++;
-                                while (r < temp.length && brackets > 0) { if (temp[r] === '(') brackets++; if (temp[r] === ')') brackets--; r++; }
-                                rightStr = temp.substring(idx + 1, r);
-                            } else {
-                                while (r < temp.length && /[a-zA-Z0-9_.]/.test(temp[r])) r++;
-                                rightStr = temp.substring(idx + 1, r);
-                            }
+                        let temp = str; let idx; let iters = 0;
+                        while((idx = temp.lastIndexOf('^')) !== -1 && iters++ < 50) {
+                            let l = idx - 1, r = idx + 1; let leftStr = "", rightStr = "";
+                            if (temp[l] === ')') { let brackets = 1; l--; while (l >= 0 && brackets > 0) { if (temp[l] === ')') brackets++; if (temp[l] === '(') brackets--; l--; } leftStr = temp.substring(l + 1, idx);
+                            } else { while (l >= 0 && /[a-zA-Z0-9_.]/.test(temp[l])) l--; leftStr = temp.substring(l + 1, idx); }
+                            if (temp[r] === '(') { let brackets = 1; r++; while (r < temp.length && brackets > 0) { if (temp[r] === '(') brackets++; if (temp[r] === ')') brackets--; r++; } rightStr = temp.substring(idx + 1, r);
+                            } else { while (r < temp.length && /[a-zA-Z0-9_.]/.test(temp[r])) r++; rightStr = temp.substring(idx + 1, r); }
                             temp = temp.substring(0, l + 1) + 'safePow(' + leftStr + ',' + rightStr + ')' + temp.substring(r);
-                        }
-                        return temp;
+                        } return temp;
                     };
                     return replacePow(glsl);
                 }
@@ -1656,36 +2012,32 @@
                 parse: function(expr) {
                     let s = expr.toLowerCase().replace(/\s+/g, '');
                     if (s.startsWith('y=')) s = s.split('=')[1];
-                    s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(Math.log($2)/Math.log($1))');
-                    s = s.replace(/ln\(/g, 'Math.log(');
-                    s = s.replace(/log\(/g, 'Math.log10(');
-                    s = s.replace(/sin\(/g, 'Math.sin(');
-                    s = s.replace(/cos\(/g, 'Math.cos(');
-                    s = s.replace(/tan\(/g, 'Math.tan(');
-                    s = s.replace(/abs\(/g, 'Math.abs(');
-                    s = s.replace(/sqrt\(/g, 'Math.sqrt(');
-                    s = s.replace(/exp\(/g, 'Math.exp(');
-                    s = s.replace(/\bpi\b/g, 'Math.PI');
-                    s = s.replace(/\be\b/g, 'Math.E');
-                    s = s.replace(/\^/g, '**');
-
-                    let tokens = s.match(/(Math\.[a-z0-9_]+|[0-9.]+|[a-z]|[-+*/()**])/gi);
+                    s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(LOGE($2)/LOGE($1))');
+                    s = s.replace(/ln\(/g, 'LOGE('); s = s.replace(/log\(/g, 'LOG10(');
+                    s = s.replace(/sin\(/g, 'SIN('); s = s.replace(/cos\(/g, 'COS(');
+                    s = s.replace(/tan\(/g, 'TAN('); s = s.replace(/abs\(/g, 'ABS(');
+                    s = s.replace(/sqrt\(/g, 'SQRT('); s = s.replace(/exp\(/g, 'EXP(');
+                    s = s.replace(/\bpi\b/g, 'PI_CONST'); s = s.replace(/\be\b/g, 'E_CONST'); s = s.replace(/\^/g, '**');
+                    let tokens = s.match(/(LOGE|LOG10|SIN|COS|TAN|ABS|SQRT|EXP|PI_CONST|E_CONST|[a-z0-9_.]+|[-+*/()**])/gi);
                     if (!tokens) return s;
-                    
+                    let mappedTokens = tokens.map(t => {
+                        if (t === 'LOGE') return 'Math.log'; if (t === 'LOG10') return 'Math.log10';
+                        if (t === 'SIN') return 'Math.sin'; if (t === 'COS') return 'Math.cos';
+                        if (t === 'TAN') return 'Math.tan'; if (t === 'ABS') return 'Math.abs';
+                        if (t === 'SQRT') return 'Math.sqrt'; if (t === 'EXP') return 'Math.exp';
+                        if (t === 'PI_CONST') return 'Math.PI'; if (t === 'E_CONST') return 'Math.E';
+                        return t;
+                    });
                     let out = [];
-                    for (let i = 0; i < tokens.length; i++) {
-                        let t = tokens[i];
-                        out.push(t);
-                        if (i < tokens.length - 1) {
-                            let next = tokens[i+1];
+                    for (let i = 0; i < mappedTokens.length; i++) {
+                        let t = mappedTokens[i]; out.push(t);
+                        if (i < mappedTokens.length - 1) {
+                            let next = mappedTokens[i+1];
                             let isVal1 = /^[0-9.]+$|^[a-z]$|Math\.(PI|E)|^\)$/i.test(t);
                             let isVal2 = /^[0-9.]+$|^[a-z]$|Math\.|^\($/i.test(next);
-                            if (isVal1 && isVal2 && !/^[-+*/]$/.test(t) && !/^[-+*/]$/.test(next) && t !== '**' && next !== '**') {
-                                out.push('*');
-                            }
+                            if (isVal1 && isVal2 && !/^[-+*/]$/.test(t) && !/^[-+*/]$/.test(next) && t !== '**' && next !== '**') out.push('*');
                         }
-                    }
-                    return out.join('');
+                    } return out.join('');
                 }
             };
 
@@ -1693,13 +2045,15 @@
             let fsMain = '';
             let hasWebGLGraph = false;
             
+            ctx.globalAlpha = alpha; // 🚀 Canvas 2D 수학 함수 그림자 투명도 적용
+            
             graphs.forEach((g, idx) => {
                 if (!g || !g.eq) return;
                 
-                let gMatrix = matrix;
+                let gMatrix = renderMatrix; 
                 if (g.matrixMode === 'none') { gMatrix = new DOMMatrix(); } 
                 else if (g.matrixMode === 'custom' && g.customMatrix) { gMatrix = new DOMMatrix([g.customMatrix.a, g.customMatrix.b, g.customMatrix.c, g.customMatrix.d, g.customMatrix.e, g.customMatrix.f]); }
-                let invMat; try { invMat = gMatrix.inverse(); } catch(e) { invMat = new DOMMatrix(); }
+                let invMat; try { invMat = gMatrix.inverse(); if (!isFinite(invMat.a)) invMat = new DOMMatrix(); } catch(e) { invMat = new DOMMatrix(); }
                 
                 let strEq = g.eq.toLowerCase().replace(/\s+/g, '');
                 let isImplicit = strEq.includes('=') && !strEq.startsWith('y=');
@@ -1708,429 +2062,264 @@
                 let r = (rgb.r/255).toFixed(3), gg = (rgb.g/255).toFixed(3), b = (rgb.b/255).toFixed(3);
 
                 if (isImplicit) {
-                    let glslEq = MathParserGLSL.parse(strEq);
-                    hasWebGLGraph = true;
-                    fsFunctions += `float f${idx}(float x, float y) { return ${glslEq}; }\n`;
-                    fsMain += `
-                    {
-                        mat3 matInv = mat3(${toF(invMat.a)}, ${toF(invMat.b)}, 0.0, ${toF(invMat.c)}, ${toF(invMat.d)}, 0.0, ${toF(invMat.e)}, ${toF(invMat.f)}, 1.0);
-                        vec3 mathPt = matInv * vec3(canvasX, canvasY, 1.0);
-                        float mx = mathPt.x; float my = -mathPt.y;
-                        
-                        float m_scale = sqrt(${toF(gMatrix.a)}*${toF(gMatrix.a)} + ${toF(gMatrix.b)}*${toF(gMatrix.b)}) * u_z;
-                        float m_px = 1.0 / (m_scale + 1e-8);
-
-                        float v0 = f${idx}(mx, my);
-                        if (IS_VALID(v0)) {
-                            float vR = f${idx}(mx + m_px, my);
-                            float vU = f${idx}(mx, my + m_px);
-                            float grad = length(vec2(vR - v0, vU - v0));
-                            float dist_screen = abs(v0) / max(grad, 1e-10);
-                            
-                            if (dist_screen < 1.5) {
-                                finalColor = vec4(${r}, ${gg}, ${b}, 1.0);
+                    // WebGL은 메인(alpha 1.0) 일 때만 셰이더를 그립니다. 그림자는 미리 캡처된 glImage를 사용합니다.
+                    if (alpha === 1.0) {
+                        let glslEq = MathParserGLSL.parse(strEq);
+                        hasWebGLGraph = true;
+                        fsFunctions += `float f${idx}(float x, float y) { return ${glslEq}; }\n`;
+                        fsMain += `
+                        {
+                            mat3 matInv = mat3(${toF(invMat.a)}, ${toF(invMat.b)}, 0.0, ${toF(invMat.c)}, ${toF(invMat.d)}, 0.0, ${toF(invMat.e)}, ${toF(invMat.f)}, 1.0);
+                            float canvasX = (sp.x - cx - u_cam.x) / u_z;
+                            float canvasY = -(sp.y - cy - u_cam.y) / u_z;
+                            vec3 mathPt = matInv * vec3(canvasX, canvasY, 1.0);
+                            float mx = mathPt.x; float my = mathPt.y;
+                            float m_scale = sqrt(${toF(gMatrix.a)}*${toF(gMatrix.a)} + ${toF(gMatrix.b)}*${toF(gMatrix.b)}) * u_z;
+                            float m_px = 1.0 / (m_scale + 1e-8);
+                            float v0 = f${idx}(mx, my);
+                            if (IS_VALID(v0)) {
+                                float vR = f${idx}(mx + m_px, my);
+                                float vU = f${idx}(mx, my + m_px);
+                                float grad = length(vec2(vR - v0, vU - v0));
+                                float dist_screen = abs(v0) / max(grad, 1e-10);
+                                if (dist_screen < 1.5) {
+                                    finalColor = vec4(${r}, ${gg}, ${b}, 1.0);
+                                }
                             }
                         }
+                        `;
                     }
-                    `;
                 } else {
                     let jsEq = MathParserJS.parse(strEq);
                     let func;
-                    try { func = new Function('x', ...constNames, `return ${jsEq};`); } 
-                    catch (e) { console.error("JS Parse Error:", e); return; }
+                    try { func = new Function('x', ...constNames, `return ${jsEq};`); } catch (e) { return; }
 
                     ctx.beginPath();
                     ctx.strokeStyle = GRAPH_COLORS[idx % GRAPH_COLORS.length];
                     ctx.lineWidth = 1.5;
+                    let cx = canvas2D.width / 2.0; let cy = canvas2D.height / 2.0;
                     
-                    let cx = canvas2D.width / 2.0;
-                    let cy = canvas2D.height / 2.0;
-                    
-                    // 역행렬을 이용해 화면에 보이는 실제 수학적 X구간 스캔 (행렬 변환 시 궤적 증발 방지)
-                    let screenCorners = [ { x: 0, y: 0 }, { x: canvas2D.width, y: 0 }, { x: canvas2D.width, y: canvas2D.height }, { x: 0, y: canvas2D.height } ];
-                    let mathCornersX = screenCorners.map(p => {
-                        let sX = (p.x - cx - camera.x) / camera.z;
-                        let sY = (p.y - cy - camera.y) / camera.z;
-                        let mPt = invMat.transformPoint(new DOMPoint(sX, sY));
-                        return mPt.x;
-                    });
-                    
-                    let min_x = Math.min(...mathCornersX);
-                    let max_x = Math.max(...mathCornersX);
-                    let range = max_x - min_x;
-                    min_x -= range * 0.1;
-                    max_x += range * 0.1;
+                    let det = gMatrix.a * gMatrix.d - gMatrix.b * gMatrix.c;
+                    let min_x, max_x;
 
-                    let draw_min_x = min_x;
-                    let draw_max_x = max_x;
-
-                    // tan(x) 정의역 제한 (-50 ~ 50)
-                    if (strEq.includes('tan')) {
-                        draw_min_x = Math.max(min_x, -50.0);
-                        draw_max_x = Math.min(max_x, 50.0);
+                    if (Math.abs(det) < 1e-10) {
+                        let sX_min = (-cx - camera.x) / camera.z; let sX_max = (canvas2D.width - cx - camera.x) / camera.z;
+                        let sRange = sX_max - sX_min; min_x = sX_min - sRange * 10; max_x = sX_max + sRange * 10;
+                    } else {
+                        let screenCorners = [ { x: 0, y: 0 }, { x: canvas2D.width, y: 0 }, { x: canvas2D.width, y: canvas2D.height }, { x: 0, y: canvas2D.height } ];
+                        let mathCornersX = screenCorners.map(p => {
+                            let sX = (p.x - cx - camera.x) / camera.z;
+                            let sY = -(p.y - cy - camera.y) / camera.z; 
+                            let mPt = invMat.transformPoint(new DOMPoint(sX, sY));
+                            return mPt.x;
+                        });
+                        min_x = Math.min(...mathCornersX); max_x = Math.max(...mathCornersX);
                     }
+                    
+                    let range = max_x - min_x; min_x -= range * 0.1; max_x += range * 0.1;
+                    let draw_min_x = min_x; let draw_max_x = max_x;
 
+                    if (strEq.includes('tan')) { draw_min_x = Math.max(min_x, -50.0); draw_max_x = Math.min(max_x, 50.0); }
                     if (draw_min_x > draw_max_x) return;
 
-                    // 부동소수점 무한루프 방지 정수 스텝
                     const TOTAL_STEPS = Math.ceil(canvas2D.width * 2.0);
                     const actual_step = (draw_max_x - draw_min_x) / TOTAL_STEPS;
                     let infinityMath = 10000000 / camera.z;
 
-                    // 🚀 코헨-서덜랜드 선분 절단 알고리즘 (브라우저 Drop 에러 완벽 차단 및 각도 보존)
-                    const CLIP_MIN = -5000;
-                    const CLIP_MAX = 5000 + Math.max(canvas2D.width, canvas2D.height);
+                    const CLIP_MIN = -5000; const CLIP_MAX = 5000 + Math.max(canvas2D.width, canvas2D.height);
 
-                    const computeOutCode = (x, y) => {
-                        let code = 0;
-                        if (x < CLIP_MIN) code |= 1;
-                        else if (x > CLIP_MAX) code |= 2;
-                        if (y < CLIP_MIN) code |= 4;
-                        else if (y > CLIP_MAX) code |= 8;
-                        return code;
-                    };
+                    const computeOutCode = (x, y) => { let code = 0; if (x < CLIP_MIN) code |= 1; else if (x > CLIP_MAX) code |= 2; if (y < CLIP_MIN) code |= 4; else if (y > CLIP_MAX) code |= 8; return code; };
 
                     const drawClippedLine = (x0, y0, x1, y1) => {
-                        let outcode0 = computeOutCode(x0, y0);
-                        let outcode1 = computeOutCode(x1, y1);
-                        let accept = false;
-                        let iters = 0;
-
+                        let outcode0 = computeOutCode(x0, y0); let outcode1 = computeOutCode(x1, y1);
+                        let accept = false; let iters = 0;
                         while (true) {
                             if (iters++ > 20) break;
                             if (!(outcode0 | outcode1)) { accept = true; break; }
                             if (outcode0 & outcode1) { break; }
-
                             let outcodeOut = outcode0 ? outcode0 : outcode1;
                             let nx = 0, ny = 0;
-
                             if (outcodeOut & 8) { nx = x0 + (x1 - x0) * (CLIP_MAX - y0) / (y1 - y0); ny = CLIP_MAX; }
                             else if (outcodeOut & 4) { nx = x0 + (x1 - x0) * (CLIP_MIN - y0) / (y1 - y0); ny = CLIP_MIN; }
                             else if (outcodeOut & 2) { ny = y0 + (y1 - y0) * (CLIP_MAX - x0) / (x1 - x0); nx = CLIP_MAX; }
                             else if (outcodeOut & 1) { ny = y0 + (y1 - y0) * (CLIP_MIN - x0) / (x1 - x0); nx = CLIP_MIN; }
-
-                            if (outcodeOut === outcode0) { x0 = nx; y0 = ny; outcode0 = computeOutCode(x0, y0); }
-                            else { x1 = nx; y1 = ny; outcode1 = computeOutCode(x1, y1); }
+                            if (outcodeOut === outcode0) { x0 = nx; y0 = ny; outcode0 = computeOutCode(x0, y0); } else { x1 = nx; y1 = ny; outcode1 = computeOutCode(x1, y1); }
                         }
-                        if (accept) {
-                            ctx.moveTo(x0, y0);
-                            ctx.lineTo(x1, y1);
-                        }
+                        if (accept) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }
                     };
 
                     let lastPx = null, lastPy = null;
                     const drawSafeLine = (mathX, mathY, isMove) => {
-                        let mPt = gMatrix.transformPoint(new DOMPoint(mathX, -mathY));
+                        let mPt = gMatrix.transformPoint(new DOMPoint(mathX, mathY));
                         let px = mPt.x * camera.z + cx + camera.x;
-                        let py = mPt.y * camera.z + cy + camera.y;
-
-                        if (isNaN(px) || isNaN(py) || !isFinite(px) || !isFinite(py)) {
-                            lastPx = null; lastPy = null;
-                            return;
-                        }
-
-                        if (isMove || lastPx === null || lastPy === null) {
-                            lastPx = px; lastPy = py;
-                        } else {
-                            drawClippedLine(lastPx, lastPy, px, py);
-                            lastPx = px; lastPy = py;
-                        }
+                        let py = -mPt.y * camera.z + cy + camera.y;
+                        if (isNaN(px) || isNaN(py) || !isFinite(px) || !isFinite(py)) { lastPx = null; lastPy = null; return; }
+                        if (isMove || lastPx === null || lastPy === null) { lastPx = px; lastPy = py; } 
+                        else { drawClippedLine(lastPx, lastPy, px, py); lastPx = px; lastPy = py; }
                     };
 
-                    const drawMathRay = (mathX, signY, isMove) => {
-                        let pt1 = gMatrix.transformPoint(new DOMPoint(mathX, 0));
-                        let pt2 = gMatrix.transformPoint(new DOMPoint(mathX, -signY));
-                        
+                    const drawMathRay = (mathX, mathY, signY, isMove) => {
+                        let pt1 = gMatrix.transformPoint(new DOMPoint(mathX, mathY));
+                        let pt2 = gMatrix.transformPoint(new DOMPoint(mathX, mathY + signY));
                         let px = pt1.x * camera.z + cx + camera.x;
-                        let py = pt1.y * camera.z + cy + camera.y;
-                        let dx = (pt2.x - pt1.x) * camera.z;
-                        let dy = (pt2.y - pt1.y) * camera.z;
-                        
-                        let len = Math.hypot(dx, dy);
-                        let endPx = px, endPy = py;
-                        if (len > 0) {
-                            endPx += (dx / len) * 20000;
-                            endPy += (dy / len) * 20000;
-                        } else {
-                            endPy -= signY * 20000;
-                        }
-
-                        if (isMove || lastPx === null || lastPy === null) {
-                            lastPx = endPx; lastPy = endPy;
-                        } else {
-                            drawClippedLine(lastPx, lastPy, endPx, endPy);
-                            lastPx = endPx; lastPy = endPy;
-                        }
+                        let py = -pt1.y * camera.z + cy + camera.y;
+                        let dx = (pt2.x - pt1.x) * camera.z; let dy = -(pt2.y - pt1.y) * camera.z;
+                        let len = Math.hypot(dx, dy); let endPx = px, endPy = py;
+                        if (len > 0) { endPx += (dx / len) * 20000; endPy += (dy / len) * 20000; } 
+                        else { endPy -= signY * 20000; }
+                        if (isMove || lastPx === null || lastPy === null) { lastPx = endPx; lastPy = endPy; } 
+                        else { drawClippedLine(lastPx, lastPy, endPx, endPy); lastPx = endPx; lastPy = endPy; }
                     };
 
-                    let isDrawing = false;
-                    let prevX = null, prevY = null;
+                    let isDrawing = false; let prevX = null, prevY = null;
 
                     for (let i = 0; i <= TOTAL_STEPS; i++) {
                         let x = draw_min_x + i * actual_step;
                         if (x > draw_max_x && x - draw_max_x < actual_step) x = draw_max_x;
-                        
                         let y = func(x, ...currentConstValues);
                         
                         if (isNaN(y) || !isFinite(y)) {
-                            // [Valid -> Invalid] 절벽 진입 시 처리
                             if (isDrawing && prevY !== null) {
                                 let left = prevX, right = x;
                                 for(let j = 0; j < 30; j++) {
-                                    let mid = (left + right) * 0.5;
-                                    let ym = func(mid, ...currentConstValues);
+                                    let mid = (left + right) * 0.5; let ym = func(mid, ...currentConstValues);
                                     if (isFinite(ym) && !isNaN(ym)) left = mid; else right = mid;
                                 }
-                                let edgeX = left;
-                                
+                                let edgeX = left; let y_edge = func(edgeX, ...currentConstValues);
                                 let dX = Math.abs(prevX - x);
-                                let y_near = func(edgeX - dX * 1e-7, ...currentConstValues);
-                                let y_mid  = func(edgeX - dX * 1e-4, ...currentConstValues);
-                                let y_far  = func(edgeX - dX * 1e-1, ...currentConstValues);
-                                
+                                let y_near = func(edgeX - dX * 1e-7, ...currentConstValues); let y_mid  = func(edgeX - dX * 1e-4, ...currentConstValues); let y_far  = func(edgeX - dX * 1e-1, ...currentConstValues);
                                 let isAsymp = false;
-                                if (isFinite(y_near) && isFinite(y_mid) && isFinite(y_far)) {
-                                    if (Math.abs(y_near - y_mid) >= Math.abs(y_mid - y_far) * 0.2) isAsymp = true; 
-                                } else isAsymp = true;
-
-                                let y_edge = isFinite(y_near) ? y_near : prevY;
+                                if (isFinite(y_near) && isFinite(y_mid) && isFinite(y_far)) { if (Math.abs(y_near - y_mid) >= Math.abs(y_mid - y_far) * 0.2) isAsymp = true; } else isAsymp = true;
+                                let y_edge_safe = isFinite(y_near) ? y_near : prevY;
                                 
                                 if (isAsymp) {
-                                    let sign = Math.sign(y_near - y_mid);
-                                    if (sign === 0) sign = Math.sign(y_edge - prevY);
-                                    if (sign === 0) sign = 1;
-                                    drawSafeLine(edgeX, y_edge, false);
-                                    drawMathRay(edgeX, sign, false);
-                                } else {
-                                    drawSafeLine(edgeX, y_edge, false);
-                                }
+                                    let sign = Math.sign(y_near - y_mid); if (sign === 0) sign = Math.sign(y_edge_safe - prevY); if (sign === 0) sign = 1;
+                                    drawSafeLine(edgeX, y_edge_safe, false); drawMathRay(edgeX, y_edge_safe, sign, false);
+                                } else { drawSafeLine(edgeX, y_edge_safe, false); }
                             }
-                            isDrawing = false;
-                            prevY = y; prevX = x;
-                            continue;
+                            isDrawing = false; prevY = y; prevX = x; continue;
                         }
 
                         if (!isDrawing) {
-                            // [Invalid -> Valid] 절벽 탈출 및 대각선 가로지름 100% 방지
                             let nextY = func(x + actual_step * 0.1, ...currentConstValues);
                             if (isFinite(nextY) && prevX !== null) {
                                 let left = prevX, right = x;
                                 for(let j = 0; j < 30; j++) {
-                                    let mid = (left + right) * 0.5;
-                                    let ym = func(mid, ...currentConstValues);
+                                    let mid = (left + right) * 0.5; let ym = func(mid, ...currentConstValues);
                                     if (isFinite(ym) && !isNaN(ym)) right = mid; else left = mid;
                                 }
-                                let edgeX = right;
-                                
-                                let dX = Math.abs(prevX - x);
-                                let y_near = func(edgeX + dX * 1e-7, ...currentConstValues);
-                                let y_mid  = func(edgeX + dX * 1e-4, ...currentConstValues);
-                                let y_far  = func(edgeX + dX * 1e-1, ...currentConstValues);
-                                
+                                let edgeX = right; let dX = Math.abs(prevX - x);
+                                let y_near = func(edgeX + dX * 1e-7, ...currentConstValues); let y_mid  = func(edgeX + dX * 1e-4, ...currentConstValues); let y_far  = func(edgeX + dX * 1e-1, ...currentConstValues);
                                 let isAsymp = false;
-                                if (isFinite(y_near) && isFinite(y_mid) && isFinite(y_far)) {
-                                    if (Math.abs(y_near - y_mid) >= Math.abs(y_mid - y_far) * 0.2) isAsymp = true;
-                                } else isAsymp = true;
-
+                                if (isFinite(y_near) && isFinite(y_mid) && isFinite(y_far)) { if (Math.abs(y_near - y_mid) >= Math.abs(y_mid - y_far) * 0.2) isAsymp = true; } else isAsymp = true;
                                 let y_edge = isFinite(y_near) ? y_near : y;
                                 
                                 if (isAsymp) {
-                                    let sign = Math.sign(y_near - y_mid);
-                                    if (sign === 0) sign = Math.sign(y_edge - nextY);
-                                    if (sign === 0) sign = 1;
-                                    drawMathRay(edgeX, sign, true);
-                                    drawSafeLine(edgeX, y_edge, false);
-                                } else {
-                                    drawSafeLine(edgeX, y_edge, true);
-                                }
+                                    let sign = Math.sign(y_near - y_mid); if (sign === 0) sign = Math.sign(y_edge - nextY); if (sign === 0) sign = 1;
+                                    drawMathRay(edgeX, y_edge, sign, true); drawSafeLine(edgeX, y_edge, false);
+                                } else { drawSafeLine(edgeX, y_edge, true); }
                                 drawSafeLine(x, y, false);
-                            } else {
-                                drawSafeLine(x, y, true);
-                            }
+                            } else { drawSafeLine(x, y, true); }
                             isDrawing = true;
                         } else {
-                            // 🚀 [Valid -> Valid] 스케일 불변(Scale-Invariant) 수학적 이진 탐색 알고리즘
-                            // 극한 축소 상태에서도 배율과 픽셀에 얽매이지 않고 기둥(점근선)을 완벽하게 뽑아냅니다.
-                            let isOdd = (y * prevY <= 0.0);
-                            let isAsymp = false;
-                            let poleX = null;
-
-                            if (isOdd) {
+                            let isSignChange = (y * prevY <= 0.0); let isAsymp = false; let poleX = null;
+                            if (isSignChange) {
                                 let left = prevX, right = x;
                                 for (let j = 0; j < 20; j++) {
-                                    let m = (left + right) * 0.5;
-                                    let ym = func(m, ...currentConstValues);
+                                    let m = (left + right) * 0.5; let ym = func(m, ...currentConstValues);
                                     if (isNaN(ym) || !isFinite(ym)) { poleX = m; break; }
                                     if (Math.sign(ym) === Math.sign(prevY)) left = m; else right = m;
                                     poleX = m;
                                 }
-                                
-                                // 점근선(Pole)과 교점(Root)을 비율로 명확히 구분
-                                let eps = Math.abs(x - prevX) * 1e-5;
-                                let valNearPole = Math.abs(func(poleX + eps, ...currentConstValues));
-                                let max_ends = Math.max(Math.abs(y), Math.abs(prevY));
-                                
-                                // 카메라 배율과 관계없이 근방의 값이 양끝 함수값보다 2배 이상 비정상적으로 크면 점근선으로 확정
-                                if (!isFinite(valNearPole) || isNaN(valNearPole) || (valNearPole > max_ends * 2.0 && Math.abs(valNearPole - max_ends) > 1e-10)) {
-                                    isAsymp = true;
-                                }
+                                let eps = Math.abs(x - prevX) * 1e-5; let valNearPole = Math.abs(func(poleX + eps, ...currentConstValues)); let max_ends = Math.max(Math.abs(y), Math.abs(prevY));
+                                if (!isFinite(valNearPole) || isNaN(valNearPole) || (valNearPole > max_ends * 2.0 && Math.abs(valNearPole - max_ends) > 1e-10)) isAsymp = true;
                             } else {
-                                let mid = (prevX + x) * 0.5;
-                                let yM = func(mid, ...currentConstValues);
-                                
-                                if (isNaN(yM) || !isFinite(yM)) {
-                                    isAsymp = true; poleX = mid;
+                                let mid = (prevX + x) * 0.5; let yM = func(mid, ...currentConstValues);
+                                if (isNaN(yM) || !isFinite(yM)) { isAsymp = true; poleX = mid;
                                 } else {
                                     let max_ends = Math.max(Math.abs(y), Math.abs(prevY));
-                                    
-                                    // 짝수 함수(1/x^2) 검증: 중간값이 양 끝점보다 5배 이상 폭발하면 점근선으로 확정
                                     if (Math.abs(yM) > max_ends * 5.0 && Math.abs(yM - max_ends) > 1e-10) {
-                                        isAsymp = true;
-                                        let left = prevX, right = x;
+                                        isAsymp = true; let left = prevX, right = x;
                                         for (let j = 0; j < 20; j++) {
-                                            let m1 = left + (right - left) * 0.4;
-                                            let m2 = left + (right - left) * 0.6;
-                                            let y1 = Math.abs(func(m1, ...currentConstValues));
-                                            let y2 = Math.abs(func(m2, ...currentConstValues));
-                                            if (!isFinite(y1)) { poleX = m1; break; }
-                                            if (!isFinite(y2)) { poleX = m2; break; }
+                                            let m1 = left + (right - left) * 0.4; let m2 = left + (right - left) * 0.6;
+                                            let y1 = Math.abs(func(m1, ...currentConstValues)); let y2 = Math.abs(func(m2, ...currentConstValues));
+                                            if (isNaN(y1) || !isFinite(y1)) { poleX = m1; break; }
+                                            if (isNaN(y2) || !isFinite(y2)) { poleX = m2; break; }
                                             if (y1 > y2) right = m2; else left = m1;
                                             poleX = (left + right) * 0.5;
                                         }
                                     }
                                 }
                             }
-
                             if (isAsymp && poleX !== null) {
-                                let sign1 = Math.sign(prevY) || 1;
-                                let sign2 = Math.sign(y) || 1;
-                                
-                                // 대각선 꺾임 방지: 시작점(prev) -> 극한(pole) 다이렉트 투사
-                                drawSafeLine(poleX, prevY, false); 
-                                drawMathRay(poleX, sign1, false); 
-                                
-                                // 반대편 극단 무한대에서 좌표 이동 후 선 다시 잇기
-                                drawMathRay(poleX, sign2, true); 
-                                drawSafeLine(poleX, y, false);
-                                drawSafeLine(x, y, false);
-                            } else {
-                                drawSafeLine(x, y, false);
-                            }
+                                let sign1 = Math.sign(prevY) || 1; let sign2 = Math.sign(y) || 1;
+                                drawSafeLine(poleX, prevY, false); drawMathRay(poleX, prevY, sign1, false); 
+                                drawMathRay(poleX, y, sign2, true); drawSafeLine(poleX, y, false); drawSafeLine(x, y, false);
+                            } else { drawSafeLine(x, y, false); }
                         }
                         prevY = y; prevX = x;
                     }
                     ctx.stroke();
                 }
             });
+            ctx.globalAlpha = 1.0; // 복구
 
-            if (hasWebGLGraph) {
+            if (hasWebGLGraph && alpha === 1.0) {
                 let fsSource = `#version 300 es
-                precision highp float;
-                out vec4 fragColor;
-                
-                in vec2 v_pos;
-                
+                precision highp float; out vec4 fragColor; in vec2 v_pos;
                 uniform vec2 u_res; uniform vec2 u_cam; uniform float u_z;
                 ${constNames.map(name => `uniform float ${name};`).join('\n')}
-                
                 #define NAN_VAL 1e20
                 #define IS_VALID(v) (abs(v) < 1e10)
-                
                 float safeLog(float x) { return x > 0.0 ? log(x) : NAN_VAL; }
                 float logBase10(float x) { return x > 0.0 ? log(x) / 2.30258509299 : NAN_VAL; }
                 float safeSqrt(float x) { return x >= 0.0 ? sqrt(x) : NAN_VAL; }
-                
                 float safePow(float base, float exp_val) {
                     if (base >= 0.0) return pow(base, exp_val);
                     float m = mod(abs(exp_val), 2.0);
                     if (m < 0.01 || m > 1.99) return pow(-base, exp_val);
-                    if (abs(m - 1.0) < 0.01) return -pow(-base, exp_val);
-                    return NAN_VAL;
+                    if (abs(m - 1.0) < 0.01) return -pow(-base, exp_val); return NAN_VAL;
                 }
-                
                 ${fsFunctions}
-                
                 void main() {
-                    vec2 sp = gl_FragCoord.xy;
-                    sp.y = u_res.y - sp.y;
-                    
+                    vec2 sp = gl_FragCoord.xy; sp.y = u_res.y - sp.y;
                     float cx = u_res.x / 2.0; float cy = u_res.y / 2.0;
-                    float canvasX = (sp.x - cx - u_cam.x) / u_z;
-                    float canvasY = (sp.y - cy - u_cam.y) / u_z;
-                    
+                    float canvasX = (sp.x - cx - u_cam.x) / u_z; float canvasY = -(sp.y - cy - u_cam.y) / u_z; 
                     vec4 finalColor = vec4(0.0);
-
                     ${fsMain}
-
                     if (finalColor.a == 0.0) discard;
                     fragColor = finalColor;
                 }`;
-
-                const vsSource = `#version 300 es
-                in vec2 position;
-                out vec2 v_pos;
-                void main() {
-                    v_pos = position;
-                    gl_Position = vec4(position, 0.0, 1.0);
-                }`;
-
-                const compile = (type, src) => {
-                    const shader = gl.createShader(type);
-                    gl.shaderSource(shader, src); gl.compileShader(shader);
-                    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { 
-                        console.error("GLSL Compile Error:", gl.getShaderInfoLog(shader)); 
-                        return null; 
-                    }
-                    return shader;
-                };
-
-                const vs = compile(gl.VERTEX_SHADER, vsSource);
-                const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+                const vsSource = `#version 300 es\nin vec2 position; out vec2 v_pos; void main() { v_pos = position; gl_Position = vec4(position, 0.0, 1.0); }`;
+                const compile = (type, src) => { const shader = gl.createShader(type); gl.shaderSource(shader, src); gl.compileShader(shader); if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null; return shader; };
+                const vs = compile(gl.VERTEX_SHADER, vsSource); const fs = compile(gl.FRAGMENT_SHADER, fsSource);
                 if(fs && vs) {
-                    const program = gl.createProgram();
-                    gl.attachShader(program, vs); gl.attachShader(program, fs);
-                    gl.linkProgram(program); gl.useProgram(program);
-
-                    const buffer = gl.createBuffer();
-                    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-                    const posLoc = gl.getAttribLocation(program, 'position');
-                    gl.enableVertexAttribArray(posLoc);
-                    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-                    gl.uniform2f(gl.getUniformLocation(program, 'u_res'), canvasGL.width, canvasGL.height);
-                    gl.uniform2f(gl.getUniformLocation(program, 'u_cam'), camera.x, camera.y);
-                    gl.uniform1f(gl.getUniformLocation(program, 'u_z'), camera.z);
+                    const program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program); gl.useProgram(program);
+                    const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+                    const posLoc = gl.getAttribLocation(program, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+                    gl.uniform2f(gl.getUniformLocation(program, 'u_res'), canvasGL.width, canvasGL.height); gl.uniform2f(gl.getUniformLocation(program, 'u_cam'), camera.x, camera.y); gl.uniform1f(gl.getUniformLocation(program, 'u_z'), camera.z);
                     constNames.forEach((name, i) => gl.uniform1f(gl.getUniformLocation(program, name), currentConstValues[i]));
-
-                    gl.drawArrays(gl.TRIANGLES, 0, 6);
-                    gl.deleteBuffer(buffer); gl.deleteShader(vs); gl.deleteShader(fs); gl.deleteProgram(program);
+                    gl.drawArrays(gl.TRIANGLES, 0, 6); gl.deleteBuffer(buffer); gl.deleteShader(vs); gl.deleteShader(fs); gl.deleteProgram(program);
                 }
             }
         };
 
-        const drawMathPoints = () => {
+        const drawMathPoints = (renderMatrix = matrix, alpha = 1.0) => {
             if (!useMathLab || !usePointMode || points.length === 0) return;
             ctx.save();
+            ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y);
             points.forEach(p => {
-                let pt = new DOMPoint(p.x, -p.y);
-                let tPt = pt.matrixTransform(matrix);
+                let pt = new DOMPoint(p.x, p.y); // 🚀 부호 버그 수정
+                let tPt = pt.matrixTransform(renderMatrix);
                 let drawX = tPt.x * z;
-                let drawY = tPt.y * z;
+                let drawY = -tPt.y * z;
                 if (!isFinite(drawX) || !isFinite(drawY)) return;
                 
-                ctx.beginPath();
-                ctx.arc(drawX, drawY, 6, 0, 2 * Math.PI);
-                ctx.fillStyle = '#10b981'; 
-                ctx.fill();
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillStyle = 'white';
-                ctx.shadowColor = 'black';
-                ctx.shadowBlur = 4;
+                ctx.beginPath(); ctx.arc(drawX, drawY, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = '#10b981'; ctx.fill();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = 'white'; ctx.shadowColor = 'black'; ctx.shadowBlur = 4;
                 ctx.fillText(`${p.label}(${p.x}, ${p.y})`, drawX + 12, drawY - 12);
                 ctx.shadowBlur = 0;
             });
@@ -2142,10 +2331,10 @@
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y);
             calcPoints.forEach(p => {
-                let pt = new DOMPoint(p.x, -p.y);
+                let pt = new DOMPoint(p.x, p.y); // 🚀 부호 버그 수정
                 let tPt = pt.matrixTransform(matrix);
                 let drawX = tPt.x * z;
-                let drawY = tPt.y * z;
+                let drawY = -tPt.y * z;
                 if (!isFinite(drawX) || !isFinite(drawY)) return;
                 
                 ctx.beginPath();
@@ -2176,6 +2365,35 @@
             drawGridLines();
             drawNumbers();
         }
+
+        // 🚀 그림자를 메인 도형들보다 '먼저(바닥에)' 그려서 원본 이미지가 탁해지는 현상 완벽 방어!
+        if (shadowStates.length > 0) {
+            shadowStates.forEach(shadow => {
+                if (shadow.glImage) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.35; 
+                    const sScale = z / shadow.camOrigin.z;
+                    ctx.translate(cx + camera.x, cy + camera.y);
+                    ctx.scale(sScale, sScale);
+                    ctx.translate(-(cx + shadow.camOrigin.x), -(cy + shadow.camOrigin.y));
+                    ctx.drawImage(shadow.glImage, 0, 0);
+                    ctx.restore();
+                }
+
+                // 🚀 그림자 렌더링 시 현재 모드가 아니라 "저장 시점의 모드"를 그대로 적용
+                if (shadow.isImageActive) drawImageLayer(shadow.matrix, 0.35, shadow.isMathActive, true);
+                if (shadow.isMathActive) { 
+                    drawUnitSquare(shadow.matrix, 0.35); 
+                    drawPolygon(shadow.matrix, 0.35, shadow.polygons); 
+                    // 🚀 렌더링 중 수식 파서 뻗음(블랙스크린) 방지 안전망 추가
+                    try { drawMathFunctions(shadow.matrix, 0.35, shadow.graphs); } catch(e) {}
+                    drawMathPoints(shadow.matrix, 0.35, shadow.points); 
+                }
+            });
+        }
+        
+        // 🚀 원본(현재 상태) 메인 객체 렌더링 (불투명도 100%)
+        ctx.globalAlpha = 1.0;
         
         if (useMathLab && mathUnderImage) { drawUnitSquare(); drawPolygon(); drawMathFunctions(); drawMathPoints(); }
 
@@ -2193,7 +2411,6 @@
         if (useRefl) {
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y); 
-            // 🚀 1-3. 반사 기준선이 '변환 중심점'을 올바르게 통과하도록 수정
             ctx.translate((translateX + transformOriginX) * z, (translateY - transformOriginY) * z); 
             ctx.rotate(-(reflAngle * Math.PI) / 180); 
             ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); 
@@ -2202,7 +2419,8 @@
             ctx.stroke(); ctx.restore();
         }
 
-      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab, calcPoints, useUnitSquare, usePolygonMode, polygonPoints, isPolygonClosed]); 
+      // 🚀 다중 그림자 배열(shadowStates) 감지 추가
+      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab, calcPoints, useUnitSquare, usePolygonMode, polygonPoints, polygons, shadowStates]); 
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
@@ -2311,7 +2529,7 @@
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
                   <h3 className="text-white font-bold text-lg">수식 입력 (y = f(x))</h3>
-                  <button onClick={() => setMathPadOpen(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                  <button onClick={() => { setMathPadOpen(false); setMathError(""); }} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
                 
                 <div className="bg-zinc-950 border border-zinc-700 rounded-xl p-3 flex flex-col mb-4 shadow-inner">
@@ -2319,7 +2537,7 @@
                         <span className="mr-2 text-zinc-500 text-sm">수식:</span>
                         <input
                             ref={inputRef} type="text" value={tempGraphEq} 
-                            onChange={(e) => setTempGraphEq(e.target.value)} 
+                            onChange={(e) => { setTempGraphEq(e.target.value); setMathError(""); }} 
                             onKeyDown={(e) => { if (e.key === 'Enter') applyMathPad(); }}
                             className="flex-1 bg-transparent outline-none text-white tracking-wider font-mono min-w-0"
                             autoFocus autoComplete="off" spellCheck="false"
@@ -2330,6 +2548,9 @@
                          dangerouslySetInnerHTML={{ __html: tempGraphEq ? tempGraphEq.replace(/log_([0-9a-zA-Z]+)/g, 'log<sub>$1</sub>').replace(/\^([0-9a-zA-Z]+|\([^)]+\))/g, '<sup>$1</sup>').replace(/\(([^)]+)\)\/\(([^)]+)\)/g, '<span class="inline-flex flex-col items-center align-middle mx-1 text-[0.65em]"><span class="border-b border-purple-400/50 px-1 pb-0.5">$1</span><span class="pt-0.5">$2</span></span>').replace(/\*/g, '·') : "<span class='text-zinc-600 text-sm'>수식 미리보기</span>" }}>
                     </div>
                 </div>
+
+                {/* 🚀 에러 발생 시 빨간 경고창 표시 */}
+                {mathError && <div className="text-rose-400 font-bold text-xs mb-4 -mt-2 text-center bg-rose-900/20 py-2 rounded-lg border border-rose-500/30">{mathError}</div>}
                 
                 <div className="flex gap-2 mb-4 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
                     <button onClick={() => setPadTab('math')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'math' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>기본 수식</button>
@@ -2337,48 +2558,62 @@
                 </div>
 
                 {padTab === 'math' && (
-                    <div className="flex gap-4">
-                        <div className="grid grid-cols-3 gap-2 flex-1">
-                            <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-xs">sin</button>
-                            <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-xs">cos</button>
-                            <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-xs">tan</button>
-                            <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-amber-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">log_n</button>
-                            <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">log₁₀</button>
-                            <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">ln</button>
-                            
-                            <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-base">√</button>
-                            <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-sky-300 py-3 rounded-lg font-black hover:bg-zinc-700 text-sm">x²</button>
-                            <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-sky-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-sm">xⁿ</button>
-                            
-                            <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-700 text-base">|x|</button>
-                            <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-600 text-base">(</button>
-                            <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-600 text-base">)</button>
-                            
-                            <button onClick={()=>handleMathPadKey('x')} className="bg-purple-600/30 text-purple-400 border border-purple-500/30 py-3 rounded-lg font-bold text-xl hover:bg-purple-600/50">x</button>
-                            <button onClick={()=>handleMathPadKey('y')} className="bg-pink-600/30 text-pink-400 border border-pink-500/30 py-3 rounded-lg font-bold text-xl hover:bg-pink-600/50">y</button>
-                            <button onClick={()=>handleMathPadKey('=')} className="bg-amber-600/30 text-amber-400 border border-amber-500/30 py-3 rounded-lg font-bold text-xl hover:bg-amber-600/50">=</button>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                            {/* 🚀 좌측: 함수 및 변수 (3열) */}
+                            <div className="grid grid-cols-3 gap-1.5 flex-[1.2]">
+                                <button onClick={()=>handleMathPadKey('x')} className="bg-purple-600/30 text-purple-400 border border-purple-500/30 py-2 rounded-lg font-bold text-lg hover:bg-purple-600/50">x</button>
+                                <button onClick={()=>handleMathPadKey('y')} className="bg-pink-600/30 text-pink-400 border border-pink-500/30 py-2 rounded-lg font-bold text-lg hover:bg-pink-600/50">y</button>
+                                <button onClick={()=>handleMathPadKey('pi')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">π</button>
+                                
+                                <button onClick={()=>handleMathPadKey('e')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">e</button>
+                                <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">x²</button>
+                                <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">xⁿ</button>
+                                
+                                <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">√</button>
+                                <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">|x|</button>
+                                <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">exp</button>
+
+                                <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">sin</button>
+                                <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">cos</button>
+                                <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">tan</button>
+
+                                <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">ln</button>
+                                <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log₁₀</button>
+                                <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-amber-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log_n</button>
+                            </div>
+
+                            {/* 🚀 우측: 숫자 및 사칙연산 (4열) */}
+                            <div className="grid grid-cols-4 gap-1.5 flex-[1.6]">
+                                <button onClick={handleMathPadClear} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-2 rounded-lg font-bold hover:bg-rose-600/40 text-xs transition">AC</button>
+                                <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">(</button>
+                                <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">)</button>
+                                <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">⌫</button>
+
+                                <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">7</button>
+                                <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">8</button>
+                                <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">9</button>
+                                <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">÷</button>
+
+                                <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">4</button>
+                                <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">5</button>
+                                <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">6</button>
+                                <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">×</button>
+
+                                <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">1</button>
+                                <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">2</button>
+                                <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">3</button>
+                                <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-xl hover:bg-sky-600/40">-</button>
+
+                                <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">0</button>
+                                <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">.</button>
+                                <button onClick={()=>handleMathPadKey('=')} className="bg-amber-600/20 text-amber-400 border border-amber-500/30 py-2 rounded-lg font-bold text-lg hover:bg-amber-600/40">=</button>
+                                <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">+</button>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-2 flex-[1.3]">
-                            <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">7</button>
-                            <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">8</button>
-                            <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">9</button>
-                            <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-300 py-3 rounded-lg font-bold hover:bg-zinc-600 text-sm">⌫</button>
-                            <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">4</button>
-                            <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">5</button>
-                            <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">6</button>
-                            <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/30 text-sky-400 border border-sky-500/30 py-3 rounded-lg font-bold text-xl hover:bg-sky-600/50">÷</button>
-                            <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">1</button>
-                            <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">2</button>
-                            <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">3</button>
-                            <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/30 text-sky-400 border border-sky-500/30 py-3 rounded-lg font-bold text-xl hover:bg-sky-600/50">×</button>
-                            <button onClick={handleMathPadClear} className="bg-rose-600/30 text-rose-400 border border-rose-500/30 py-3 rounded-lg font-bold hover:bg-rose-600/50 text-xs">AC</button>
-                            <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">0</button>
-                            <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-3 rounded-lg font-bold text-xl hover:bg-zinc-700">.</button>
-                            <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/30 text-sky-400 border border-sky-500/30 py-3 rounded-lg font-bold text-2xl hover:bg-sky-600/50">-</button>
-                            <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-700 text-emerald-400 py-3 rounded-lg font-black hover:bg-zinc-600 text-sm">π</button>
-                            <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/30 text-sky-400 border border-sky-500/30 py-3 rounded-lg font-bold text-xl hover:bg-sky-600/50">+</button>
-                            <button onClick={applyMathPad} className="col-span-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-lg transition shadow-[0_0_10px_rgba(168,85,247,0.4)]">=</button>
-                        </div>
+                        <button onClick={applyMathPad} className="mt-1 w-full bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm py-3 transition shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                            수식 적용하기
+                        </button>
                     </div>
                 )}
                 
@@ -2446,7 +2681,7 @@
                           <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-lg md:text-xl">✕</button>
                       </div>
                       
-                      <div className="bg-[#1e293b] p-3 md:p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner scrollbar-hide">
+                      <div className="bg-[#1e293b] p-3 md:p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner scrollbar-hide relative pb-10 md:pb-12">
                           
                           <div className="flex items-center gap-1 md:gap-3 text-[11px] md:text-lg mb-4 md:mb-6 justify-center min-w-max">
                               <div className="flex items-center">
@@ -2509,6 +2744,21 @@
                                   = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
                               </div>
                           </div>
+
+                          {/* 🚀 연산 과정 복사 버튼 */}
+                          <button onClick={() => {
+                              const a = fmt(matrix.a), c = fmt(matrix.c), e = fmt(matrix.e);
+                              const b = fmt(matrix.b), d = fmt(matrix.d), f = fmt(matrix.f);
+                              const x = selectedCalcPoint.x, y = selectedCalcPoint.y;
+                              const resX = fmt(matrix.a * x + matrix.c * y + matrix.e);
+                              const resY = fmt(matrix.b * x + matrix.d * y + matrix.f);
+                              const text = `[행렬 연산 과정]\n행렬:\n[ ${a}  ${c}  ${e} ]\n[ ${b}  ${d}  ${f} ]\n[ 0  0  1 ]\n\n원본 좌표: (${x}, ${y})\n\nX' = (${a} * ${x}) + (${c} * ${y}) + ${e} = ${resX}\nY' = (${b} * ${x}) + (${d} * ${y}) + ${f} = ${resY}\n\n결과 좌표: (${resX}, ${resY})`;
+                              navigator.clipboard.writeText(text).then(() => alert("연산 과정이 텍스트로 복사되었습니다."));
+                          }} className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] md:text-xs font-sans font-bold flex items-center gap-1.5 transition shadow">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                              텍스트로 복사
+                          </button>
+
                       </div>
 
                       <div className="mt-1 md:mt-2 p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
@@ -2625,10 +2875,22 @@
 
           {isSettingsOpen && <div className="fixed inset-0 z-[55]" onClick={() => setIsSettingsOpen(false)} />}
           
-          <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[60] flex flex-col items-end pointer-events-none">
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`pointer-events-auto p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
+          <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[60] flex flex-col items-end gap-2 pointer-events-none">
+            <div className="flex items-center gap-2 pointer-events-auto">
+                {shadowStates.length > 0 && (
+                    <>
+                        <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="모든 그림자 재생">
+                            <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
+                        </button>
+                        <button onClick={() => setShadowStates([])} className="p-2 md:p-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-rose-500" title="모든 그림자 삭제">
+                            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </>
+                )}
+                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">
+                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+            </div>
             {isSettingsOpen && (
               <div className="pointer-events-auto mt-2 md:mt-3 bg-zinc-800 border border-zinc-700 shadow-2xl rounded-xl p-4 flex flex-col w-[85vw] md:w-[28rem] animate-fade-in origin-top-right">
                 <div className="flex border-b border-zinc-700 mb-4">
@@ -2703,22 +2965,6 @@
                             <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                         </div>
                         <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드에서 사진 함께 보기</span>
-                        <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={showImageInMathLab} onChange={(e) => {
-                                const val = e.target.checked;
-                                setShowImageInMathLab(val);
-                                if (val && useMathLab && imageObj && !keepViewOnMathLab) {
-                                    setCamera(getOptimalCamera(imageObj));
-                                } else if (!val && useMathLab && !keepViewOnMathLab) {
-                                    setCamera({ x: 0, y: 0, z: 100.0 });
-                                }
-                            }} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드에서 사진 함께 보기</span>
-                    </label>
 
                     {/* 🚀 2-B. 픽셀-좌표 매핑 비율 설정 UI 추가 */}
                     {useMathLab && showImageInMathLab && (
@@ -2808,6 +3054,12 @@
             </div>
 
             <div className="hidden md:flex bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative px-4 py-6 min-h-[220px]">
+                {/* 🚀 PC용 현재 상태 저장 버튼 (아이콘 변경) */}
+              {!showMatrixChain && (
+                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 그림자로 저장">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                  </button>
+              )}
               
               <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해하여 보기">
                   {showMatrixChain ? (
@@ -3081,13 +3333,13 @@
                                     <div className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-lg border border-purple-500/20">
                                         <div className="flex justify-between items-center mb-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-zinc-400 text-xs font-bold">도형 꼭짓점 ({polygonPoints.length})</span>
+                                                <span className="text-zinc-400 text-xs font-bold">도형 목록 ({polygons.length})</span>
                                                 <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                                                 </button>
                                             </div>
-                                            {polygonPoints.length > 0 && (
-                                                <button onClick={() => {setPolygonPoints([]); setIsPolygonClosed(false);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="초기화">
+                                            {(polygons.length > 0 || polygonPoints.length > 0) && (
+                                                <button onClick={() => {setPolygonPoints([]); setPolygons([]);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 초기화">
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                 </button>
                                             )}
@@ -3101,11 +3353,36 @@
                                                 <button onClick={handleAddManualPolyPoint} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
                                             </div>
                                         )}
+                                        {polygons.length > 0 && (
+                                            <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto scrollbar-hide pr-1 mt-1 border-b border-purple-500/20 pb-2">
+                                                {polygons.map((poly, i) => (
+                                                    <div key={i} className="flex flex-col rounded-lg border border-purple-500/30 bg-purple-900/20 shadow-sm overflow-hidden transition-all">
+                                                        <div className="flex justify-between items-center px-3 py-2 cursor-pointer hover:bg-purple-800/40 transition" onClick={() => togglePoly(i)}>
+                                                            <div className="flex items-center gap-2 text-purple-200 text-xs font-bold">
+                                                                <svg className={`w-3.5 h-3.5 text-purple-400 transition-transform duration-200 ${expandedPolys.has(i) ? 'rotate-180' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
+                                                                도형 {i+1} <span className="text-purple-400/70 font-mono text-[10px]">({poly.length}점)</span>
+                                                            </div>
+                                                            <button onClick={(e) => { e.stopPropagation(); setPolygons(prev => prev.filter((_, idx) => idx !== i)); }} className="text-rose-400 hover:bg-rose-500/20 font-bold w-6 h-6 flex items-center justify-center rounded transition">✕</button>
+                                                        </div>
+                                                        {expandedPolys.has(i) && (
+                                                            <div className="flex flex-col gap-1.5 px-3 py-2.5 bg-zinc-950/50 border-t border-purple-500/20">
+                                                                {poly.map((p, pIdx) => (
+                                                                    <div key={pIdx} className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pl-2">
+                                                                        <span className="text-purple-300/70">Pt {pIdx+1}</span>
+                                                                        <span>({p.x}, {p.y})</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         {polygonPoints.length === 0 ? 
                                             <span className="text-zinc-500 text-[11px] py-1 leading-relaxed">화면을 클릭하여 꼭짓점을 여러 개 찍은 뒤, <b>빨간색으로 표시된 첫 번째 점</b>을 다시 누르면 도형이 완성됩니다.</span> :
                                             <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto scrollbar-hide pr-1 mt-1">
                                                 {polygonPoints.map((p, i) => (
-                                                    <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 && !isPolygonClosed ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
+                                                    <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
                                                         <span>Pt {i+1}</span>
                                                         <span>({p.x}, {p.y})</span>
                                                     </div>
@@ -3207,22 +3484,65 @@
           <div className={`flex items-center justify-center relative overflow-hidden bg-zinc-950 h-full ${isMobile ? 'w-full absolute inset-0 z-10' : 'flex-1 z-10'}`}>
             
             <div 
-              className={`absolute inset-0 z-[55] touch-none ${isCalcMode || usePolygonMode ? 'cursor-default' : ((useMathLab && usePointMode) ? 'cursor-default' : (isDragUI ? 'cursor-grabbing' : 'cursor-grab'))}`}
+              className="absolute inset-0 z-[55] touch-none cursor-default"
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}
               onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
             />
+
+            {/* 🚀 개별 그림자 전용 팝업 메뉴 (드래그 지원 및 초기 위치 하단 패널 15vh 연동) */}
+            {showShadowMenu && selectedShadowId && (
+                <div className={`absolute z-[80] bg-zinc-900/95 backdrop-blur-md px-3 md:px-4 py-2 md:py-2.5 rounded-full border border-zinc-600 shadow-2xl flex items-center justify-center gap-2 md:gap-3 animate-fade-in pointer-events-auto w-max max-w-[95vw] md:w-auto ${shadowMenuPos ? '' : 'left-1/2 -translate-x-1/2'}`}
+                     style={shadowMenuPos ? { left: `${shadowMenuPos.left}px`, top: `${shadowMenuPos.top}px`, bottom: 'auto', right: 'auto', transform: 'none' } : (isMobile ? { bottom: 'calc(15vh + env(safe-area-inset-bottom, 0px) + 20px)' } : { bottom: '8rem' })}>
+                    
+                    <div 
+                        onMouseDown={(e) => {
+                            e.stopPropagation(); // 캔버스 드래그와 겹치지 않게 방어
+                            const rect = e.currentTarget.parentElement.getBoundingClientRect();
+                            dragMenuRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, initLeft: rect.left, initTop: rect.top };
+                        }}
+                        onTouchStart={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.parentElement.getBoundingClientRect();
+                            dragMenuRef.current = { isDragging: true, startX: e.touches[0].clientX, startY: e.touches[0].clientY, initLeft: rect.left, initTop: rect.top };
+                        }}
+                        className="flex items-center cursor-move shrink-0 pr-1 md:pr-2 py-1"
+                        title="드래그하여 팝업창 이동"
+                    >
+                        <span className="text-zinc-300 font-bold mr-1 text-xs md:text-sm whitespace-nowrap select-none">
+                            👻 그림자 #{shadowStates.findIndex(s => s.id === selectedShadowId) + 1}
+                        </span>
+                    </div>
+
+                    <button onClick={() => playAnimation(selectedShadowId)} className="bg-sky-600 hover:bg-sky-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="개별 재생">
+                        <svg className="w-4 h-4 md:w-5 md:h-5 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
+                    </button>
+                    <div className="w-px h-6 bg-zinc-700 shrink-0"></div>
+                    <button onClick={() => handleLoadState(selectedShadowId)} className="bg-amber-600 hover:bg-amber-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="상태 불러오기">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    </button>
+                    <div className="w-px h-6 bg-zinc-700 shrink-0"></div>
+                    <button onClick={() => { setShadowStates(prev => prev.filter(s => s.id !== selectedShadowId)); setShowShadowMenu(false); }} className="bg-rose-600 hover:bg-rose-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="개별 삭제">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
+            )}
             
             <canvas ref={canvasRef} width={2000} height={1200} className="w-full h-full object-cover z-20 pointer-events-none absolute inset-0" />
             {/* 🚀 2층: 오직 수학 그래프만 그리는 초고속 GPU WebGL 캔버스 (사진 아래로 내리기 옵션 연동) */}
             <canvas ref={canvasGLRef} width={2000} height={1200} className={`w-full h-full object-cover pointer-events-none absolute inset-0 ${mathUnderImage ? 'z-10' : 'z-30'}`} />
 
             {isCalcMode && (
-                <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[70] pointer-events-none">
-                    <div className="bg-amber-500/90 text-white px-5 py-2.5 rounded-full font-bold text-sm md:text-base shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse flex items-center gap-3 pointer-events-auto">
+                <div className="absolute top-16 md:top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[70] pointer-events-none w-[92vw] md:w-auto">
+                    <div className="bg-amber-500/95 text-white px-4 py-3 md:px-5 md:py-2.5 rounded-2xl md:rounded-full font-bold text-xs md:text-base shadow-[0_0_15px_rgba(245,158,11,0.5)] flex flex-col md:flex-row items-center gap-2 md:gap-3 pointer-events-auto text-center break-keep w-full md:w-auto">
                         <span>화면을 터치하여 계산 과정을 볼 점을 찍어주세요</span>
-                        <button onClick={() => setShowManualCalcPointUI(!showManualCalcPointUI)} className="bg-white text-amber-600 px-3 py-1 rounded-full text-xs hover:bg-amber-100 transition whitespace-nowrap shadow-sm">
-                            직접 입력
-                        </button>
+                        <div className="flex gap-2 w-full justify-center md:w-auto mt-1 md:mt-0">
+                            <button onClick={() => setShowManualCalcPointUI(!showManualCalcPointUI)} className="bg-white text-amber-600 px-3 py-1.5 md:py-1 rounded-full text-xs hover:bg-amber-100 transition whitespace-nowrap shadow-sm">
+                                직접 입력
+                            </button>
+                            <button onClick={() => { setCalcPoints([]); setIsCalcMode(false); }} className="bg-rose-600 text-white px-3 py-1.5 md:py-1 rounded-full text-xs hover:bg-rose-500 transition whitespace-nowrap shadow-sm">
+                                종료 및 삭제
+                            </button>
+                        </div>
                     </div>
                     {showManualCalcPointUI && (
                         <div className="flex gap-2 items-center bg-black/80 p-2.5 rounded-lg border border-amber-500/50 shadow-xl pointer-events-auto">
@@ -3256,50 +3576,63 @@
 
             {isMobile && (
               <div className="absolute top-4 left-4 z-[60] flex items-center drop-shadow-2xl pointer-events-auto">
-                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-3 relative w-[200px] h-[140px] flex justify-between items-center">
+                {/* 🚀 UI 크기 축소 (200x140 -> 180x130) 및 내부 여백 조절 */}
+                <div className="bg-black/90 backdrop-blur border border-zinc-700 rounded-lg p-2.5 relative w-[180px] h-[130px] flex justify-center items-center shrink-0">
                   
-                  <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute -top-3 left-4 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${showMatrixChain ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해하여 보기">
+                  {/* 좌상단: 연산 순서 보기 (PC와 아이콘 100% 동일하게 동기화) */}
+                  <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute -top-3 -left-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${showMatrixChain ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해">
                       {showMatrixChain ? (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                       ) : (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                       )}
                   </button>
-
+                  
+                  {/* 우상단: 연산 과정 보기 */}
                   <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${isCalcMode ? 'bg-amber-500 border-amber-400 text-white animate-pulse' : 'bg-zinc-800 border-zinc-600 text-amber-400 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                   </button>
 
-                  <div className="flex items-center justify-center w-4 h-full">
-                    <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
+                  {/* 우하단: 그림자 저장 (중복 코드 완벽 삭제됨) */}
+                  {!showMatrixChain && (
+                      <button onClick={handleSaveState} className="absolute -bottom-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border bg-zinc-800 border-zinc-600 text-indigo-400 hover:bg-zinc-700 hover:text-white" title="현재 상태 그림자로 저장">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                      </button>
+                  )}
+
+                  <div className="flex items-center justify-center w-3 h-full">
+                    <span className="text-zinc-400 font-serif text-[50px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>(</span>
                   </div>
+                  
                   {showMatrixChain ? (
-                      <div className="flex items-center justify-center w-[120px] self-center">
-                          <span className="text-indigo-400 font-bold text-[11px] text-center border border-indigo-500/30 bg-indigo-900/20 px-3 py-1.5 rounded-lg shadow-inner">
+                      <div className="flex items-center justify-center w-[110px] self-center">
+                          <span className="text-indigo-400 font-bold text-[10px] text-center border border-indigo-500/30 bg-indigo-900/20 px-2 py-1.5 rounded-lg shadow-inner">
                               조립기<br/>실행 중
                           </span>
                       </div>
                   ) : (
-                      <div className="grid grid-cols-3 gap-x-2 gap-y-3 text-center font-mono text-[13px] font-bold tracking-tighter w-full self-center max-w-[140px] mx-1">
+                      <div className="grid grid-cols-3 gap-x-1.5 gap-y-2 text-center font-mono text-[11px] font-bold tracking-tighter w-full self-center max-w-[120px] mx-0.5">
                         <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
                         <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
                         <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
                         <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                         <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
                         <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">0</div>
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[12px]">1</div>
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">1</div>
                       </div>
                   )}
-                  <div className="flex items-center justify-center w-4 h-full">
-                    <span className="text-zinc-400 font-serif text-[60px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>)</span>
+
+                  <div className="flex items-center justify-center w-3 h-full">
+                    <span className="text-zinc-400 font-serif text-[50px] leading-[0]" style={{ transform: 'scale(0.7, 2.0)' }}>)</span>
                   </div>
                 </div>
 
-                <label className="ml-3 w-14 h-[140px] flex flex-col gap-1.5 items-center justify-center bg-zinc-800/90 hover:bg-zinc-700 backdrop-blur border border-zinc-700 text-zinc-300 rounded-lg font-bold transition cursor-pointer shadow-xl pointer-events-auto">
-                    <svg className="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span className="text-[10px] text-zinc-400">사진 열기</span>
+                {/* 🚀 사진 열기 버튼 크기 축소 및 배치 최적화 */}
+                <label className="ml-2.5 w-12 h-[130px] flex flex-col gap-1.5 items-center justify-center bg-zinc-800/90 hover:bg-zinc-700 backdrop-blur border border-zinc-700 text-zinc-300 rounded-lg font-bold transition cursor-pointer shadow-xl pointer-events-auto shrink-0">
+                    <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span className="text-[9px] text-zinc-400 leading-tight text-center">사진<br/>열기</span>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
