@@ -67,7 +67,7 @@
         duo: { title: "듀오톤 (Duotone)", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
         cAdd: { title: "채널별 밝기 (Channel Add)", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
         cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
-        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 선형대수학에서 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
+        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
     };
 
     function getOptimalGridStep(z) {
@@ -1008,18 +1008,15 @@
       useEffect(() => {
         const handleMouseMoveGlobal = (e) => {
           // 🚀 그림자 팝업 메뉴 드래그 처리
-          if (dragMenuRef.current?.isDragging) {
+          if (dragMenuRef.current && dragMenuRef.current.isDragging) {
               let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
               let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
               
               let newLeft = dragMenuRef.current.initLeft + (clientX - dragMenuRef.current.startX);
               let newTop = dragMenuRef.current.initTop + (clientY - dragMenuRef.current.startY);
               
-              // 화면 밖으로 나가지 못하도록 방어
-              if (newLeft < 0) newLeft = 0;
+              // 🚀 부모 기준 좌표이므로 화면 상단/좌측 이탈만 가볍게 방어
               if (newTop < 0) newTop = 0;
-              if (newLeft > window.innerWidth - 80) newLeft = window.innerWidth - 80;
-              if (newTop > window.innerHeight - 40) newTop = window.innerHeight - 40;
               
               setShadowMenuPos({ left: newLeft, top: newTop });
               if (e.cancelable) e.preventDefault();
@@ -1027,47 +1024,50 @@
           }
 
           if (isResizingPanel.current) {
-            let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            let newWidth = clientX;
-            if (newWidth < 300) newWidth = 300;
-            if (newWidth > window.innerWidth * 0.7) newWidth = Math.floor(window.innerWidth * 0.7);
-            setPanelWidth(newWidth);
+             let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+             let newWidth = clientX;
+             if (newWidth < 300) newWidth = 300;
+             if (newWidth > window.innerWidth * 0.7) newWidth = Math.floor(window.innerWidth * 0.7);
+             setPanelWidth(newWidth);
           }
+          
+          // 🚀 행렬 조정창 드래그 처리 (좌표창 클릭과 완벽히 격리)
           if (isDraggingHandle.current) {
-            let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            const deltaY = handleStartY.current - clientY;
-            const deltaVh = (deltaY / window.innerHeight) * 100;
-            let newHeight = handleStartHeight.current + deltaVh;
-            if (newHeight < 0) newHeight = 0;
-            if (newHeight > 85) newHeight = 85; 
-            setMobilePanelHeight(newHeight);
+             let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+             const deltaY = handleStartY.current - clientY;
+             const deltaVh = (deltaY / window.innerHeight) * 100;
+             let newHeight = handleStartHeight.current + deltaVh;
+             if (newHeight < 0) newHeight = 0;
+             if (newHeight > 85) newHeight = 85; 
+             setMobilePanelHeight(newHeight);
           }
         };
 
         const handleMouseUpGlobal = (e) => {
-          // 🚀 그림자 팝업 메뉴 드래그 종료 처리
-          if (dragMenuRef.current?.isDragging) {
+          // 🚀 드래그 종료 처리
+          if (dragMenuRef.current) {
               dragMenuRef.current.isDragging = false;
-              return;
           }
 
           if (isResizingPanel.current) {
+             isResizingPanel.current = false; 
+             document.body.style.cursor = 'default'; 
+          }
+          
+          if (isDraggingHandle.current) {
              isDraggingHandle.current = false;
              let clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
              const deltaY = Math.abs(handleStartY.current - clientY);
              
-             if (deltaY < 40) { // 🚀 터치 미끄러짐 허용 범위를 40으로 초강화
+             if (deltaY < 20) { // 가볍게 탭했을 때
                  const h = handleStartHeight.current; 
-                 if (h > 40) { // 85% 등 열려있을 때 누르면 0%
-                     setMobilePanelHeight(0);
-                 } else { // 0% 또는 15% 등 닫혀있을 때 누르면 85%
-                     setMobilePanelHeight(85);
-                 }
+                 if (h > 40) setMobilePanelHeight(0);
+                 else setMobilePanelHeight(50); // 기본 열림 높이 50vh로 수정
              }
           }
         };
 
-        window.addEventListener('mousemove', handleMouseMoveGlobal); 
+        window.addEventListener('mousemove', handleMouseMoveGlobal, { passive: false }); 
         window.addEventListener('mouseup', handleMouseUpGlobal);
         window.addEventListener('touchmove', handleMouseMoveGlobal, { passive: false });
         window.addEventListener('touchend', handleMouseUpGlobal);
@@ -1443,11 +1443,9 @@
               setSelectedShadowId(hitShadowId);
               setShowShadowMenu(true);
               return true; 
-          } else if (showShadowMenu) {
-              setShowShadowMenu(false);
-              setSelectedShadowId(null);
-              return true; 
           }
+
+          // 🚀 다른 곳을 누르면 삭제되는 기능 완전히 삭제 완료 (요청 1번 반영)
 
           let hitPoint = null;
           for (let p of calcPoints) {
@@ -2766,7 +2764,7 @@
                               <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                               왜 (X, Y)를 세로로 세워서 곱하나요?
                           </b>
-                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 $(X, Y)$를 $3 \times 3$ 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 열 벡터(Column Vector)</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
+                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 (X, Y)를 3 x 3 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 행렬</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
                       </div>
                       
                       <div className="flex justify-end gap-2 md:gap-3 mt-1 md:mt-2">
@@ -3489,27 +3487,51 @@
               onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchEnd}
             />
 
-            {/* 🚀 개별 그림자 전용 팝업 메뉴 (드래그 지원 및 초기 위치 하단 패널 15vh 연동) */}
+            {/* 🚀 개별 그림자 전용 팝업 메뉴 (행렬 조정창 연동 및 45% 상한선 적용) */}
             {showShadowMenu && selectedShadowId && (
                 <div className={`absolute z-[80] bg-zinc-900/95 backdrop-blur-md px-3 md:px-4 py-2 md:py-2.5 rounded-full border border-zinc-600 shadow-2xl flex items-center justify-center gap-2 md:gap-3 animate-fade-in pointer-events-auto w-max max-w-[95vw] md:w-auto ${shadowMenuPos ? '' : 'left-1/2 -translate-x-1/2'}`}
-                     style={shadowMenuPos ? { left: `${shadowMenuPos.left}px`, top: `${shadowMenuPos.top}px`, bottom: 'auto', right: 'auto', transform: 'none' } : (isMobile ? { bottom: 'calc(15vh + env(safe-area-inset-bottom, 0px) + 20px)' } : { bottom: '8rem' })}>
+                     style={shadowMenuPos ? { left: `${shadowMenuPos.left}px`, top: `${shadowMenuPos.top}px`, bottom: 'auto', right: 'auto', transform: 'none' } : (isMobile ? { bottom: `calc(${Math.min(mobilePanelHeight, 45)}vh + env(safe-area-inset-bottom, 0px) + 20px)` } : { bottom: '8rem' })}>
                     
+                    {/* 🚀 왼쪽 X 버튼 추가 (팝업창 닫기 전용) */}
+                    <button onClick={() => { setShowShadowMenu(false); setSelectedShadowId(null); }} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center shadow transition shrink-0" title="창 닫기">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+
+                    <div className="w-px h-6 bg-zinc-700 shrink-0"></div>
+
+                    {/* 🚀 딜레이 없는 즉각적인 드래그 핸들 (네이티브 드래그 꼬임 버그 차단) */}
                     <div 
                         onMouseDown={(e) => {
-                            e.stopPropagation(); // 캔버스 드래그와 겹치지 않게 방어
-                            const rect = e.currentTarget.parentElement.getBoundingClientRect();
-                            dragMenuRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, initLeft: rect.left, initTop: rect.top };
+                            e.stopPropagation();
+                            e.preventDefault(); // 🚀 텍스트 선택 및 브라우저 네이티브 드래그(커서에 달라붙는 버그) 완벽 차단
+                            const clientX = e.clientX; const clientY = e.clientY;
+                            const el = e.currentTarget.parentElement;
+                            const parentRect = el.parentElement.getBoundingClientRect();
+                            const rect = el.getBoundingClientRect();
+                            
+                            const initLeft = rect.left - parentRect.left;
+                            const initTop = rect.top - parentRect.top;
+                            
+                            dragMenuRef.current = { isDragging: true, startX: clientX, startY: clientY, initLeft, initTop };
                         }}
                         onTouchStart={(e) => {
                             e.stopPropagation();
-                            const rect = e.currentTarget.parentElement.getBoundingClientRect();
-                            dragMenuRef.current = { isDragging: true, startX: e.touches[0].clientX, startY: e.touches[0].clientY, initLeft: rect.left, initTop: rect.top };
+                            if (e.cancelable) e.preventDefault(); // 🚀 모바일 스크롤 충돌 방지 및 즉각 반응
+                            const clientX = e.touches[0].clientX; const clientY = e.touches[0].clientY;
+                            const el = e.currentTarget.parentElement;
+                            const parentRect = el.parentElement.getBoundingClientRect();
+                            const rect = el.getBoundingClientRect();
+                            
+                            const initLeft = rect.left - parentRect.left;
+                            const initTop = rect.top - parentRect.top;
+                            
+                            dragMenuRef.current = { isDragging: true, startX: clientX, startY: clientY, initLeft, initTop };
                         }}
-                        className="flex items-center cursor-move shrink-0 pr-1 md:pr-2 py-1"
+                        className="flex items-center cursor-pointer shrink-0 pr-1 md:pr-2 py-1"
                         title="드래그하여 팝업창 이동"
                     >
                         <span className="text-zinc-300 font-bold mr-1 text-xs md:text-sm whitespace-nowrap select-none">
-                            👻 그림자 #{shadowStates.findIndex(s => s.id === selectedShadowId) + 1}
+                            그림자 {shadowStates.findIndex(s => s.id === selectedShadowId) + 1}
                         </span>
                     </div>
 
@@ -3540,7 +3562,7 @@
                                 직접 입력
                             </button>
                             <button onClick={() => { setCalcPoints([]); setIsCalcMode(false); }} className="bg-rose-600 text-white px-3 py-1.5 md:py-1 rounded-full text-xs hover:bg-rose-500 transition whitespace-nowrap shadow-sm">
-                                종료 및 삭제
+                                전체 삭제 및 종료
                             </button>
                         </div>
                     </div>
