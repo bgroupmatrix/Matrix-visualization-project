@@ -383,12 +383,12 @@
 
       const handleMobileChainTouchMove = (e) => {
           if (!mobileDragRef.current) return;
+          if (!e.touches || e.touches.length === 0) return; // 🚀 화면 밖 튀어나감(Touch End/Cancel) 시 e.touches[0] 증발 에러 완벽 방어
           const touch = e.touches[0];
           
           if (!mobileDragRef.current.isDragging) return;
 
-          e.preventDefault(); 
-          setMobileGhost(prev => prev ? { ...prev, y: touch.clientY - mobileDragRef.current.offsetY } : null);
+          if (e.cancelable) e.preventDefault(); 
 
           let targetIdx = -1;
           const container = mobileChainContainerRef.current;
@@ -400,7 +400,14 @@
               if (touch.clientY > crect.bottom - edge) container.scrollTop += 15;
               else if (touch.clientY < crect.top + edge) container.scrollTop -= 15;
 
-              // 🚀 1. elementsFromPoint 호환성 에러 제거 및 자체 충돌 계산
+              // 🚀 1. 유저 요청: 블록이 화면 밖(조립기 칸 밖)으로 나가지 못하게 Y좌표를 칸 내부에 가둠!
+              let newY = touch.clientY - mobileDragRef.current.offsetY;
+              const ghostHeight = mobileDragRef.current.height || 60; 
+              newY = Math.max(crect.top, Math.min(crect.bottom - ghostHeight, newY));
+              
+              setMobileGhost(prev => prev ? { ...prev, y: newY } : null);
+
+              // 🚀 2. 과격한 터치로 손가락이 좌우(X축)로 흔들려도 위치 교환이 안 끊기도록 Y축으로만 강력하게 판단!
               const children = Array.from(container.children);
               for (let i = 0; i < children.length; i++) {
                   const child = children[i];
@@ -408,13 +415,12 @@
                   if (attr !== null) {
                       const rect = child.getBoundingClientRect();
                       
-                      // 손가락이 해당 블록 영역(세로) 안에 있는지 확인
-                      if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                      // 손가락이 삐뚤어져도 Y좌표만 안에 있으면 무조건 통과!
+                      if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
                           const tIdx = parseInt(attr, 10);
                           const cIdx = mobileDragRef.current.index;
                           
-                          if (tIdx !== cIdx) {
-                              // 🚀 2. 무한 진동(크래시) 방지: 블록의 '절반(Midpoint)'을 넘었을 때만 위치 교체
+                          if (tIdx !== cIdx && !isNaN(tIdx) && !isNaN(cIdx)) {
                               const midY = rect.top + rect.height / 2;
                               if ((cIdx < tIdx && touch.clientY > midY) || (cIdx > tIdx && touch.clientY < midY)) {
                                   targetIdx = tIdx;
@@ -426,14 +432,14 @@
               }
           }
 
-          // 상태 업데이트 및 위치 교환
+          // 🚀 3. 안전한 배열 인덱스 검사 (상태 꼬임 블랙스크린 렌더링 에러 영구 차단)
           if (targetIdx !== -1) {
               const currentIndex = mobileDragRef.current.index;
-              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length) {
+              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length && currentIndex >= 0 && currentIndex < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
                       const temp = newOrder[currentIndex];
-                      if (!temp) return prev;
+                      if (!temp) return prev; 
                       newOrder.splice(currentIndex, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
@@ -476,6 +482,7 @@
 
       const handleChainTouchMove = (e) => {
           if (!dragChainRef.current) return;
+          if (!e.touches || e.touches.length === 0) return; // 🚀 터치 아웃 에러 방어
           const touch = e.touches[0];
 
           if (!dragChainRef.current.isDragging) {
@@ -486,18 +493,31 @@
               return;
           }
 
-          e.preventDefault();
-          setGhostDragInfo(prev => ({ ...prev, x: touch.clientX - dragChainRef.current.offsetX, y: touch.clientY - dragChainRef.current.offsetY }));
-
+          if (e.cancelable) e.preventDefault();
+          
           let targetIdx = -1;
           const container = e.currentTarget;
           if (container) {
               const crect = container.getBoundingClientRect();
-              const edgeThreshold = 60;
-              if (touch.clientX > crect.right - edgeThreshold) container.scrollLeft += 20;
-              else if (touch.clientX < crect.left + edgeThreshold) container.scrollLeft -= 20;
+              const edgeThreshold = 80;
+              // 🚀 가로 모드 모서리에 닿으면 손가락을 멈추고 있어도 부드럽게 화면 자동 스크롤
+              if (touch.clientX > crect.right - edgeThreshold) {
+                  if (!autoScrollTimerRef.current) autoScrollTimerRef.current = setInterval(() => { container.scrollLeft += 20; }, 30);
+              } else if (touch.clientX < crect.left + edgeThreshold) {
+                  if (!autoScrollTimerRef.current) autoScrollTimerRef.current = setInterval(() => { container.scrollLeft -= 20; }, 30);
+              } else {
+                  if (autoScrollTimerRef.current) { clearInterval(autoScrollTimerRef.current); autoScrollTimerRef.current = null; }
+              }
               
-              // 🚀 1. 수동 좌표 계산으로 고스트 UI가 터치를 가리는 문제 해결
+              // 🚀 1. 조립기 칸 바깥으로 나가지 못하게 X좌표 고정, Y좌표는 흔들리지 않게 중앙 고정!
+              let newX = touch.clientX - dragChainRef.current.offsetX;
+              const ghostWidth = dragChainRef.current.width || 80;
+              newX = Math.max(crect.left, Math.min(crect.right - ghostWidth, newX));
+              let newY = crect.top + (crect.height / 2) - 30; // 가로 모드에서는 Y축이 위아래로 흔들리지 않고 레일처럼 고정됨
+              
+              setGhostDragInfo(prev => prev ? { ...prev, x: newX, y: newY } : null);
+              
+              // 🚀 2. 손가락이 위아래(Y축)로 삐뚤어져도 무시하고 X축으로만 강력하게 위치 교환 판단!
               const children = Array.from(container.children);
               for (let i = 0; i < children.length; i++) {
                   const child = children[i];
@@ -505,13 +525,11 @@
                   if (attr !== null) {
                       const rect = child.getBoundingClientRect();
                       
-                      // 손가락이 해당 블록 영역 안에 있는지 확인
-                      if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                      if (touch.clientX >= rect.left && touch.clientX <= rect.right) {
                           const tIdx = parseInt(attr, 10);
                           const cIdx = dragChainRef.current.index;
                           
-                          if (tIdx !== cIdx) {
-                              // 🚀 2. 무한 진동(Oscillation) 크래시 방지: 블록의 '절반(Midpoint)'을 넘었을 때만 교체
+                          if (tIdx !== cIdx && !isNaN(tIdx) && !isNaN(cIdx)) {
                               const midX = rect.left + rect.width / 2;
                               if ((cIdx < tIdx && touch.clientX > midX) || (cIdx > tIdx && touch.clientX < midX)) {
                                   targetIdx = tIdx;
@@ -525,11 +543,11 @@
 
           if (targetIdx !== -1) {
               const currentIndex = dragChainRef.current.index;
-              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length) {
+              if (!isNaN(targetIdx) && targetIdx !== currentIndex && targetIdx >= 0 && targetIdx < chainOrder.length && currentIndex >= 0 && currentIndex < chainOrder.length) {
                   setChainOrder(prev => {
                       const newOrder = [...prev];
                       const temp = newOrder[currentIndex];
-                      if (!temp) return prev;
+                      if (!temp) return prev; // 🚀 안전망
                       newOrder.splice(currentIndex, 1);
                       newOrder.splice(targetIdx, 0, temp);
                       return newOrder;
@@ -2479,8 +2497,12 @@
                           <h3 className="text-white font-bold text-lg flex items-center gap-2">
                               행렬 연산 조립기
                               {/* 모바일 행렬 조립기용 i 버튼 */}
-                              <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="text-indigo-400 hover:text-white transition bg-zinc-800 rounded-full p-1 border border-zinc-700">
+                              <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="text-indigo-400 hover:text-white transition bg-zinc-800 rounded-full p-1 border border-zinc-700" title="설명 보기">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                              </button>
+                              {/* 🚀 행렬 순서 리셋 버튼 */}
+                              <button onClick={() => setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back'])} className="text-rose-400 hover:text-white transition bg-zinc-800 rounded-full p-1 border border-zinc-700 ml-1" title="순서 초기화">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
                               </button>
                           </h3>
                           <button onClick={() => setShowMatrixChain(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
@@ -2874,7 +2896,7 @@
           {isSettingsOpen && <div className="fixed inset-0 z-[55]" onClick={() => setIsSettingsOpen(false)} />}
           
           <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[60] flex flex-col items-end gap-2 pointer-events-none">
-            <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex flex-col md:flex-row items-end md:items-center gap-2 pointer-events-auto">
                 {shadowStates.length > 0 && (
                     <>
                         <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="모든 그림자 재생">
@@ -3067,11 +3089,16 @@
                   )}
               </button>
 
-              {/* 🚀 PC: 행렬 분해 보기 i 아이콘 추가 */}
+              {/* 🚀 PC: 행렬 분해 보기 i 아이콘 및 리셋 아이콘 추가 */}
               {showMatrixChain && (
-                  <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-16 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
-                  </button>
+                  <>
+                      <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-16 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
+                      </button>
+                      <button onClick={() => setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back'])} className="absolute top-4 left-[104px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-rose-400 border border-rose-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 순서 초기화">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
+                      </button>
+                  </>
               )}
 
               <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
@@ -3085,6 +3112,14 @@
                            onTouchMove={ghostDragInfo ? handleChainTouchMove : undefined}
                            onTouchEnd={handleChainTouchEnd}
                            onTouchCancel={handleChainTouchEnd}
+                           onDragOver={(e) => {
+                               e.preventDefault();
+                               // 🚀 컴퓨터(마우스) 환경에서 블록을 화면 끝으로 가져가면 컨테이너가 자동으로 스크롤 됨
+                               const rect = e.currentTarget.getBoundingClientRect();
+                               const edge = 100; // 가장자리 인식 범위 (100px)
+                               if (e.clientX > rect.right - edge) e.currentTarget.scrollLeft += 15;
+                               else if (e.clientX < rect.left + edge) e.currentTarget.scrollLeft -= 15;
+                           }}
                       >
                           {chainOrder.map((id, idx) => {
                               const chainItem = getChainMatrix(id);
