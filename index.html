@@ -2080,7 +2080,7 @@
                 if (isImplicit) {
                     // WebGL은 메인(alpha 1.0) 일 때만 셰이더를 그립니다. 그림자는 미리 캡처된 glImage를 사용합니다.
                     if (alpha === 1.0) {
-                        let glslEq = MathParserGLSL.parse(strEq);
+                        let glslEq; try { glslEq = MathParserGLSL.parse(strEq); } catch(e) { return; }
                         hasWebGLGraph = true;
                         fsFunctions += `float f${idx}(float x, float y) { return ${glslEq}; }\n`;
                         fsMain += `
@@ -2090,14 +2090,14 @@
                             float canvasY = -(sp.y - cy - u_cam.y) / u_z;
                             vec3 mathPt = matInv * vec3(canvasX, canvasY, 1.0);
                             float mx = mathPt.x; float my = mathPt.y;
-                            float m_scale = sqrt(${toF(gMatrix.a)}*${toF(gMatrix.a)} + ${toF(gMatrix.b)}*${toF(gMatrix.b)}) * u_z;
-                            float m_px = 1.0 / (m_scale + 1e-8);
+                            
                             float v0 = f${idx}(mx, my);
                             if (IS_VALID(v0)) {
-                                float vR = f${idx}(mx + m_px, my);
-                                float vU = f${idx}(mx, my + m_px);
-                                float grad = length(vec2(vR - v0, vU - v0));
+                                // 🚀 WebGL 하드웨어 픽셀 미분(dFdx, dFdy)을 통해 전단/확대 등 어떤 변환에도 선 굵기를 일정하게 강제 유지!
+                                float grad = length(vec2(dFdx(v0), dFdy(v0)));
                                 float dist_screen = abs(v0) / max(grad, 1e-10);
+                                
+                                // 🚀 1.5 픽셀 두께로 깔끔하게 렌더링
                                 if (dist_screen < 1.5) {
                                     finalColor = vec4(${r}, ${gg}, ${b}, 1.0);
                                 }
