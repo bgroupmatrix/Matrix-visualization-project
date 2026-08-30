@@ -2459,29 +2459,47 @@
           {/* 🚀 교실 발표용 화이트 테마 강제 덮어쓰기 CSS */}
           {isLightMode && (
               <style>{`
-                  /* 🚀 3. 화이트 모드 눈 편안하게 및 모든 UI(확대/축소 등) 정상 적용되도록 CSS 대폭 개선 */
                   .bg-zinc-950 { background-color: #f0f2f5 !important; }
                   .bg-black { background-color: #e9ecef !important; }
                   .bg-zinc-900 { background-color: #ffffff !important; box-shadow: 0 0 15px rgba(0,0,0,0.05) !important; }
                   .bg-zinc-800 { background-color: #f8f9fa !important; border-color: #dee2e6 !important; }
                   .bg-zinc-800\\/90 { background-color: rgba(255, 255, 255, 0.95) !important; }
                   .hover\\:bg-zinc-700:hover, .hover\\:bg-zinc-800:hover { background-color: #e9ecef !important; }
+                  
                   .text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300 { color: #212529 !important; }
-                  .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #6c757d !important; }
+                  .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: #495057 !important; }
                   .border-zinc-700, .border-zinc-800, .border-zinc-600 { border-color: #dee2e6 !important; }
+                  
                   input { background-color: #ffffff !important; color: #212529 !important; border-color: #ced4da !important; font-weight: bold; }
                   input:focus { border-color: #86b7fe !important; outline: none !important; }
+                  
                   .bg-sky-500 { background-color: #0d6efd !important; color: white !important; border: none !important; }
                   .hover\\:bg-sky-600:hover { background-color: #0b5ed7 !important; color: white !important; }
                   .bg-purple-600 { background-color: #6f42c1 !important; color: white !important; }
-                  .text-sky-400, .text-sky-300 { color: #0d6efd !important; font-weight: 800 !important; }
-                  .text-emerald-400, .text-emerald-300 { color: #198754 !important; font-weight: 800 !important; }
-                  .text-amber-400, .text-amber-300 { color: #fd7e14 !important; font-weight: 800 !important; }
-                  .text-rose-400, .text-rose-300 { color: #dc3545 !important; font-weight: 800 !important; }
-                  .text-purple-400, .text-purple-300 { color: #6f42c1 !important; font-weight: 800 !important; }
-                  .text-indigo-400, .text-indigo-300 { color: #0dcaf0 !important; font-weight: 800 !important; }
-                  .text-teal-400, .text-teal-300 { color: #20c997 !important; font-weight: 800 !important; }
-                  .bg-rose-900\\/30, .bg-rose-900\\/20 { background-color: #f8d7da !important; border-color: #f5c2c7 !important; }
+                  
+                  /* 🚀 글씨 가독성을 극한으로 높인 고대비 폰트 색상 */
+                  .text-sky-400, .text-sky-300 { color: #0056b3 !important; font-weight: 900 !important; }
+                  .text-emerald-400, .text-emerald-300 { color: #0f5132 !important; font-weight: 900 !important; }
+                  .text-amber-400, .text-amber-300 { color: #995c00 !important; font-weight: 900 !important; }
+                  .text-rose-400, .text-rose-300 { color: #842029 !important; font-weight: 900 !important; }
+                  .text-purple-400, .text-purple-300 { color: #5c2018 !important; font-weight: 900 !important; }
+                  .text-indigo-400, .text-indigo-300 { color: #3d0a91 !important; font-weight: 900 !important; }
+                  .text-teal-400, .text-teal-300 { color: #055160 !important; font-weight: 900 !important; }
+                  .text-red-400 { color: #dc3545 !important; font-weight: 900 !important; }
+                  .text-green-400 { color: #198754 !important; font-weight: 900 !important; }
+                  .text-blue-400 { color: #0d6efd !important; font-weight: 900 !important; }
+
+                  /* 🚀 투명 배경 박스들을 화이트 모드에 맞는 진한 파스텔 톤으로 재조정 */
+                  .bg-rose-900\\/10, .bg-rose-900\\/20, .bg-rose-950\\/10 { background-color: #f8d7da !important; border-color: #f5c2c7 !important; }
+                  .bg-emerald-900\\/10, .bg-emerald-950\\/20 { background-color: #d1e7dd !important; border-color: #badbcc !important; }
+                  .bg-sky-900\\/10, .bg-sky-950\\/20 { background-color: #cfe2ff !important; border-color: #b6d4fe !important; }
+                  .bg-indigo-900\\/20, .bg-indigo-950\\/20, .bg-indigo-950\\/30 { background-color: #e0cffc !important; border-color: #c29ffa !important; }
+                  .bg-purple-900\\/10, .bg-purple-950\\/20 { background-color: #e2d9f3 !important; border-color: #d1c4e9 !important; }
+                  .bg-amber-900\\/10, .bg-amber-950\\/20 { background-color: #fff3cd !important; border-color: #ffecb5 !important; }
+                  .bg-teal-900\\/10, .bg-teal-950\\/20, .bg-teal-900\\/30 { background-color: #cff4fc !important; border-color: #b6effb !important; }
+                  .bg-red-950\\/10 { background-color: #f8d7da !important; border-color: #f5c2c7 !important; }
+                  .bg-green-950\\/10 { background-color: #d1e7dd !important; border-color: #badbcc !important; }
+                  .bg-blue-950\\/10 { background-color: #cfe2ff !important; border-color: #b6d4fe !important; }
                   .bg-zinc-700\\/50 { background-color: #e9ecef !important; }
               `}</style>
           )}
@@ -2908,7 +2926,7 @@
             </div>
           )}
 
-          {isSettingsOpen && <div className="fixed inset-0 z-[55]" onClick={() => setIsSettingsOpen(false)} />}
+          {/* 🚀 설정창 밖을 눌러도 꺼지지 않고, 캔버스 등 다른 UI를 동시에 조작할 수 있도록 배경 차단막(Overlay) 제거됨 */}
           
           <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[60] flex flex-col items-end gap-2 pointer-events-none">
             <div className="flex flex-col md:flex-row items-end md:items-center gap-2 pointer-events-auto">
@@ -2933,7 +2951,7 @@
                   <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력값 조절</button>
                 </div>
                 {settingsTab === 'display' && (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2">
                     <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                         <div className="relative">
                             <input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" />
@@ -2982,7 +3000,24 @@
                         </div>
                         <span className="text-xs md:text-sm font-bold text-amber-400 group-hover:text-amber-300 transition">교실 발표용 테마 (화이트 모드)</span>
                     </label>
-
+                    <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 mt-2 flex flex-col gap-3">
+                        <span className="text-zinc-300 font-bold text-sm flex items-center gap-1.5">
+                            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            변환 중심점 (Origin)
+                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-auto"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                        </span>
+                        <div className="flex gap-2">
+                            <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                <span className="text-[10px] text-zinc-500 text-center">X 좌표</span>
+                                <CustomNumberInput value={transformOriginX} onChange={setTransformOriginX} className="w-full bg-zinc-950 border border-zinc-700 text-zinc-300 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-zinc-500" />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                <span className="text-[10px] text-zinc-500 text-center">Y 좌표</span>
+                                <CustomNumberInput value={transformOriginY} onChange={setTransformOriginY} className="w-full bg-zinc-950 border border-zinc-700 text-zinc-300 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-zinc-500" />
+                            </div>
+                        </div>
+                        <button onClick={() => {setTransformOriginX(0); setTransformOriginY(0);}} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs py-1.5 rounded transition border border-zinc-700">원점(0,0)으로 리셋</button>
+                    </div>
                     <hr className="border-zinc-700/50 my-2" />
                     <span className="text-xs font-bold text-zinc-500">수학 실험실 전용 옵션</span>
                     <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
@@ -3182,297 +3217,320 @@
               </div>
             </div>
 
-            <div className="flex border-b border-zinc-800 shrink-0">
-              <button onClick={() => setActiveTab('geo')} className={`flex-1 py-2 md:py-3 text-sm md:text-base font-bold transition truncate ${activeTab === 'geo' ? 'bg-zinc-800 text-white border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>기하학 변환</button>
-              <button onClick={() => setActiveTab('color')} className={`flex-1 py-2 md:py-3 text-sm md:text-base font-bold transition truncate ${activeTab === 'color' ? 'bg-zinc-800 text-white border-b-2 border-amber-400' : 'text-zinc-500 hover:text-zinc-300'}`}>색상 변환</button>
-            </div>
+            {/* 🚀 왼쪽 사이드바(PC) / 하단 네비게이션(모바일) + 우측 컨텐츠 분할 레이아웃 */}
+            <div className="flex flex-1 overflow-hidden border-t border-zinc-800 bg-zinc-900 flex-col-reverse md:flex-row">
+              
+              {/* 1. 사이드바 (표 형태의 단일 선 구분 레이아웃) */}
+              <div className="w-full md:w-[76px] h-[64px] md:h-full bg-zinc-950 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col shrink-0 z-10 shadow-[0_-5px_15px_rgba(0,0,0,0.3)] md:shadow-none">
+                
+                <button 
+                  onClick={() => setActiveTab('geo')} 
+                  title="기하학 변환" 
+                  className={`flex-1 md:flex-none md:h-[76px] flex items-center justify-center transition-colors border-r md:border-r-0 md:border-b border-zinc-800 last:border-r-0 md:last:border-b-0 ${activeTab === 'geo' ? 'bg-zinc-900 text-sky-400 shadow-[inset_0_-3px_0_currentColor] md:shadow-[inset_3px_0_0_currentColor]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16L4 4v16z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16h5l-5-5v5z"/>
+                  </svg>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab('math')} 
+                  title="수학 실험실" 
+                  className={`flex-1 md:flex-none md:h-[76px] flex items-center justify-center transition-colors border-r md:border-r-0 md:border-b border-zinc-800 last:border-r-0 md:last:border-b-0 ${activeTab === 'math' ? 'bg-zinc-900 text-indigo-400 shadow-[inset_0_-3px_0_currentColor] md:shadow-[inset_3px_0_0_currentColor]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                  </svg>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab('color')} 
+                  title="색상 변환" 
+                  className={`flex-1 md:flex-none md:h-[76px] flex items-center justify-center transition-colors border-r md:border-r-0 md:border-b border-zinc-800 last:border-r-0 md:last:border-b-0 ${activeTab === 'color' ? 'bg-zinc-900 text-amber-400 shadow-[inset_0_-3px_0_currentColor] md:shadow-[inset_3px_0_0_currentColor]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.836-.437-1.124L12 18.312C11.512 17.77 11.25 17.125 11.25 16.5c0-1.385 1.115-2.5 2.5-2.5h7.168C21.874 14 22 13.062 22 12c0-5.5-4.5-10-10-10z"/>
+                    <circle cx="13.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="17.5" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="8.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="6.5" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-5 relative">
-              {activeTab === 'geo' && (
-                <div className="flex flex-col gap-5 md:gap-6 pb-20">
-                  <div className="space-y-4">
-                    <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
-                    <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
-                    <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
-                  </div>
-                  <hr className="border-zinc-800" />
-                  <div className="space-y-4">
-                    <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
-                    <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
-                  </div>
-                  <hr className="border-zinc-800" />
-                  <div className="space-y-4">
-                    <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
-                  </div>
-                  <hr className="border-zinc-800" />
-                  <div className="space-y-4">
-                    <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
-                    <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
-                  </div>
-                  
-                  <hr className="border-zinc-800" />
-                  
-                  <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
-                    <label className="flex items-center gap-2 text-rose-400 font-bold text-sm md:text-base w-max cursor-pointer">
-                      <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500 cursor-pointer" /> 
-                      반사 변환 직선 (y = ax) 켜기
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.refl); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                    </label>
-                    <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} onReset={() => setReflAngle(90)} colorClass="rose" />
-                  </div>
+              </div>
 
-                  <hr className="border-zinc-800" />
-                  
-                  <div className="p-4 bg-teal-900/10 rounded-xl border border-teal-500/30 flex flex-col gap-3">
-                      <span className="text-teal-400 font-bold text-sm flex items-center gap-1.5">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                          변환 중심점 (Origin)
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                      </span>
-                      <div className="flex gap-2">
-                          <div className="flex-1 flex flex-col gap-1 min-w-0">
-                              <span className="text-[10px] text-zinc-500 text-center">X 좌표</span>
-                              <CustomNumberInput value={transformOriginX} onChange={setTransformOriginX} className="w-full bg-zinc-950 border border-zinc-700 text-teal-400 font-bold px-2 py-1.5 rounded outline-none text-center" />
+              {/* 2. 우측 세부 컨텐츠 영역 (기존 코드 100% 동일하게 유지) */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-5 relative bg-zinc-900">
+                {activeTab === 'geo' && (
+                  <div className="flex flex-col gap-5 md:gap-6 pb-20">
+                    <div className="space-y-4">
+                      <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
+                      <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
+                      <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    <div className="space-y-4">
+                      <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
+                      <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    <div className="space-y-4">
+                      <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    <div className="space-y-4">
+                      <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
+                      <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    
+                    <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
+                      <label className="flex items-center gap-2 text-rose-400 font-bold text-sm md:text-base w-max cursor-pointer">
+                        <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500 cursor-pointer" /> 
+                        반사 변환 직선 (y = ax) 켜기
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.refl); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                      </label>
+                      <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} onReset={() => setReflAngle(90)} colorClass="rose" />
+                    </div>
+                    <hr className="border-zinc-800" />
+                  </div>
+                )}
+
+                {/* 2. 수학 실험실 탭 */}
+                {activeTab === 'math' && (
+                  <div className="flex flex-col gap-5 md:gap-6 pb-20">
+                    <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4">
+                      <label className="flex items-center gap-2 text-indigo-400 font-black text-lg w-max cursor-pointer">
+                        <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="w-5 h-5 accent-indigo-500 cursor-pointer" /> 
+                        수학 실험실 전원 켜기
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                      </label>
+
+                      {useMathLab && (
+                          <div className="flex flex-col gap-6 mt-1 pl-2 md:pl-4 border-l-2 border-indigo-500/30">
+                              
+                              <div className="flex flex-col gap-3">
+                                  <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
+                                    <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
+                                    좌표 점 맵핑
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.point); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                  </label>
+                                  {usePointMode && (
+                                      <div className="flex flex-col gap-2 bg-emerald-900/10 p-3 rounded-lg border border-emerald-500/20">
+                                          <div className="flex justify-between items-center mb-1">
+                                              <div className="flex items-center gap-2">
+                                                  <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
+                                                  <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                  </button>
+                                              </div>
+                                              <div className="flex gap-1">
+                                                  {points.length > 0 && (
+                                                      <button onClick={() => setPoints([])} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 지우기">
+                                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                      </button>
+                                                  )}
+                                                  <button onClick={() => setIsPointListExpanded(!isPointListExpanded)} className="text-zinc-400 hover:text-white w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700">
+                                                      {isPointListExpanded ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                          {showManualPointUI && (
+                                              <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-emerald-500/10 mb-1">
+                                                  <span className="text-zinc-500 font-mono text-[10px]">X:</span>
+                                                  <CustomNumberInput value={manualX} onChange={setManualX} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
+                                                  <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
+                                                  <CustomNumberInput value={manualY} onChange={setManualY} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
+                                                  <button onClick={handleAddManualPoint} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
+                                              </div>
+                                          )}
+                                          {isPointListExpanded && (
+                                              <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
+                                                  {points.length === 0 ? <span className="text-zinc-500 text-xs py-1">화면을 클릭하거나 직접 입력하세요.</span> :
+                                                  points.map(p => (
+                                                      <div key={p.id} className="bg-zinc-800 border border-zinc-700 px-3 py-2 rounded text-sm flex justify-between items-center shadow-sm">
+                                                          <div className="flex gap-3 items-center">
+                                                              <span className="text-emerald-400 font-bold text-base">{p.label}</span>
+                                                              <span className="text-zinc-300 font-mono text-xs">({p.x}, {p.y})</span>
+                                                          </div>
+                                                          <button onClick={() => setPoints(pts => pts.filter(pt => pt.id !== p.id))} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-zinc-700/50 rounded transition">✕</button>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+                                      </div>
+                                  )}
+                              </div>
+
+                              <div className="flex flex-col gap-3">
+                                  <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
+                                    <input type="checkbox" checked={usePolygonMode} onChange={(e) => setUsePolygonMode(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
+                                    다각형(도형) 그리기 맵핑
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.polygon); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                  </label>
+                                  {usePolygonMode && (
+                                      <div className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-lg border border-purple-500/20">
+                                          <div className="flex justify-between items-center mb-1">
+                                              <div className="flex items-center gap-2">
+                                                  <span className="text-zinc-400 text-xs font-bold">도형 목록 ({polygons.length})</span>
+                                                  <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                  </button>
+                                              </div>
+                                              {(polygons.length > 0 || polygonPoints.length > 0) && (
+                                                  <button onClick={() => {setPolygonPoints([]); setPolygons([]);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 초기화">
+                                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                  </button>
+                                              )}
+                                          </div>
+                                          {showManualPolyUI && (
+                                              <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-purple-500/10 mb-1">
+                                                  <span className="text-zinc-500 font-mono text-[10px]">X:</span>
+                                                  <CustomNumberInput value={polyManualX} onChange={setPolyManualX} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
+                                                  <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
+                                                  <CustomNumberInput value={polyManualY} onChange={setPolyManualY} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
+                                                  <button onClick={handleAddManualPolyPoint} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
+                                              </div>
+                                          )}
+                                          {polygons.length > 0 && (
+                                              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto scrollbar-hide pr-1 mt-1 border-b border-purple-500/20 pb-2">
+                                                  {polygons.map((poly, i) => (
+                                                      <div key={i} className="flex flex-col rounded-lg border border-purple-500/30 bg-purple-900/20 shadow-sm overflow-hidden transition-all">
+                                                          <div className="flex justify-between items-center px-3 py-2 cursor-pointer hover:bg-purple-800/40 transition" onClick={() => togglePoly(i)}>
+                                                              <div className="flex items-center gap-2 text-purple-200 text-xs font-bold">
+                                                                  <svg className={`w-3.5 h-3.5 text-purple-400 transition-transform duration-200 ${expandedPolys.has(i) ? 'rotate-180' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
+                                                                  도형 {i+1} <span className="text-purple-400/70 font-mono text-[10px]">({poly.length}점)</span>
+                                                              </div>
+                                                              <button onClick={(e) => { e.stopPropagation(); setPolygons(prev => prev.filter((_, idx) => idx !== i)); }} className="text-rose-400 hover:bg-rose-500/20 font-bold w-6 h-6 flex items-center justify-center rounded transition">✕</button>
+                                                          </div>
+                                                          {expandedPolys.has(i) && (
+                                                              <div className="flex flex-col gap-1.5 px-3 py-2.5 bg-zinc-950/50 border-t border-purple-500/20">
+                                                                  {poly.map((p, pIdx) => (
+                                                                      <div key={pIdx} className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pl-2">
+                                                                          <span className="text-purple-300/70">Pt {pIdx+1}</span>
+                                                                          <span>({p.x}, {p.y})</span>
+                                                                      </div>
+                                                                  ))}
+                                                              </div>
+                                                          )}
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+                                          {polygonPoints.length === 0 ? 
+                                              <span className="text-zinc-500 text-[11px] py-1 leading-relaxed">화면을 클릭하여 꼭짓점을 여러 개 찍은 뒤, <b>빨간색으로 표시된 첫 번째 점</b>을 다시 누르면 도형이 완성됩니다.</span> :
+                                              <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto scrollbar-hide pr-1 mt-1">
+                                                  {polygonPoints.map((p, i) => (
+                                                      <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
+                                                          <span>Pt {i+1}</span>
+                                                          <span>({p.x}, {p.y})</span>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          }
+                                      </div>
+                                  )}
+                              </div>
+
+                              <div className="flex flex-col gap-3">
+                                  <label className="flex items-center gap-2 text-sky-400 font-bold text-sm w-max cursor-pointer">
+                                    <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
+                                    함수(f(x)) 맵핑
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                  </label>
+                                  {useGraph && (
+                                      <div className="flex flex-col gap-2 bg-sky-900/10 p-3 rounded-lg border border-sky-500/20">
+                                          <div className="flex justify-between items-center mb-1">
+                                              <span className="text-zinc-400 text-xs font-bold">함수 목록 ({graphs.length})</span>
+                                              <button onClick={() => setIsGraphListExpanded(!isGraphListExpanded)} className="text-zinc-400 hover:text-white w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700">
+                                                  {isGraphListExpanded ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>}
+                                              </button>
+                                          </div>
+                                          {isGraphListExpanded && (
+                                              <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
+                                                  {graphs.map((g, idx) => (
+                                                      <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
+                                                          <div className="flex justify-between items-center w-full gap-2">
+                                                              <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)">
+                                                                  {g.eq || '수식을 입력하세요 (예: x^2+y^2=4)'}
+                                                              </div>
+                                                              <div className="flex gap-1 shrink-0">
+                                                                  <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
+                                                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                                  </button>
+                                                                  <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
+                                                              </div>
+                                                          </div>
+                                                          {g.matrixMode !== 'global' && (
+                                                              <div className="text-[10px] text-amber-500/80 font-bold text-right px-1">
+                                                                  {g.matrixMode === 'none' ? '* 행렬 변환 미적용' : '* 개별 커스텀 행렬 적용중'}
+                                                              </div>
+                                                          )}
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+                                          {isGraphListExpanded && (
+                                              <button onClick={addGraph} className="mt-1 w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded font-bold text-xs transition border border-zinc-700 shadow-sm flex items-center justify-center gap-1">
+                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                  함수 추가하기
+                                              </button>
+                                          )}
+                                          
+                                          {isGraphListExpanded && constants.length > 0 && (
+                                              <div className="mt-4 pt-4 border-t border-sky-500/30 flex flex-col gap-3">
+                                                  <span className="text-zinc-400 text-xs font-bold">동적 상수(Constant) 연동</span>
+                                                  {constants.map(c => (
+                                                      <div key={c.name} className="flex flex-col gap-1">
+                                                          <ControlRow 
+                                                              label={`상수 ${c.name}`} 
+                                                              min={c.min} max={c.max} step={c.step} 
+                                                              value={c.value} 
+                                                              onChange={v => updateConstant(c.name, 'value', v)} 
+                                                              onReset={() => updateConstant(c.name, 'value', 1.0)}
+                                                              colorClass="indigo" 
+                                                          />
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+                                      </div>
+                                  )}
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                  <div className="flex justify-between items-center w-full">
+                                      <span className="text-rose-400 font-bold text-sm flex items-center gap-1">
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                          도형의 대칭이동
+                                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.symmetry); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                      </span>
+                                      <button onClick={() => { handleSyncChange('scaleX', 1.0); handleSyncChange('scaleY', 1.0); setRotation(0); setUseRefl(false); setReflAngle(90); }} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition shadow-sm">초기화</button>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 mt-1">
+                                      <button onClick={() => applySymmetry('X')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">X축 대칭</button>
+                                      <button onClick={() => applySymmetry('Y')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">Y축 대칭</button>
+                                      <button onClick={() => applySymmetry('ORIGIN')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">원점 대칭</button>
+                                      <button onClick={() => applySymmetry('YX')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">y=x 직선 대칭</button>
+                                  </div>
+                              </div>
+
+                              <div className="flex flex-col gap-3">
+                                  <label className="flex items-center gap-2 text-amber-400 font-bold text-sm w-max cursor-pointer">
+                                    <input type="checkbox" checked={useUnitSquare} onChange={(e) => setUseUnitSquare(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
+                                    단위 정사각형 (행렬식/넓이) 시각화
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.unitSquare); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                  </label>
+                              </div>
+
                           </div>
-                          <div className="flex-1 flex flex-col gap-1 min-w-0">
-                              <span className="text-[10px] text-zinc-500 text-center">Y 좌표</span>
-                              <CustomNumberInput value={transformOriginY} onChange={setTransformOriginY} className="w-full bg-zinc-950 border border-zinc-700 text-teal-400 font-bold px-2 py-1.5 rounded outline-none text-center" />
-                          </div>
-                      </div>
-                      <button onClick={() => {setTransformOriginX(0); setTransformOriginY(0);}} className="mt-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs py-1.5 rounded transition border border-zinc-700">원점(0,0)으로 리셋</button>
+                      )}
+                    </div>
                   </div>
+                )}
 
-                  <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4 mt-2">
-                    <label className="flex items-center gap-2 text-indigo-400 font-black text-base w-max cursor-pointer">
-                      <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="w-5 h-5 accent-indigo-500 cursor-pointer" /> 
-                      수학 실험실 (Math Lab)
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                    </label>
-
-                    {useMathLab && (
-                        <div className="flex flex-col gap-6 mt-1 pl-3 border-l-2 border-indigo-500/30">
-                            
-                            <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
-                                  <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
-                                  좌표 점 맵핑
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.point); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                                </label>
-                                {usePointMode && (
-                                    <div className="flex flex-col gap-2 bg-emerald-900/10 p-3 rounded-lg border border-emerald-500/20">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
-                                                <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                                </button>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                {points.length > 0 && (
-                                                    <button onClick={() => setPoints([])} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 지우기">
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                    </button>
-                                                )}
-                                                <button onClick={() => setIsPointListExpanded(!isPointListExpanded)} className="text-zinc-400 hover:text-white w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700">
-                                                    {isPointListExpanded ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {showManualPointUI && (
-                                            <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-emerald-500/10 mb-1">
-                                                <span className="text-zinc-500 font-mono text-[10px]">X:</span>
-                                                <CustomNumberInput value={manualX} onChange={setManualX} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
-                                                <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
-                                                <CustomNumberInput value={manualY} onChange={setManualY} className="flex-1 w-0 bg-zinc-900 text-emerald-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-emerald-500" />
-                                                <button onClick={handleAddManualPoint} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
-                                            </div>
-                                        )}
-                                        {isPointListExpanded && (
-                                            <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
-                                                {points.length === 0 ? <span className="text-zinc-500 text-xs py-1">화면을 클릭하거나 직접 입력하세요.</span> :
-                                                points.map(p => (
-                                                    <div key={p.id} className="bg-zinc-800 border border-zinc-700 px-3 py-2 rounded text-sm flex justify-between items-center shadow-sm">
-                                                        <div className="flex gap-3 items-center">
-                                                            <span className="text-emerald-400 font-bold text-base">{p.label}</span>
-                                                            <span className="text-zinc-300 font-mono text-xs">({p.x}, {p.y})</span>
-                                                        </div>
-                                                        <button onClick={() => setPoints(pts => pts.filter(pt => pt.id !== p.id))} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-zinc-700/50 rounded transition">✕</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-2 text-sky-400 font-bold text-sm w-max cursor-pointer">
-                                  <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
-                                  함수(f(x)) 맵핑
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                                </label>
-                                {useGraph && (
-                                    <div className="flex flex-col gap-2 bg-sky-900/10 p-3 rounded-lg border border-sky-500/20">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-zinc-400 text-xs font-bold">함수 목록 ({graphs.length})</span>
-                                            <button onClick={() => setIsGraphListExpanded(!isGraphListExpanded)} className="text-zinc-400 hover:text-white w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700">
-                                                {isGraphListExpanded ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>}
-                                            </button>
-                                        </div>
-                                        {isGraphListExpanded && (
-                                            <div className="flex flex-col gap-2 mt-1 max-h-40 overflow-y-auto scrollbar-hide">
-                                                {graphs.map((g, idx) => (
-                                                    <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
-                                                        <div className="flex justify-between items-center w-full gap-2">
-                                                                            <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)">
-                                                                                {g.eq || '수식을 입력하세요 (예: x^2+y^2=4)'}
-                                                                            </div>
-                                                                            <div className="flex gap-1 shrink-0">
-                                                                <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                                                                </button>
-                                                                <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
-                                                            </div>
-                                                        </div>
-                                                        {g.matrixMode !== 'global' && (
-                                                            <div className="text-[10px] text-amber-500/80 font-bold text-right px-1">
-                                                                {g.matrixMode === 'none' ? '* 행렬 변환 미적용' : '* 개별 커스텀 행렬 적용중'}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {isGraphListExpanded && (
-                                            <button onClick={addGraph} className="mt-1 w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded font-bold text-xs transition border border-zinc-700 shadow-sm flex items-center justify-center gap-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                                함수 추가하기
-                                            </button>
-                                        )}
-                                        
-                                        {isGraphListExpanded && constants.length > 0 && (
-                                            <div className="mt-4 pt-4 border-t border-sky-500/30 flex flex-col gap-3">
-                                                <span className="text-zinc-400 text-xs font-bold">동적 상수(Constant) 연동</span>
-                                                {constants.map(c => (
-                                                    <div key={c.name} className="flex flex-col gap-1">
-                                                        <ControlRow 
-                                                            label={`상수 ${c.name}`} 
-                                                            min={c.min} max={c.max} step={c.step} 
-                                                            value={c.value} 
-                                                            onChange={v => updateConstant(c.name, 'value', v)} 
-                                                            onReset={() => updateConstant(c.name, 'value', 1.0)}
-                                                            colorClass="indigo" 
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
-                                  <input type="checkbox" checked={usePolygonMode} onChange={(e) => setUsePolygonMode(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
-                                  다각형(도형) 그리기 맵핑
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.polygon); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                                </label>
-                                {usePolygonMode && (
-                                    <div className="flex flex-col gap-2 bg-purple-900/10 p-3 rounded-lg border border-purple-500/20">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-zinc-400 text-xs font-bold">도형 목록 ({polygons.length})</span>
-                                                <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                                </button>
-                                            </div>
-                                            {(polygons.length > 0 || polygonPoints.length > 0) && (
-                                                <button onClick={() => {setPolygonPoints([]); setPolygons([]);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 초기화">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                </button>
-                                            )}
-                                        </div>
-                                        {showManualPolyUI && (
-                                            <div className="flex gap-2 items-center bg-black/40 p-2 rounded border border-purple-500/10 mb-1">
-                                                <span className="text-zinc-500 font-mono text-[10px]">X:</span>
-                                                <CustomNumberInput value={polyManualX} onChange={setPolyManualX} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
-                                                <span className="text-zinc-500 font-mono text-[10px]">Y:</span>
-                                                <CustomNumberInput value={polyManualY} onChange={setPolyManualY} className="flex-1 w-0 bg-zinc-900 text-purple-300 font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-purple-500" />
-                                                <button onClick={handleAddManualPolyPoint} className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">입력</button>
-                                            </div>
-                                        )}
-                                        {polygons.length > 0 && (
-                                            <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto scrollbar-hide pr-1 mt-1 border-b border-purple-500/20 pb-2">
-                                                {polygons.map((poly, i) => (
-                                                    <div key={i} className="flex flex-col rounded-lg border border-purple-500/30 bg-purple-900/20 shadow-sm overflow-hidden transition-all">
-                                                        <div className="flex justify-between items-center px-3 py-2 cursor-pointer hover:bg-purple-800/40 transition" onClick={() => togglePoly(i)}>
-                                                            <div className="flex items-center gap-2 text-purple-200 text-xs font-bold">
-                                                                <svg className={`w-3.5 h-3.5 text-purple-400 transition-transform duration-200 ${expandedPolys.has(i) ? 'rotate-180' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
-                                                                도형 {i+1} <span className="text-purple-400/70 font-mono text-[10px]">({poly.length}점)</span>
-                                                            </div>
-                                                            <button onClick={(e) => { e.stopPropagation(); setPolygons(prev => prev.filter((_, idx) => idx !== i)); }} className="text-rose-400 hover:bg-rose-500/20 font-bold w-6 h-6 flex items-center justify-center rounded transition">✕</button>
-                                                        </div>
-                                                        {expandedPolys.has(i) && (
-                                                            <div className="flex flex-col gap-1.5 px-3 py-2.5 bg-zinc-950/50 border-t border-purple-500/20">
-                                                                {poly.map((p, pIdx) => (
-                                                                    <div key={pIdx} className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pl-2">
-                                                                        <span className="text-purple-300/70">Pt {pIdx+1}</span>
-                                                                        <span>({p.x}, {p.y})</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {polygonPoints.length === 0 ? 
-                                            <span className="text-zinc-500 text-[11px] py-1 leading-relaxed">화면을 클릭하여 꼭짓점을 여러 개 찍은 뒤, <b>빨간색으로 표시된 첫 번째 점</b>을 다시 누르면 도형이 완성됩니다.</span> :
-                                            <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto scrollbar-hide pr-1 mt-1">
-                                                {polygonPoints.map((p, i) => (
-                                                    <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
-                                                        <span>Pt {i+1}</span>
-                                                        <span>({p.x}, {p.y})</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        }
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-center w-full">
-                                    <span className="text-rose-400 font-bold text-sm flex items-center gap-1">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                                        도형의 대칭이동
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.symmetry); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                                    </span>
-                                    <button onClick={() => { handleSyncChange('scaleX', 1.0); handleSyncChange('scaleY', 1.0); setRotation(0); setUseRefl(false); setReflAngle(90); }} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition shadow-sm">초기화</button>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 mt-1">
-                                    <button onClick={() => applySymmetry('X')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">X축 대칭</button>
-                                    <button onClick={() => applySymmetry('Y')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">Y축 대칭</button>
-                                    <button onClick={() => applySymmetry('ORIGIN')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">원점 대칭</button>
-                                    <button onClick={() => applySymmetry('YX')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">y=x 직선 대칭</button>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-2 text-amber-400 font-bold text-sm w-max cursor-pointer">
-                                  <input type="checkbox" checked={useUnitSquare} onChange={(e) => setUseUnitSquare(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
-                                  단위 정사각형 (행렬식/넓이) 시각화
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.unitSquare); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                                </label>
-                            </div>
-
-                        </div>
-                    )}
-                  </div>
-
-                </div>
-              )}
-
+              {/* 3. 색상 변환 탭 */}
               {activeTab === 'color' && (
                 <div className="flex flex-col gap-5 md:gap-6 pb-20">
                   <div className="flex gap-4 md:gap-6 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
@@ -3519,6 +3577,7 @@
               )}
             </div>
           </div>
+        </div>
 
           {!isMobile && (
             <div className="w-1.5 bg-zinc-800 hover:bg-sky-500 cursor-col-resize flex-shrink-0 z-20 flex items-center justify-center transition-colors group relative" 
