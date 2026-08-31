@@ -1205,7 +1205,38 @@
         setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
       };
 
-      const handleImageUpload = (e) => {
+      // 🚀 현재 화면 이미지 병합 및 다운로드 함수
+      const handleSaveImage = (format) => {
+          const c2d = canvasRef.current;
+          const cgl = canvasGLRef.current;
+          if (!c2d) return;
+
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = c2d.width;
+          tempCanvas.height = c2d.height;
+          const tCtx = tempCanvas.getContext('2d');
+
+          // 현재 테마에 맞춰 배경색 칠하기
+          tCtx.fillStyle = isLightMode ? '#f0f2f5' : '#09090b';
+          tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+          // 2D 캔버스와 WebGL 캔버스를 옵션(mathUnderImage) 순서에 맞게 병합
+          if (mathUnderImage && cgl) {
+              tCtx.drawImage(cgl, 0, 0);
+              tCtx.drawImage(c2d, 0, 0);
+          } else {
+              tCtx.drawImage(c2d, 0, 0);
+              if (cgl) tCtx.drawImage(cgl, 0, 0);
+          }
+
+          // 다운로드 트리거
+          const link = document.createElement('a');
+          link.download = `vision_matrix_export.${format === 'jpeg' ? 'jpg' : format}`;
+          link.href = tempCanvas.toDataURL(`image/${format}`, 1.0);
+          link.click();
+      };
+
+      const handleImageUpload = (e) => { // <-- (기존 코드 위치)
         const file = e.target.files[0];
         if (!file) return;
         const url = URL.createObjectURL(file);
@@ -3000,6 +3031,18 @@
                         </div>
                         <span className="text-xs md:text-sm font-bold text-amber-400 group-hover:text-amber-300 transition">교실 발표용 테마 (화이트 모드)</span>
                     </label>
+                    {/* 🚀 결과물 다중 포맷 저장 UI */}
+                    <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3 mt-2">
+                        <span className="text-zinc-300 font-bold text-sm flex items-center gap-1.5">
+                            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            현재 화면 저장 (Export)
+                        </span>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => handleSaveImage('png')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">PNG 저장</button>
+                            <button onClick={() => handleSaveImage('jpeg')} className="bg-zinc-800 hover:bg-amber-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-amber-500 shadow-sm">JPG 저장</button>
+                            <button onClick={() => handleSaveImage('webp')} className="bg-zinc-800 hover:bg-emerald-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-emerald-500 shadow-sm">WEBP 저장</button>
+                        </div>
+                    </div>
                     <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 mt-2 flex flex-col gap-3">
                         <span className="text-zinc-300 font-bold text-sm flex items-center gap-1.5">
                             <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -3221,7 +3264,7 @@
             <div className="flex flex-1 overflow-hidden border-t border-zinc-800 bg-zinc-900 flex-col-reverse md:flex-row">
               
               {/* 1. 사이드바 (표 형태의 단일 선 구분 레이아웃 - 칸 크기 대폭 축소) */}
-              <div className="w-full md:w-[50px] h-[46px] md:h-full bg-zinc-950 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col shrink-0 z-10 shadow-[0_-5px_15px_rgba(0,0,0,0.3)] md:shadow-none">
+              <div className="w-full md:w-[60px] h-[46px] md:h-full bg-zinc-950 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-row md:flex-col shrink-0 z-10 shadow-[0_-5px_15px_rgba(0,0,0,0.3)] md:shadow-none">
                 
                 <button 
                   onClick={() => setActiveTab('geo')} 
