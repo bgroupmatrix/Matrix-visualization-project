@@ -56,7 +56,8 @@
     const DEFAULT_CONFIG = {
         scaleXMin: -5.0, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: -5.0, scaleYMax: 5.0, scaleYStep: 0.1,
         squeezeMin: 0.1, squeezeMax: 3.0, squeezeStep: 0.1, transXMin: -500, transXMax: 500, transXStep: 1, transYMin: -500, transYMax: 500, transYStep: 1,
-        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1
+        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1,
+        perspXMin: -0.01, perspXMax: 0.01, perspXStep: 0.0001, perspYMin: -0.01, perspYMax: 0.01, perspYStep: 0.0001
     };
 
     const GRAPH_COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4'];
@@ -70,7 +71,7 @@
         rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 평면 회전시키는 변환입니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
         shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
         shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
-        refl: { title: "반사 변환 (Reflection)", desc: "변환 중심점을 지나는 직선을 거울 삼아 이미지를 대칭시킵니다. (각도는 X축 기준)", matrix: [['cos(2θ)', 'sin(2θ)', '0'], ['sin(2θ)', '-cos(2θ)', '0'], ['0', '0', '1']] },
+        refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 기울기가 m인 직선(y=mx)을 거울 삼아 도형을 선대칭시킵니다. 수학 '도형의 이동' 단원의 핵심 개념입니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
         mathLab: { title: "수학 실험실 (Math Lab)", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
         graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
         point: { title: "좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
@@ -86,7 +87,9 @@
         duo: { title: "듀오톤 (Duotone)", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
         cAdd: { title: "채널별 밝기 (Channel Add)", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
         cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
-        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
+        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." },
+        perspX: { title: "X축 투시 (Perspective X)", desc: "X좌표에 따라 픽셀의 깊이(W)를 변화시켜, 화면 좌우로 빨려 들어가는 듯한 원근 왜곡(소실점)을 만듭니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
+        perspY: { title: "Y축 투시 (Perspective Y)", desc: "Y좌표에 따라 픽셀의 깊이(W)를 변화시켜, 화면 위아래로 눕혀지는 듯한 스타워즈 오프닝 같은 원근 왜곡을 만듭니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] }
     };
 
     function getOptimalGridStep(z) {
@@ -973,6 +976,7 @@
       const [translateX, setTranslateX] = useState(0); const [translateY, setTranslateY] = useState(0);
       const [rotation, setRotation] = useState(0); const [shearX, setShearX] = useState(0); const [shearY, setShearY] = useState(0);
       const [squeeze, setSqueeze] = useState(1.0); const [useRefl, setUseRefl] = useState(false); const [reflAngle, setReflAngle] = useState(90);
+      const [perspX, setPerspX] = useState(0); const [perspY, setPerspY] = useState(0);
 
       const [chkGray, setChkGray] = useState(false); const [chkInvert, setChkInvert] = useState(false);
       const [globalAdd, setGlobalAdd] = useState(0); const [globalMul, setGlobalMul] = useState(1.0); const [binThresh, setBinThresh] = useState(-1);
@@ -1167,9 +1171,9 @@
       const toggleSync = (key) => { setSyncKeys(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; }); };
 
       const prevVals = useRef({});
-      useEffect(() => { prevVals.current = { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, globalAdd, globalMul, rAdd, rMul, gAdd, gMul, bAdd, bMul }; });
+      useEffect(() => { prevVals.current = { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, perspX, perspY, globalAdd, globalMul, rAdd, rMul, gAdd, gMul, bAdd, bMul }; });
 
-      const stateSetters = { scaleX: setScaleX, scaleY: setScaleY, translateX: setTranslateX, translateY: setTranslateY, rotation: setRotation, shearX: setShearX, shearY: setShearY, squeeze: setSqueeze, globalAdd: setGlobalAdd, globalMul: setGlobalMul, rAdd: setRAdd, rMul: setRMul, gAdd: setGAdd, gMul: setGMul, bAdd: setBAdd, bMul: setBMul };
+      const stateSetters = { scaleX: setScaleX, scaleY: setScaleY, translateX: setTranslateX, translateY: setTranslateY, rotation: setRotation, shearX: setShearX, shearY: setShearY, squeeze: setSqueeze, perspX: setPerspX, perspY: setPerspY, globalAdd: setGlobalAdd, globalMul: setGlobalMul, rAdd: setRAdd, rMul: setRMul, gAdd: setGAdd, gMul: setGMul, bAdd: setBAdd, bMul: setBMul };
       
       const handleSyncChange = (key, newVal) => {
           const oldVal = prevVals.current[key];
@@ -1184,7 +1188,8 @@
                       translateX: {min: config.transXMin, max: config.transXMax}, translateY: {min: config.transYMin, max: config.transYMax},
                       rotation: {min: config.rotMin, max: config.rotMax},
                       shearX: {min: config.shearXMin, max: config.shearXMax}, shearY: {min: config.shearYMin, max: config.shearYMax},
-                      squeeze: {min: config.squeezeMin, max: config.squeezeMax}, globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
+                      squeeze: {min: config.squeezeMin, max: config.squeezeMax}, perspX: {min: config.perspXMin, max: config.perspXMax}, perspY: {min: config.perspYMin, max: config.perspYMax},
+                      globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
                       rAdd: {min: -255, max: 255}, rMul: {min: config.contMin, max: config.contMax}, gAdd: {min: -255, max: 255}, gMul: {min: config.contMin, max: config.contMax}, bAdd: {min: -255, max: 255}, bMul: {min: config.contMin, max: config.contMax}
                   }[k];
                   if (targetNewVal < bounds.min) targetNewVal = bounds.min;
@@ -1213,6 +1218,8 @@
         setShearX(clamp(0, config.shearXMin, config.shearXMax));
         setShearY(clamp(0, config.shearYMin, config.shearYMax));
         setSqueeze(clamp(1.0, config.squeezeMin, config.squeezeMax));
+        setPerspX(clamp(0, config.perspXMin, config.perspXMax));
+        setPerspY(clamp(0, config.perspYMin, config.perspYMax));
         
         setUseRefl(false); setReflAngle(90);
         setChkGray(false); setChkInvert(false); 
@@ -1365,12 +1372,15 @@
           chainOrder.forEach(id => {
               matrix = matrix.multiply(getChainMatrix(id).m);
           });
+          let pMat = new DOMMatrix(); pMat.m14 = perspX; pMat.m24 = perspY;
+          matrix = matrix.multiply(pMat);
       } else {
           matrix = matrix.translate(translateX, translateY); 
           matrix = matrix.translate(transformOriginX, -transformOriginY); 
+          
+          let baseMat = new DOMMatrix();
           if (useRefl) {
-              // 🚀 메인 행렬에도 DOMMatrix 내장함수 체이닝 사용
-              matrix = matrix.multiply(new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle));
+              baseMat = baseMat.multiply(new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle));
           } else { 
               let v = rotation * Math.PI / 180;
               let rM = new DOMMatrix([
@@ -1378,10 +1388,15 @@
                   executeMath(compiledLogic.m01, v, constValues), executeMath(compiledLogic.m11, v, constValues),
                   0, 0
               ]);
-              matrix = matrix.multiply(rM);
+              baseMat = baseMat.multiply(rM);
           }
-          matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
-          matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
+          baseMat = baseMat.scale(scaleX * squeeze, scaleY * (1 / squeeze));
+          baseMat = baseMat.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
+          
+          baseMat.m14 = perspX; 
+          baseMat.m24 = perspY;
+          
+          matrix = matrix.multiply(baseMat);
           matrix = matrix.translate(-transformOriginX, transformOriginY); 
       }
 
@@ -1398,6 +1413,7 @@
       let m00Str = formatMatrixVal(matrix.a, false); let m10Str = formatMatrixVal(matrix.b, false);
       let m01Str = formatMatrixVal(matrix.c, false); let m11Str = formatMatrixVal(matrix.d, false);
       let m02Str = formatMatrixVal(matrix.e, true); let m12Str = formatMatrixVal(matrix.f, true);
+      let m20Str = formatMatrixVal(perspX, false); let m21Str = formatMatrixVal(perspY, false);
 
       const handleMatrixUpdate = (key, v) => {
           setConfig(prev => {
@@ -1419,9 +1435,10 @@
           if (key === 'd') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setScaleY(v); }
           if (key === 'c') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearX(scaleY !== 0 ? v / scaleY : 0); }
           if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
+          if (key === 'g') setPerspX(v);
+          if (key === 'h') setPerspY(v);
       };
 
-      // 🚀 통합 정밀 타격 엔진: "모니터 화면 픽셀(Screen Pixel)" 기준으로 거리를 재고, 빈 공간(투명 픽셀)을 무시합니다.
       // 🚀 통합 정밀 타격 엔진: "모니터 화면 픽셀(Screen Pixel)" 기준으로 거리를 재고, 빈 공간(투명 픽셀)을 무시합니다.
       const getHitShadowId = (screenX, screenY) => {
           let canvasPt = new DOMPoint(screenX / camera.z, screenY / camera.z);
@@ -2833,10 +2850,10 @@
                       <path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" />
                     </svg>
                     <div className="grid grid-cols-3 gap-x-3 gap-y-4 text-center font-mono text-base font-bold text-sky-400 mx-1 flex-1 w-full max-w-[240px]">
-                      {logicInfoData.matrix.flat().map((val, idx) => (
-                        <div key={idx} className={val === '0' || val === '1' ? 'text-zinc-500 flex items-center justify-center whitespace-nowrap' : 'text-sky-400 text-shadow-glow flex items-center justify-center whitespace-nowrap'}>{val}</div>
-                      ))}
-                    </div>
+                    {logicInfoData.matrix.flat().map((val, idx) => (
+                      <div key={idx} className={val === '0' || val === '1' ? 'text-zinc-500 flex items-center justify-center whitespace-nowrap' : 'text-sky-400 text-shadow-glow flex items-center justify-center whitespace-nowrap text-[10px] md:text-[11px] tracking-tighter'}>{val}</div>
+                    ))}
+                  </div>
                     <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0">
                       <path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" />
                     </svg>
@@ -3220,6 +3237,8 @@
                     <ConfigRow title="X축 전단 (Shear X)" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
                     <ConfigRow title="Y축 전단 (Shear Y)" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
                     <ConfigRow title="스퀴즈 (Squeeze)" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
+                    <ConfigRow title="X축 투시 (Persp X)" prefix="perspX" config={config} setConfig={setConfig} colorClass="emerald" />
+                    <ConfigRow title="Y축 투시 (Persp Y)" prefix="perspY" config={config} setConfig={setConfig} colorClass="emerald" />
                     <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
                   </div>
                 )}
@@ -3283,10 +3302,9 @@
                   )}
               </button>
 
-              {/* 🚀 PC: 행렬 분해 보기 i 아이콘 및 리셋 아이콘 추가 */}
               {showMatrixChain && (
                   <>
-                      <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-16 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
+                      <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-[60px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
                       </button>
                       <button onClick={() => setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back'])} className="absolute top-4 left-[104px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-rose-400 border border-rose-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 순서 초기화">
@@ -3295,9 +3313,11 @@
                   </>
               )}
 
-              <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-              </button>
+              {!showMatrixChain && (
+                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  </button>
+              )}
               
               <div className="flex items-center justify-center relative w-full h-[180px]">
                   {showMatrixChain ? (
@@ -3349,8 +3369,8 @@
                             <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                             <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
                             <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
-                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
+                            <MatrixInput value={m20Str} onChange={v => handleMatrixUpdate('g', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m20Str, "0.00", "0")}`} />
+                            <MatrixInput value={m21Str} onChange={v => handleMatrixUpdate('h', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m21Str, "0.00", "0")}`} />
                             <div className="text-zinc-600 pointer-events-none w-full text-center">1</div>
                           </div>
                           <div className="flex items-center justify-center w-8">
@@ -3426,6 +3446,11 @@
                     <div className="space-y-4">
                       <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
                       <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    <div className="space-y-4">
+                      <ControlRow label="X축 투시 (Persp X)" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => handleSyncChange('perspX', v)} onReset={() => handleSyncChange('perspX', 0)} colorClass="emerald" syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} />
+                      <ControlRow label="Y축 투시 (Persp Y)" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => handleSyncChange('perspY', v)} onReset={() => handleSyncChange('perspY', 0)} colorClass="emerald" syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} />
                     </div>
                     <hr className="border-zinc-800" />
                     
@@ -3893,8 +3918,8 @@
                         <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                         <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
                         <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
+                        <MatrixInput value={m20Str} onChange={v => handleMatrixUpdate('g', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m20Str, "0.00", "0")}`} />
+                        <MatrixInput value={m21Str} onChange={v => handleMatrixUpdate('h', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m21Str, "0.00", "0")}`} />
                         <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">1</div>
                       </div>
                   )}
