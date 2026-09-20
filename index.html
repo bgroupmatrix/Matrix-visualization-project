@@ -76,22 +76,22 @@
         refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 기울기가 m인 직선(y=mx)을 거울 삼아 도형을 선대칭시킵니다. 수학 '도형의 이동' 단원의 핵심 개념입니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
         reflLine: { title: "직선 방정식에 대한 대칭이동", desc: "사용자가 입력한 임의의 직선 Ax + By + C = 0 을 거울 삼아 대칭이동합니다. C가 0이 아닐 경우 행렬에 이동(Translation) 연산이 포함된 3x3 동차 행렬로 구성됩니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
         proj: { title: "직선에 대한 정사영 (Projection)", desc: "원점을 지나는 기울기가 m인 직선(y=mx) 위로 도형의 모든 점을 수직으로 내려 찍어 납작하게 만드는 변환입니다.", matrix: [['1/(1+m²)', 'm/(1+m²)', '0'], ['m/(1+m²)', 'm²/(1+m²)', '0'], ['0', '0', '1']] },
-        mathLab: { title: "수학 실험실 (Math Lab)", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
-        graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
-        point: { title: "좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
-        polygon: { title: "다각형 그리기 맵핑", desc: "화면을 터치해 꼭짓점을 찍고, 처음 찍은 점을 다시 클릭하면 다각형 도형이 생성됩니다. 행렬 변환 시 뼈대 점들이 어떻게 움직여 도형이 찌그러지는지 확인해보세요." },
+        mathLab: { title: "수학 모드", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
+        graph: { title: "함수 그리기", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
+        point: { title: "점 그리기", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
+        polygon: { title: "도형 그리기", desc: "화면을 터치해 꼭짓점을 찍고, 처음 찍은 점을 다시 클릭하면 다각형 도형이 생성됩니다. 행렬 변환 시 뼈대 점들이 어떻게 움직여 도형이 찌그러지는지 확인해보세요." },
         symmetry: { title: "도형의 대칭이동", desc: "고등학교 1학년 수학 과정의 핵심인 x축, y축, 원점, y=x 직선에 대한 대칭이동을 원클릭으로 수행합니다. 각 버튼을 누르면 그에 맞는 변환 행렬로 자동 셋팅됩니다." },
-        unitSquare: { title: "단위 정사각형 (행렬식/넓이)", desc: "한 변의 길이가 1인 기준 정사각형을 띄웁니다. 행렬 변환 후 이 정사각형의 넓이가 바로 행렬식(Determinant, |ad-bc|)의 값을 의미합니다. 넓이가 어떻게 뻥튀기되는지 관찰하세요.", formulas: ["넓이 변화율 = |ad - bc|"] },
-        origin: { title: "변환 중심점 (Origin)", desc: "기본적으로 모든 도형과 사진의 회전 및 확대는 원점(0,0)을 기준으로 일어납니다. 이 좌표를 조절하면 행렬 변환의 '축'이 바뀌어 전혀 다른 궤적의 이동이 발생합니다." },
-        chkGray: { title: "흑백화 (Grayscale)", desc: "빛의 3원색(RGB)에 눈의 민감도를 곱해 무채색으로 변환합니다.", formulas: ["Gray = R*0.299 + G*0.587 + B*0.114", "R = Gray, G = Gray, B = Gray"] },
-        chkInv: { title: "색상 반전 (Invert)", desc: "빛의 삼원색 한계치(255)에서 현재 색상을 빼 보색을 만듭니다.", formulas: ["R = 255 - R", "G = 255 - G", "B = 255 - B"] },
-        gAdd: { title: "전체 밝기 (Global Add)", desc: "모든 픽셀에 동일한 상수를 더해 화면 전체를 밝게 하거나 어둡게 합니다.", formulas: ["R' = R + Add"] },
-        gMul: { title: "전체 명암비 (Global Contrast)", desc: "밝은 곳은 더 밝게, 어두운 곳은 더 어둡게 배율을 곱해 색상의 대비를 키웁니다.", formulas: ["R' = R * Contrast"] },
-        binThresh: { title: "이진화 (Binary Threshold)", desc: "특정 임계값을 기준으로 픽셀을 오직 흰색(255)과 검은색(0)으로만 나눕니다.", formulas: ["if (Gray > Threshold) 255", "else 0"] },
-        duo: { title: "듀오톤 (Duotone)", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
-        cAdd: { title: "채널별 밝기 (Channel Add)", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
-        cMul: { title: "채널별 명암비 (Channel Contrast)", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
-        matrixChain: { title: "행렬 분해 조립기 (연산 순서)", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
+        unitSquare: { title: "단위 정사각형", desc: "한 변의 길이가 1인 기준 정사각형을 띄웁니다. 행렬 변환 후 이 정사각형의 넓이가 바로 행렬식(Determinant, |ad-bc|)의 값을 의미합니다. 넓이가 어떻게 뻥튀기되는지 관찰하세요.", formulas: ["넓이 변화율 = |ad - bc|"] },
+        origin: { title: "변환 중심점", desc: "기본적으로 모든 도형과 사진의 회전 및 확대는 원점(0,0)을 기준으로 일어납니다. 이 좌표를 조절하면 행렬 변환의 '축'이 바뀌어 전혀 다른 궤적의 이동이 발생합니다." },
+        chkGray: { title: "흑백화", desc: "빛의 3원색(RGB)에 눈의 민감도를 곱해 무채색으로 변환합니다.", formulas: ["Gray = R*0.299 + G*0.587 + B*0.114", "R = Gray, G = Gray, B = Gray"] },
+        chkInv: { title: "색상 반전", desc: "빛의 삼원색 한계치(255)에서 현재 색상을 빼 보색을 만듭니다.", formulas: ["R = 255 - R", "G = 255 - G", "B = 255 - B"] },
+        gAdd: { title: "전체 밝기", desc: "모든 픽셀에 동일한 상수를 더해 화면 전체를 밝게 하거나 어둡게 합니다.", formulas: ["R' = R + Add"] },
+        gMul: { title: "전체 명암비", desc: "밝은 곳은 더 밝게, 어두운 곳은 더 어둡게 배율을 곱해 색상의 대비를 키웁니다.", formulas: ["R' = R * Contrast"] },
+        binThresh: { title: "이진화", desc: "특정 임계값을 기준으로 픽셀을 오직 흰색(255)과 검은색(0)으로만 나눕니다.", formulas: ["if (Gray > Threshold) 255", "else 0"] },
+        duo: { title: "듀오톤", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
+        cAdd: { title: "색상별 밝기", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
+        cMul: { title: "색상별 명암비", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
+        matrixChain: { title: "행렬 곱셈 순서 변경", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
     };
 
     function getOptimalGridStep(z) {
@@ -251,15 +251,15 @@
         <div className="flex justify-between items-center">
           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
             {label}
-            {onOpenInfo && ( <button onClick={onOpenInfo} title="설명 보기" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button> )}
-            {syncKey && ( <button onClick={onToggleSync} title="동기화 링크" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
+            {onOpenInfo && ( <button onClick={onOpenInfo} title="설명" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button> )}
+            {syncKey && ( <button onClick={onToggleSync} title="동기화" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
             {onReset && ( 
               <button onClick={onReset} title="초기화" className="text-zinc-500 hover:text-white transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
               </button> 
             )}
             {onOpenLogic && ( 
-              <button onClick={onOpenLogic} title="설정 변경" className="text-zinc-500 hover:text-white transition">
+              <button onClick={onOpenLogic} title="삼각비 변경" className="text-zinc-500 hover:text-white transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
               </button> 
             )}
@@ -428,6 +428,14 @@
       const [shadowStates, setShadowStates] = useState([]);
       const [showShadowMenu, setShowShadowMenu] = useState(false);
       const [selectedShadowId, setSelectedShadowId] = useState(null);
+
+      // 🚀 그림자가 모두 삭제되면 개별 팝업 메뉴도 자동으로 닫히도록 동기화
+      useEffect(() => {
+          if (shadowStates.length === 0) {
+              setShowShadowMenu(false);
+              setSelectedShadowId(null);
+          }
+      }, [shadowStates.length]);
 
       // 그림자 메뉴가 닫히면 위치를 초기화하여 다음번 열릴 때 기본 위치에 뜨게 함
       useEffect(() => {
@@ -1417,7 +1425,7 @@
                           let A = reflLineA, B = reflLineB, C = reflLineC;
                           if (A === 0 && B === 0) { A = 1; B = -1; }
                           let D = A * A + B * B;
-                          return { m: new DOMMatrix([(B*B - A*A)/D, (-2*A*B)/D, (-2*A*B)/D, (A*A - B*B)/D, (-2*A*C)/D, (-2*B*C)/D]), label: '선 반사' };
+                          return { m: new DOMMatrix([(B*B - A*A)/D, (-2*A*B)/D, (-2*A*B)/D, (A*A - B*B)/D, (-2*A*C)/D, (-2*B*C)/D]), label: '반사' };
                       } else {
                           let rad = reflAngle * Math.PI / 180;
                           let c2 = Math.cos(2 * rad); let s2 = Math.sin(2 * rad);
@@ -1439,7 +1447,7 @@
                       return { m: rM, label: '회전' };
                   }
               case 'scale': return { m: new DOMMatrix().scale(scaleX * squeeze, scaleY * (1 / squeeze)), label: '크기' };
-              case 'shear': return { m: new DOMMatrix([1, shearY, shearX, 1, 0, 0]), label: '전단(Shear)' };
+              case 'shear': return { m: new DOMMatrix([1, shearY, shearX, 1, 0, 0]), label: '전단' };
               default: return { m: new DOMMatrix(), label: '알수없음' };
           }
       };
@@ -3417,9 +3425,9 @@
                           <div className="p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
                               <b className="text-indigo-400 block mb-0.5 md:mb-1 flex items-center gap-1">
                                   <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                  왜 2차원 좌표계에서 3행(W)이 필요하나요? (동차좌표계)
+                                  왜 (X, Y)를 세로로 세워서 곱하나요?
                               </b>
-                              이동이나 투시(원근감) 변환은 단순한 2x2 행렬의 곱셈만으로는 수학적으로 표현할 수 없습니다. 따라서 차원을 하나 늘려 <strong className="text-white">가상의 3차원 축(W=1)</strong>을 만들고 3x3 행렬로 계산한 뒤, 마지막에 다시 <strong className="text-white">W' 값으로 나누어(투시 분할)</strong> 2차원 화면으로 되돌리는 방식을 사용합니다.
+                              행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 (X, Y)를 3 x 3 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 행렬</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
                           </div>
                       </div>
                       
@@ -3456,19 +3464,19 @@
                                     <input type="radio" name="matrixMode" checked={g.matrixMode === 'global'} onChange={() => {
                                         setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'global' } : item));
                                     }} className="accent-purple-500" />
-                                    <span className="text-zinc-300 font-bold text-sm">기본 (글로벌 행렬 따르기)</span>
+                                    <span className="text-zinc-300 font-bold text-sm">행렬 변환 적용</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-zinc-800 transition">
                                     <input type="radio" name="matrixMode" checked={g.matrixMode === 'none'} onChange={() => {
                                         setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'none' } : item));
                                     }} className="accent-purple-500" />
-                                    <span className="text-zinc-300 font-bold text-sm">적용 안 함 (변환 무시)</span>
+                                    <span className="text-zinc-300 font-bold text-sm">행렬 변환 미적용</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-zinc-800 transition">
                                     <input type="radio" name="matrixMode" checked={g.matrixMode === 'custom'} onChange={() => {
                                         setGraphs(prev => prev.map(item => item.id === g.id ? { ...item, matrixMode: 'custom' } : item));
                                     }} className="accent-purple-500" />
-                                    <span className="text-zinc-300 font-bold text-sm text-purple-400">개별 행렬 직접 입력</span>
+                                    <span className="text-zinc-300 font-bold text-sm text-purple-400">변환 행렬 입력</span>
                                 </label>
                             </div>
 
@@ -3505,11 +3513,11 @@
             <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
               <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                  <h3 className="text-white font-bold text-lg md:text-xl">수학 로직 변경</h3>
+                  <h3 className="text-white font-bold text-lg md:text-xl">삼각비 변경</h3>
                   <button onClick={() => setLogicModalOpen(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
                 <p className="text-zinc-400 text-[11px] md:text-xs">
-                  회전 변환(Rotation)의 수학 함수식을 직접 수정합니다.<br/>
+                  회전 변환의 함수식을 직접 수정합니다.<br/>
                   변수 <code className="text-sky-400 bg-zinc-800 px-1 rounded mx-0.5">v</code>는 슬라이더의 라디안 값입니다.<br/>
                   <span className="text-zinc-500">(예: <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">tan(v)</code>, <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">-sin(v)*2</code>)</span>
                 </p>
@@ -3533,10 +3541,10 @@
             <div className="flex flex-col md:flex-row items-end md:items-center gap-2 pointer-events-auto">
                 {shadowStates.length > 0 && (
                     <>
-                        <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="모든 그림자 재생">
+                        <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="모든 애니메이션 재생">
                             <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
                         </button>
-                        <button onClick={() => setShadowStates([])} className="p-2 md:p-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-rose-500" title="모든 그림자 삭제">
+                        <button onClick={() => setShadowStates([])} className="p-2 md:p-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-rose-500" title="모든 애니메이션 삭제">
                             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </>
@@ -3548,22 +3556,22 @@
             {isSettingsOpen && (
               <div className="pointer-events-auto mt-2 md:mt-3 bg-zinc-800 border border-zinc-700 shadow-2xl rounded-xl p-4 flex flex-col w-[85vw] md:w-[28rem] animate-fade-in origin-top-right">
                 <div className="flex border-b border-zinc-700 mb-4">
-                  <button onClick={() => setSettingsTab('display')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='display' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>디스플레이</button>
-                  <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력값 조절</button>
+                  <button onClick={() => setSettingsTab('display')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='display' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>화면 설정</button>
+                  <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력 값 설정</button>
                 </div>
                 {settingsTab === 'display' && (
                   <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
                     
                     {/* 1. 기본 동작 설정 */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기본 동작 설정</span>
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기본 설정</span>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
                                 <input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" />
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진 불러올 때 리셋 (Auto Reset)</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 자동 초기화</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
@@ -3579,7 +3587,7 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 값 딱 떨어지게 표시 (1.00 → 1)</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 원소 정수 표시 (1.00 → 1)</span>
                         </label>
                     </div>
 
@@ -3587,14 +3595,14 @@
 
                     {/* 2. 시각화 옵션 */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">화면 시각화 옵션</span>
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">화면 시각화 설정</span>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
                                 <input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" />
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 격자(그리드) 아래로 배치</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 격자 아래로 배치</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
@@ -3602,7 +3610,7 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">격자(그리드) 숨기기</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">격자 숨기기</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
@@ -3610,7 +3618,7 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">공간 왜곡(Warped Grid) 시각화</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">공간 왜곡 시각화</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
@@ -3618,7 +3626,7 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">화이트 테마 (교실 발표용)</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">화이트 테마</span>
                         </label>
                     </div>
 
@@ -3626,7 +3634,7 @@
 
                     {/* 3. 수학 실험실 전용 설정 */}
                     <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">수학 실험실 전용 옵션</span>
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">수학 모드 설정</span>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
                                 <input type="checkbox" checked={showImageInMathLab} onChange={(e) => {
@@ -3646,7 +3654,7 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 모드 전환 시 화면 줌/좌표 고정</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 모드 전환 시 화면 고정</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
                             <div className="relative">
@@ -3654,10 +3662,10 @@
                                 <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
                                 <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 함수/점을 사진 아래로 내리기</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">도형을 사진 아래로 배치</span>
                         </label>
                         <div className="flex items-center justify-between gap-3 bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                            <span className="text-xs md:text-sm font-medium text-zinc-300">수학 좌표 1단위 = ? px</span>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300">수학 모드에서 1단위 당 픽셀 지정</span>
                             <div className="flex items-center gap-2">
                                 <CustomNumberInput value={pixelsPerUnit} onChange={(v) => setPixelsPerUnit(v > 0 ? v : 1)} className="w-14 bg-zinc-950 text-sky-400 font-bold px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-sky-500 text-center" />
                                 <span className="text-xs font-bold text-zinc-400">px</span>
@@ -3672,7 +3680,7 @@
                         <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">부가 기능 설정</span>
                         <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3">
                             <span className="text-zinc-300 font-medium text-sm flex items-center gap-1.5">
-                                변환 중심점 (Origin) 설정
+                                변환 중심점 설정
                                 <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-auto"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                             </span>
                             <div className="flex gap-2">
@@ -3690,7 +3698,7 @@
                         <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3">
                             <span className="text-zinc-300 font-medium text-sm flex items-center gap-1.5">
                                 <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                현재 화면 캡처 저장
+                                화면 캡처
                             </span>
                             <div className="grid grid-cols-3 gap-2">
                                 <button onClick={() => handleSaveImage('png')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">PNG</button>
@@ -3705,7 +3713,7 @@
                 {settingsTab === 'inputs' && (
                   <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
                     <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기하학 변환 슬라이더 설정</span>
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기하학 변환</span>
                         <div className="flex flex-col gap-4">
                             <ConfigRow title="X축 확대 (Scale X)" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
                             <ConfigRow title="Y축 확대 (Scale Y)" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
@@ -3721,7 +3729,7 @@
                     </div>
                     <hr className="border-zinc-700/50" />
                     <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider pl-1">색상 변환 슬라이더 설정</span>
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">색상 변환</span>
                         <div className="flex flex-col gap-4">
                             <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
                         </div>
@@ -3762,12 +3770,12 @@
               <div className="flex gap-2 mt-4">
                 <label className="flex-1 flex justify-center items-center gap-2 bg-zinc-100 hover:bg-white text-black py-2.5 rounded-lg text-base font-bold transition cursor-pointer shadow truncate">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                  사진 열기
+                  사진 불러오기
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
                 <button onClick={() => resetAll(imageObj)} className="px-5 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-base font-bold transition shadow shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
-                  전체 리셋
+                  전체 초기화
                 </button>
               </div>
             </div>
@@ -3775,12 +3783,12 @@
             <div className="hidden md:flex bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative px-4 py-6 min-h-[220px]">
                 {/* 🚀 PC용 현재 상태 저장 버튼 (아이콘 변경) */}
               {!showMatrixChain && (
-                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 그림자로 저장">
+                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 저장">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                   </button>
               )}
               
-              <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 분해하여 보기">
+              <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 순서 변경">
                   {showMatrixChain ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                   ) : (
@@ -3790,17 +3798,17 @@
 
               {showMatrixChain && (
                   <>
-                      <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-[60px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 분해 조립기 설명">
+                      <button onClick={() => setLogicInfoData(INFO_DATA.matrixChain)} className="absolute top-4 left-[60px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 곱셈 순서 변경 설명">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg>
                       </button>
-                      <button onClick={() => setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back'])} className="absolute top-4 left-[104px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-rose-400 border border-rose-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="행렬 순서 초기화">
+                      <button onClick={() => setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back'])} className="absolute top-4 left-[104px] w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-rose-400 border border-rose-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="곱셈 순서 초기화">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
                       </button>
                   </>
               )}
 
               {!showMatrixChain && (
-                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow-lg z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.6)]' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow-lg z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.6)]' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 연산 과정 보기">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                   </button>
               )}
@@ -3942,11 +3950,11 @@
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                                반사 변환 직선 켜기
+                                반사 변환 직선
                             </span>
                             <div className="flex items-center gap-3">
                                 <button onClick={() => { setReflMode(prev => prev === 'angle' ? 'line' : 'angle'); setUseRefl(true); }} className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-1 px-2 rounded border border-zinc-700 transition">
-                                    {reflMode === 'angle' ? '방정식 모드로 전환' : '각도 모드로 전환'}
+                                    {reflMode === 'angle' ? '함수' : '각도'}
                                 </button>
                                 <label className="flex items-center cursor-pointer group">
                                     <div className="relative">
@@ -3985,7 +3993,7 @@
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                                투영 변환 직선 (y = ax) 켜기
+                                투영 변환 직선
                             </span>
                             <label className="flex items-center cursor-pointer group">
                                 <div className="relative">
@@ -4003,7 +4011,7 @@
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                                투시 변환 (Perspective 원근 왜곡) 켜기
+                                투시 변환 (Perspective)
                             </span>
                             <label className="flex items-center cursor-pointer group">
                                 <div className="relative">
@@ -4014,8 +4022,8 @@
                                 </div>
                             </label>
                         </div>
-                        <ControlRow label="수평 조절 (X축 깊이)" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
-                        <ControlRow label="수직 조절 (Y축 깊이)" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
+                        <ControlRow label="수평 투시 (Perspective X)" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
+                        <ControlRow label="수직 투시 (Perspective Y)" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
                     </div>
                     <hr className="border-zinc-800" />
                   </div>
@@ -4027,7 +4035,7 @@
                     <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                           <span className="text-indigo-400 font-black text-lg flex items-center gap-1.5">
-                              수학 실험실 전원 켜기
+                              수학 모드
                               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                           </span>
                           <label className="flex items-center cursor-pointer group">
@@ -4044,21 +4052,21 @@
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
                                     <input type="checkbox" checked={usePointMode} onChange={(e) => { setUsePointMode(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
-                                    좌표 점 맵핑
+                                    점 그리기
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.point); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
                                   {usePointMode && (
                                       <div className="flex flex-col gap-2 bg-emerald-900/10 p-3 rounded-lg border border-emerald-500/20">
                                           <div className="flex justify-between items-center mb-1">
                                               <div className="flex items-center gap-2">
-                                                  <span className="text-zinc-400 text-xs font-bold">찍힌 점 목록 ({points.length})</span>
-                                                  <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                  <span className="text-zinc-400 text-xs font-bold">점 목록 ({points.length})</span>
+                                                  <button onClick={() => setShowManualPointUI(!showManualPointUI)} className="bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 border border-emerald-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 좌표 입력">
                                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                                                   </button>
                                               </div>
                                               <div className="flex gap-1">
                                                   {points.length > 0 && (
-                                                      <button onClick={() => setPoints([])} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 지우기">
+                                                      <button onClick={() => setPoints([])} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 삭제">
                                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                       </button>
                                                   )}
@@ -4097,7 +4105,7 @@
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
                                     <input type="checkbox" checked={usePolygonMode} onChange={(e) => { setUsePolygonMode(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
-                                    다각형(도형) 그리기 맵핑
+                                    도형 그리기
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.polygon); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
                                   {usePolygonMode && (
@@ -4105,12 +4113,12 @@
                                           <div className="flex justify-between items-center mb-1">
                                               <div className="flex items-center gap-2">
                                                   <span className="text-zinc-400 text-xs font-bold">도형 목록 ({polygons.length})</span>
-                                                  <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="점 직접 입력">
+                                                  <button onClick={() => setShowManualPolyUI(!showManualPolyUI)} className="bg-purple-600/30 hover:bg-purple-600/50 text-purple-400 border border-purple-500/30 w-5 h-5 flex items-center justify-center rounded transition text-xs font-black" title="꼭짓점 입력">
                                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                                                   </button>
                                               </div>
                                               {(polygons.length > 0 || polygonPoints.length > 0) && (
-                                                  <button onClick={() => {setPolygonPoints([]); setPolygons([]);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 초기화">
+                                                  <button onClick={() => {setPolygonPoints([]); setPolygons([]);}} className="text-zinc-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center bg-zinc-800 rounded font-bold transition shadow-sm border border-zinc-700" title="전체 삭제">
                                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                   </button>
                                               )}
@@ -4167,7 +4175,7 @@
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-sky-400 font-bold text-sm w-max cursor-pointer">
                                     <input type="checkbox" checked={useGraph} onChange={(e) => { setUseGraph(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
-                                    함수(f(x)) 맵핑
+                                    함수 그리기
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
                                   {useGraph && (
@@ -4250,7 +4258,7 @@
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-amber-400 font-bold text-sm w-max cursor-pointer">
                                     <input type="checkbox" checked={useUnitSquare} onChange={(e) => { setUseUnitSquare(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
-                                    단위 정사각형 (행렬식/넓이) 시각화
+                                    단위 정사각형 시각화
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.unitSquare); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
                               </div>
@@ -4267,7 +4275,7 @@
                   <div className="space-y-4">
                       <div className="flex items-center justify-between">
                           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                              흑백화 (Grayscale) 켜기
+                              흑백화
                               <button onClick={() => setLogicInfoData(INFO_DATA.chkGray)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                           </span>
                           <label className="flex items-center cursor-pointer group">
@@ -4280,7 +4288,7 @@
                       </div>
                       <div className="flex items-center justify-between">
                           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                              색상 반전 (Invert) 켜기
+                              색상 반전
                               <button onClick={() => setLogicInfoData(INFO_DATA.chkInv)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                           </span>
                           <label className="flex items-center cursor-pointer group">
@@ -4293,7 +4301,7 @@
                       </div>
                       <div className="flex items-center justify-between">
                           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                              가짜 컬러 복원 (듀오톤) 켜기
+                              가짜 색상 복원 (듀오톤)
                               <button onClick={() => setLogicInfoData(INFO_DATA.duo)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                           </span>
                           <label className="flex items-center cursor-pointer group">
@@ -4315,21 +4323,21 @@
                   <div className="space-y-4">
                     <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} onReset={() => handleSyncChange('globalAdd', 0)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
                     <ControlRow label="전체 명암비 (x)" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} onReset={() => handleSyncChange('globalMul', 1.0)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
-                    <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} onReset={() => setBinThresh(-1)} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
+                    <ControlRow label="이진화 (-1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} onReset={() => setBinThresh(-1)} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
                   </div>
 
                   <hr className="border-zinc-800" />
                   <div className="space-y-4 p-3 border-l-2 border-red-500">
-                    <ControlRow label="Red 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} onReset={() => handleSyncChange('rAdd', 0)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Red 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} onReset={() => handleSyncChange('rMul', 1.0)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="빨간색 밝기" min="-255" max="255" step="1" value={rAdd} onChange={v=>handleSyncChange('rAdd', v)} onReset={() => handleSyncChange('rAdd', 0)} syncKey="rAdd" isSynced={syncKeys.has('rAdd')} onToggleSync={()=>toggleSync('rAdd')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="빨간색 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={rMul} onChange={v=>handleSyncChange('rMul', v)} onReset={() => handleSyncChange('rMul', 1.0)} syncKey="rMul" isSynced={syncKeys.has('rMul')} onToggleSync={()=>toggleSync('rMul')} colorClass="red" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-green-500">
-                    <ControlRow label="Green 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} onReset={() => handleSyncChange('gAdd', 0)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Green 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} onReset={() => handleSyncChange('gMul', 1.0)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="초록색 밝기" min="-255" max="255" step="1" value={gAdd} onChange={v=>handleSyncChange('gAdd', v)} onReset={() => handleSyncChange('gAdd', 0)} syncKey="gAdd" isSynced={syncKeys.has('gAdd')} onToggleSync={()=>toggleSync('gAdd')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="초록색 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={gMul} onChange={v=>handleSyncChange('gMul', v)} onReset={() => handleSyncChange('gMul', 1.0)} syncKey="gMul" isSynced={syncKeys.has('gMul')} onToggleSync={()=>toggleSync('gMul')} colorClass="green" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                   <div className="space-y-4 p-3 border-l-2 border-blue-500 mb-8">
-                    <ControlRow label="Blue 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} onReset={() => handleSyncChange('bAdd', 0)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
-                    <ControlRow label="Blue 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} onReset={() => handleSyncChange('bMul', 1.0)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
+                    <ControlRow label="파란색 밝기" min="-255" max="255" step="1" value={bAdd} onChange={v=>handleSyncChange('bAdd', v)} onReset={() => handleSyncChange('bAdd', 0)} syncKey="bAdd" isSynced={syncKeys.has('bAdd')} onToggleSync={()=>toggleSync('bAdd')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cAdd)} />
+                    <ControlRow label="파란색 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={bMul} onChange={v=>handleSyncChange('bMul', v)} onReset={() => handleSyncChange('bMul', 1.0)} syncKey="bMul" isSynced={syncKeys.has('bMul')} onToggleSync={()=>toggleSync('bMul')} colorClass="blue" onOpenInfo={() => setLogicInfoData(INFO_DATA.cMul)} />
                   </div>
                 </div>
               )}
@@ -4398,7 +4406,7 @@
                         title="드래그하여 팝업창 이동"
                     >
                         <span className="text-zinc-300 font-bold mr-1 text-xs md:text-sm whitespace-nowrap select-none">
-                            그림자 {shadowStates.findIndex(s => s.id === selectedShadowId) + 1}
+                            애니매이션 {shadowStates.findIndex(s => s.id === selectedShadowId) + 1}
                         </span>
                     </div>
 
@@ -4452,7 +4460,7 @@
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
                   </button>
               )}
-              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition-colors ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 맞춤">
+              <button onClick={goHome} className={`px-3 py-3 md:px-4 md:py-4 hover:bg-sky-600 bg-sky-500 text-white transition-colors ${isMobile ? 'border-t' : ''} border-zinc-700`} title="화면 복귀">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
               </button>
               <button onClick={zoomIn} className="px-3 py-3 md:px-4 md:py-4 hover:bg-zinc-700 text-zinc-300 hover:text-white border-t border-zinc-700 transition-colors" title="확대">
@@ -4478,13 +4486,13 @@
                   </button>
                   
                   {/* 우상단: 연산 과정 보기 */}
-                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${isCalcMode ? 'bg-amber-500 border-amber-400 text-white animate-pulse' : 'bg-zinc-800 border-zinc-600 text-amber-400 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border ${isCalcMode ? 'bg-amber-500 border-amber-400 text-white animate-pulse' : 'bg-zinc-800 border-zinc-600 text-amber-400 hover:bg-zinc-700 hover:text-white'}`} title="행렬 연산 과정 보기">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                   </button>
 
                   {/* 우하단: 그림자 저장 (중복 코드 완벽 삭제됨) */}
                   {!showMatrixChain && (
-                      <button onClick={handleSaveState} className="absolute -bottom-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border bg-zinc-800 border-zinc-600 text-indigo-400 hover:bg-zinc-700 hover:text-white" title="현재 상태 그림자로 저장">
+                      <button onClick={handleSaveState} className="absolute -bottom-3 -right-3 w-8 h-8 flex items-center justify-center rounded-full transition shadow-lg z-10 border bg-zinc-800 border-zinc-600 text-indigo-400 hover:bg-zinc-700 hover:text-white" title="현재 상태 저장">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                       </button>
                   )}
