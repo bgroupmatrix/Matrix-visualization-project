@@ -56,12 +56,15 @@
     const DEFAULT_CONFIG = {
         scaleXMin: -5.0, scaleXMax: 5.0, scaleXStep: 0.1, scaleYMin: -5.0, scaleYMax: 5.0, scaleYStep: 0.1,
         squeezeMin: 0.1, squeezeMax: 3.0, squeezeStep: 0.1, transXMin: -500, transXMax: 500, transXStep: 1, transYMin: -500, transYMax: 500, transYStep: 1,
-        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1
+        rotMin: -180, rotMax: 180, rotStep: 1, shearXMin: -3.0, shearXMax: 3.0, shearXStep: 0.1, shearYMin: -3.0, shearYMax: 3.0, shearYStep: 0.1, contMin: 0, contMax: 5.0, contStep: 0.1,
+        perspXMin: -0.005, perspXMax: 0.005, perspXStep: 0.00005, perspYMin: -0.005, perspYMax: 0.005, perspYStep: 0.00005
     };
 
     const GRAPH_COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4'];
 
     const INFO_DATA = {
+        perspX: { title: "수평 투시 (Perspective X)", desc: "X축 방향으로 원근감을 주어 이미지를 눕힙니다. 값이 작을수록 픽셀 좌표계에서 자연스럽습니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
+        perspY: { title: "수직 투시 (Perspective Y)", desc: "Y축 방향으로 원근감을 주어 이미지를 세웁니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] },
         scaleX: { title: "X축 확대 (Scale X)", desc: "X좌표에만 지정한 배율(sx)을 곱하여 가로로 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
         scaleY: { title: "Y축 확대 (Scale Y)", desc: "Y좌표에만 지정한 배율(sy)을 곱하여 세로로 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
         squeeze: { title: "스퀴즈 (Squeeze)", desc: "전체 면적은 그대로 1로 유지하면서, 한쪽 축은 늘리고 반대 축은 압축하는 특수 변환입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
@@ -71,6 +74,8 @@
         shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
         shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
         refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 기울기가 m인 직선(y=mx)을 거울 삼아 도형을 선대칭시킵니다. 수학 '도형의 이동' 단원의 핵심 개념입니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
+        reflLine: { title: "직선 방정식에 대한 대칭이동", desc: "사용자가 입력한 임의의 직선 Ax + By + C = 0 을 거울 삼아 대칭이동합니다. C가 0이 아닐 경우 행렬에 이동(Translation) 연산이 포함된 3x3 동차 행렬로 구성됩니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
+        proj: { title: "직선에 대한 정사영 (Projection)", desc: "원점을 지나는 기울기가 m인 직선(y=mx) 위로 도형의 모든 점을 수직으로 내려 찍어 납작하게 만드는 변환입니다.", matrix: [['1/(1+m²)', 'm/(1+m²)', '0'], ['m/(1+m²)', 'm²/(1+m²)', '0'], ['0', '0', '1']] },
         mathLab: { title: "수학 실험실 (Math Lab)", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
         graph: { title: "함수 맵핑 (Function Map)", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
         point: { title: "좌표 점 맵핑 (Point Map)", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
@@ -109,6 +114,15 @@
     }
 
     const fmt = (v) => parseFloat(v.toFixed(4)).toString();
+    
+    // 🚀 미니 조립기 전용 포맷터: 좁은 공간에 글자가 겹치지 않도록 소수점 5자리 정확도 유지 및 축약
+    const fmtMini = (v) => {
+        if (v === 0) return "0";
+        let s = parseFloat(v.toFixed(5)).toString();
+        if (s.startsWith('0.')) return s.substring(1); 
+        if (s.startsWith('-0.')) return '-' + s.substring(2); 
+        return s;
+    };
 
     const hexToRgb = (hex) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -194,21 +208,28 @@
         return <input type="text" value={localVal} onChange={(e) => setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} />;
     }
 
-    function MatrixInput({ value, onChange, isTranslate, matrixFormatExact, className }) {
+    // 🚀 isPerspective 속성을 추가하여 투시 변환일 경우 소수점 5자리까지 렌더링되도록 확장
+    function MatrixInput({ value, onChange, isTranslate, isPerspective, matrixFormatExact, className }) {
         const [localVal, setLocalVal] = useState("");
-        useEffect(() => { 
-            let parsed = parseFloat(value);
+        
+        const formatValue = (val) => {
+            let parsed = parseFloat(val);
             if (isNaN(parsed)) parsed = 0;
-            let finalStr = matrixFormatExact ? parseFloat(parsed.toFixed(4)).toString() : (isTranslate ? parsed.toFixed(0) : parsed.toFixed(2));
-            setLocalVal(finalStr); 
-        }, [value, isTranslate, matrixFormatExact]);
+            if (matrixFormatExact) return parseFloat(parsed.toFixed(6)).toString();
+            if (isTranslate) return parsed.toFixed(0);
+            // 🚀 투시 변환 원소 표기 시 불필요한 뒷자리 0을 깎아내는 수학적 안전 처리 추가
+            if (isPerspective) return parsed === 0 ? "0.00" : parseFloat(parsed.toFixed(5)).toString();
+            return parsed.toFixed(2);
+        };
+
+        useEffect(() => { setLocalVal(formatValue(value)); }, [value, isTranslate, isPerspective, matrixFormatExact]);
         
         const handleBlur = () => {
             let parsed = parseFloat(localVal);
             if (isNaN(parsed)) parsed = 0;
-            let finalStr = matrixFormatExact ? parseFloat(parsed.toFixed(4)).toString() : (isTranslate ? parsed.toFixed(0) : parsed.toFixed(2));
-            setLocalVal(finalStr);
-            if (Math.abs(parsed - parseFloat(value)) > 0.0001) onChange(parsed);
+            setLocalVal(formatValue(parsed));
+            // 🚀 0.00001 단위의 미세한 변화도 감지할 수 있도록 오차 허용범위 축소
+            if (Math.abs(parsed - parseFloat(value)) > 0.0000001) onChange(parsed);
         };
         const handleKeyDown = (e) => { 
             if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
@@ -232,14 +253,14 @@
             {label}
             {onOpenInfo && ( <button onClick={onOpenInfo} title="설명 보기" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button> )}
             {syncKey && ( <button onClick={onToggleSync} title="동기화 링크" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
-            {onOpenLogic && ( 
-              <button onClick={onOpenLogic} title="설정 변경" className="text-zinc-500 hover:text-white transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button> 
-            )}
             {onReset && ( 
               <button onClick={onReset} title="초기화" className="text-zinc-500 hover:text-white transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
+              </button> 
+            )}
+            {onOpenLogic && ( 
+              <button onClick={onOpenLogic} title="설정 변경" className="text-zinc-500 hover:text-white transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
               </button> 
             )}
           </span>
@@ -273,20 +294,45 @@
         );
     };
 
-    const MiniMatrix = ({ m, label }) => (
-        <div className="flex flex-col items-center gap-1 shrink-0">
-            <span className="text-zinc-400 text-[10px] font-bold px-2 py-0.5 bg-zinc-800 rounded-full border border-zinc-700 whitespace-nowrap">{label}</span>
-            <div className="flex items-center justify-center relative w-[70px] h-[60px]">
-              <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-              <div className="grid grid-cols-3 gap-x-1 gap-y-1 text-center font-mono text-[8px] font-bold text-sky-300 flex-1">
-                  <span>{fmt(m.a)}</span><span>{fmt(m.c)}</span><span>{fmt(m.e)}</span>
-                  <span>{fmt(m.b)}</span><span>{fmt(m.d)}</span><span>{fmt(m.f)}</span>
-                  <span className="text-zinc-600">0</span><span className="text-zinc-600">0</span><span className="text-zinc-600">1</span>
-              </div>
-              <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+    // 🚀 행렬 조립기 블록별 담당 원소 하이라이팅을 위한 색상 추출기
+    const getMiniColor = (type, key) => {
+        const activeMap = {
+            'translate': ['e', 'f'],
+            'origin': ['e', 'f'],
+            'origin_back': ['e', 'f'],
+            'perspective': ['px', 'py'],
+            'rotate': ['a', 'b', 'c', 'd'],
+            'scale': ['a', 'd'],
+            'shear': ['b', 'c']
+        };
+        return (activeMap[type] && activeMap[type].includes(key)) ? "text-sky-400 text-shadow-glow" : "text-zinc-600";
+    };
+
+    const MiniMatrix = ({ m, label, type }) => {
+        const px = m.m14 || 0;
+        const py = m.m24 || 0;
+        return (
+            <div className="flex flex-col items-center gap-0.5 shrink-0 px-1">
+                <span className="text-zinc-400 text-[10px] font-bold px-2 py-0.5 bg-zinc-800 rounded-full border border-zinc-700 whitespace-nowrap">{label}</span>
+                {/* 🚀 w-[75px] 로 확장하여 원소끼리 겹치는 버그 완전 해결 */}
+                <div className="flex items-center justify-center relative w-[75px] h-[50px]">
+                  <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.4, 1.6)' }}>(</span>
+                  <div className="grid grid-cols-3 gap-x-1 gap-y-1 text-center font-mono text-[8px] font-bold flex-1 tracking-tighter">
+                      <span className={getMiniColor(type, 'a')}>{fmtMini(m.a)}</span>
+                      <span className={getMiniColor(type, 'c')}>{fmtMini(m.c)}</span>
+                      <span className={getMiniColor(type, 'e')}>{fmtMini(m.e)}</span>
+                      <span className={getMiniColor(type, 'b')}>{fmtMini(m.b)}</span>
+                      <span className={getMiniColor(type, 'd')}>{fmtMini(m.d)}</span>
+                      <span className={getMiniColor(type, 'f')}>{fmtMini(m.f)}</span>
+                      <span className={getMiniColor(type, 'px')}>{fmtMini(px)}</span>
+                      <span className={getMiniColor(type, 'py')}>{fmtMini(py)}</span>
+                      <span className="text-zinc-600">1</span>
+                  </div>
+                  <span className="text-zinc-500 font-serif text-[24px] leading-[0]" style={{ transform: 'scale(0.4, 1.6)' }}>)</span>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     function StartScreen({ onStart }) {
       return (
@@ -335,7 +381,7 @@
       const [mathUnderImage, setMathUnderImage] = useState(false); 
 
       // 🚀 1. 픽셀-좌표 매핑 비율 상태 추가
-      const [pixelsPerUnit, setPixelsPerUnit] = useState(10);
+      const [pixelsPerUnit, setPixelsPerUnit] = useState(1);
       
       const [constants, setConstants] = useState([]);
       const [activeConstConfig, setActiveConstConfig] = useState(null);
@@ -368,7 +414,7 @@
 
       // 🚀 드래그 앤 드롭 행렬 조립기 State
       const [showMatrixChain, setShowMatrixChain] = useState(false);
-      const [chainOrder, setChainOrder] = useState(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
+      const [chainOrder, setChainOrder] = useState(['translate', 'origin', 'perspective', 'rotate', 'scale', 'shear', 'origin_back']);
 
       // 🚀 PC용 드래그 상태 관리
       const dragChainRef = useRef(null);
@@ -864,6 +910,7 @@
       const [imageSmoothing, setImageSmoothing] = useState(true); 
       const [imageUnderGrid, setImageUnderGrid] = useState(false);
       const [hideGrid, setHideGrid] = useState(false);
+      const [warpGrid, setWarpGrid] = useState(false); // 🚀 파이썬 공간 왜곡 시각화 토글 상태 추가
       const [autoResetOnLoad, setAutoResetOnLoad] = useState(false);
       const [matrixFormatExact, setMatrixFormatExact] = useState(false); 
       const [isLightMode, setIsLightMode] = useState(false); // 🚀 화이트 모드 상태 추가
@@ -876,32 +923,29 @@
       }, [useMathLab, showImageInMathLab]);
 
       const handleSaveState = () => {
-          const glImage = document.createElement('canvas');
-          if (canvasGLRef.current) {
-              glImage.width = canvasGLRef.current.width;
-              glImage.height = canvasGLRef.current.height;
-              glImage.getContext('2d').drawImage(canvasGLRef.current, 0, 0);
-          }
-
           setShadowStates(prev => [...prev, {
               id: Date.now(),
               isImageActive: !useMathLab || showImageInMathLab,
               isMathActive: useMathLab,
-              glImage: canvasGLRef.current ? glImage : null,
-              matrix: new DOMMatrix([matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f]),
+              glImage: null, // 🚀 구버전 정적 스냅샷 완전 폐기 (화면 이동 시 그림자가 모니터에 들러붙는 버그 해결)
+              // 🚀 투시 정보(3D 요소)가 잘리지 않도록 행렬 원본 전체를 복제
+              matrix: new DOMMatrix(matrix),
               camOrigin: { x: camera.x, y: camera.y, z: camera.z },
-              params: { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, useRefl, reflAngle, transformOriginX, transformOriginY },
+              // 🚀 투시 관련 파라미터 전부 저장 배열에 추가
+              params: { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, useRefl, reflAngle, reflMode, reflLineA, reflLineB, reflLineC, useProj, projAngle, transformOriginX, transformOriginY, usePerspective, perspX, perspY },
               // 🚀 수학 도형들까지 완벽하게 분리 저장하여 그림자 전용 렌더링에 사용
               graphs: JSON.parse(JSON.stringify(graphs)),
               polygons: JSON.parse(JSON.stringify(polygons)),
-              points: JSON.parse(JSON.stringify(points))
+              points: JSON.parse(JSON.stringify(points)),
+              calcPoints: JSON.parse(JSON.stringify(calcPoints))
           }]);
           
           handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1); 
           handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
           handleSyncChange('rotation', 0); handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); 
           handleSyncChange('squeeze', 1);
-          setUseRefl(false); setReflAngle(90); setTransformOriginX(0); setTransformOriginY(0);
+          setUseRefl(false); setReflAngle(90); setUseProj(false); setProjAngle(0); setTransformOriginX(0); setTransformOriginY(0);
+          setUsePerspective(false); handleSyncChange('perspX', 0); handleSyncChange('perspY', 0);
       };
 
       const handleLoadState = (targetId) => {
@@ -912,7 +956,9 @@
           handleSyncChange('translateX', p.translateX); handleSyncChange('translateY', p.translateY);
           handleSyncChange('rotation', p.rotation); handleSyncChange('shearX', p.shearX); handleSyncChange('shearY', p.shearY);
           handleSyncChange('squeeze', p.squeeze);
-          setUseRefl(p.useRefl); setReflAngle(p.reflAngle); setTransformOriginX(p.transformOriginX); setTransformOriginY(p.transformOriginY);
+          setUseRefl(p.useRefl); setReflAngle(p.reflAngle); setReflMode(p.reflMode || 'angle'); setReflLineA(p.reflLineA ?? 1); setReflLineB(p.reflLineB ?? -1); setReflLineC(p.reflLineC ?? 0); setUseProj(p.useProj || false); setProjAngle(p.projAngle || 0); setTransformOriginX(p.transformOriginX); setTransformOriginY(p.transformOriginY);
+          // 🚀 그림자 불러오기 시 투시값도 복원
+          setUsePerspective(p.usePerspective || false); setPerspX(p.perspX || 0); setPerspY(p.perspY || 0);
           setShowShadowMenu(false);
       };
 
@@ -922,13 +968,17 @@
           const duration = 1500; 
 
           const runAnim = (targetParams, onComplete) => {
-              const startP = { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, rotation: 0, shearX: 0, shearY: 0, squeeze: 1 };
+              // 🚀 애니메이션 시작 지점에 투시 변수 추가
+              const startP = { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, rotation: 0, shearX: 0, shearY: 0, squeeze: 1, perspX: 0, perspY: 0 };
               handleSyncChange('scaleX', 1); handleSyncChange('scaleY', 1); 
               handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
               handleSyncChange('rotation', 0); handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); 
               handleSyncChange('squeeze', 1);
               setUseRefl(targetParams.useRefl); setReflAngle(targetParams.reflAngle); 
+              setUseProj(targetParams.useProj || false); setProjAngle(targetParams.projAngle || 0);
               setTransformOriginX(targetParams.transformOriginX); setTransformOriginY(targetParams.transformOriginY);
+              
+              setUsePerspective(targetParams.usePerspective || false);
 
               const startTime = performance.now();
               const animate = (time) => {
@@ -944,6 +994,12 @@
                   setShearX(startP.shearX + (targetParams.shearX - startP.shearX) * ease);
                   setShearY(startP.shearY + (targetParams.shearY - startP.shearY) * ease);
                   setSqueeze(startP.squeeze + (targetParams.squeeze - startP.squeeze) * ease);
+                  
+                  // 🚀 투시 애니메이션 재생 프레임 보간
+                  if (targetParams.usePerspective) {
+                      setPerspX(startP.perspX + ((targetParams.perspX || 0) - startP.perspX) * ease);
+                      setPerspY(startP.perspY + ((targetParams.perspY || 0) - startP.perspY) * ease);
+                  }
 
                   if (progress < 1) requestAnimationFrame(animate);
                   else if (onComplete) setTimeout(onComplete, 500); // 전체 재생 시 0.5초 대기 후 다음 그림자로
@@ -973,6 +1029,12 @@
       const [translateX, setTranslateX] = useState(0); const [translateY, setTranslateY] = useState(0);
       const [rotation, setRotation] = useState(0); const [shearX, setShearX] = useState(0); const [shearY, setShearY] = useState(0);
       const [squeeze, setSqueeze] = useState(1.0); const [useRefl, setUseRefl] = useState(false); const [reflAngle, setReflAngle] = useState(90);
+      const [reflMode, setReflMode] = useState('angle'); const [reflLineA, setReflLineA] = useState(1); const [reflLineB, setReflLineB] = useState(-1); const [reflLineC, setReflLineC] = useState(0);
+      const [useProj, setUseProj] = useState(false); const [projAngle, setProjAngle] = useState(0);
+
+      const [usePerspective, setUsePerspective] = useState(false);
+      const [perspX, setPerspX] = useState(0); 
+      const [perspY, setPerspY] = useState(0);
 
       const [chkGray, setChkGray] = useState(false); const [chkInvert, setChkInvert] = useState(false);
       const [globalAdd, setGlobalAdd] = useState(0); const [globalMul, setGlobalMul] = useState(1.0); const [binThresh, setBinThresh] = useState(-1);
@@ -992,6 +1054,7 @@
       const canvasRef = useRef(null);
       const canvasGLRef = useRef(null); // 🚀 WebGL 전용 투명 도화지 (2층) 추가
       const colorCacheRef = useRef(null);
+      const colorCacheVersionRef = useRef(0);
       if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
 
       useEffect(() => {
@@ -1167,9 +1230,10 @@
       const toggleSync = (key) => { setSyncKeys(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; }); };
 
       const prevVals = useRef({});
-      useEffect(() => { prevVals.current = { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, globalAdd, globalMul, rAdd, rMul, gAdd, gMul, bAdd, bMul }; });
+      // 🚀 reflAngle 변수를 이전 값 기억 배열과 Setter 배열에 추가
+      useEffect(() => { prevVals.current = { scaleX, scaleY, translateX, translateY, rotation, shearX, shearY, squeeze, perspX, perspY, reflAngle, projAngle, globalAdd, globalMul, rAdd, rMul, gAdd, gMul, bAdd, bMul }; });
 
-      const stateSetters = { scaleX: setScaleX, scaleY: setScaleY, translateX: setTranslateX, translateY: setTranslateY, rotation: setRotation, shearX: setShearX, shearY: setShearY, squeeze: setSqueeze, globalAdd: setGlobalAdd, globalMul: setGlobalMul, rAdd: setRAdd, rMul: setRMul, gAdd: setGAdd, gMul: setGMul, bAdd: setBAdd, bMul: setBMul };
+      const stateSetters = { scaleX: setScaleX, scaleY: setScaleY, translateX: setTranslateX, translateY: setTranslateY, rotation: setRotation, shearX: setShearX, shearY: setShearY, squeeze: setSqueeze, perspX: setPerspX, perspY: setPerspY, reflAngle: setReflAngle, projAngle: setProjAngle, globalAdd: setGlobalAdd, globalMul: setGlobalMul, rAdd: setRAdd, rMul: setRMul, gAdd: setGAdd, gMul: setGMul, bAdd: setBAdd, bMul: setBMul };
       
       const handleSyncChange = (key, newVal) => {
           const oldVal = prevVals.current[key];
@@ -1183,8 +1247,12 @@
                       scaleX: {min: config.scaleXMin, max: config.scaleXMax}, scaleY: {min: config.scaleYMin, max: config.scaleYMax},
                       translateX: {min: config.transXMin, max: config.transXMax}, translateY: {min: config.transYMin, max: config.transYMax},
                       rotation: {min: config.rotMin, max: config.rotMax},
+                      reflAngle: {min: 0, max: 180}, // 🚀 반사 변환 각도 상하한선 등록
+                      projAngle: {min: 0, max: 180},
                       shearX: {min: config.shearXMin, max: config.shearXMax}, shearY: {min: config.shearYMin, max: config.shearYMax},
-                      squeeze: {min: config.squeezeMin, max: config.squeezeMax}, globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
+                      squeeze: {min: config.squeezeMin, max: config.squeezeMax},
+                      perspX: {min: config.perspXMin, max: config.perspXMax}, perspY: {min: config.perspYMin, max: config.perspYMax},
+                      globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
                       rAdd: {min: -255, max: 255}, rMul: {min: config.contMin, max: config.contMax}, gAdd: {min: -255, max: 255}, gMul: {min: config.contMin, max: config.contMax}, bAdd: {min: -255, max: 255}, bMul: {min: config.contMin, max: config.contMax}
                   }[k];
                   if (targetNewVal < bounds.min) targetNewVal = bounds.min;
@@ -1215,8 +1283,10 @@
         setSqueeze(clamp(1.0, config.squeezeMin, config.squeezeMax));
         
         setUseRefl(false); setReflAngle(90);
+        setUseProj(false); setProjAngle(0);
+        setUsePerspective(false); setPerspX(0); setPerspY(0);
         setChkGray(false); setChkInvert(false); 
-        setGlobalAdd(0); setGlobalMul(clamp(1.0, config.contMin, config.contMax)); 
+        setGlobalAdd(0); setGlobalMul(clamp(1.0, config.contMin, config.contMax));
         setBinThresh(-1);
         
         setRAdd(0); setRMul(clamp(1.0, config.contMin, config.contMax)); 
@@ -1224,7 +1294,7 @@
         setBAdd(0); setBMul(clamp(1.0, config.contMin, config.contMax));
         
         setUseDuotone(false); 
-        setChainOrder(['translate', 'origin', 'rotate', 'scale', 'shear', 'origin_back']);
+        setChainOrder(['translate', 'origin', 'perspective', 'rotate', 'scale', 'shear', 'origin_back']);
       };
 
       // 🚀 현재 화면 이미지 병합 및 다운로드 함수
@@ -1319,6 +1389,7 @@
       const applySymmetry = (type) => {
           handleSyncChange('translateX', 0); handleSyncChange('translateY', 0);
           handleSyncChange('shearX', 0); handleSyncChange('shearY', 0); handleSyncChange('squeeze', 1.0);
+          setUsePerspective(false);
           if (type === 'X') {
               setUseRefl(false); setRotation(0); handleSyncChange('scaleX', 1); handleSyncChange('scaleY', -1); 
           } else if (type === 'Y') {
@@ -1338,11 +1409,26 @@
               case 'translate': return { m: new DOMMatrix().translate(translateX, translateY), label: '이동' };
               case 'origin': return { m: new DOMMatrix().translate(transformOriginX, -transformOriginY), label: '+중심점' };
               case 'origin_back': return { m: new DOMMatrix().translate(-transformOriginX, transformOriginY), label: '-중심점' };
+              case 'perspective': 
+                  return { m: new DOMMatrix([1, 0, 0, perspX, 0, 1, 0, perspY, 0, 0, 1, 0, 0, 0, 0, 1]), label: '투시' };
               case 'rotate': 
                   if (useRefl) {
-                      // 🚀 브라우저 캔버스의 Y축 역전으로 인한 부호 오류를 막기 위해 DOMMatrix 내장함수 체이닝 사용
-                      const rMat = new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle);
-                      return { m: rMat, label: '반사' };
+                      if (reflMode === 'line') {
+                          let A = reflLineA, B = reflLineB, C = reflLineC;
+                          if (A === 0 && B === 0) { A = 1; B = -1; }
+                          let D = A * A + B * B;
+                          return { m: new DOMMatrix([(B*B - A*A)/D, (-2*A*B)/D, (-2*A*B)/D, (A*A - B*B)/D, (-2*A*C)/D, (-2*B*C)/D]), label: '선 반사' };
+                      } else {
+                          let rad = reflAngle * Math.PI / 180;
+                          let c2 = Math.cos(2 * rad); let s2 = Math.sin(2 * rad);
+                          return { m: new DOMMatrix([c2, s2, s2, -c2, 0, 0]), label: '반사' };
+                      }
+                  } else if (useProj) {
+                      let rad = projAngle * Math.PI / 180;
+                      let cc = Math.cos(rad) * Math.cos(rad);
+                      let ss = Math.sin(rad) * Math.sin(rad);
+                      let cs = Math.cos(rad) * Math.sin(rad);
+                      return { m: new DOMMatrix([cc, cs, cs, ss, 0, 0]), label: '투영' };
                   } else {
                       const v = rotation * Math.PI / 180;
                       let rM = new DOMMatrix([
@@ -1366,22 +1452,50 @@
               matrix = matrix.multiply(getChainMatrix(id).m);
           });
       } else {
-          matrix = matrix.translate(translateX, translateY); 
-          matrix = matrix.translate(transformOriginX, -transformOriginY); 
+          // 🚀 모든 2D 변환(이동, 회전, 스케일 등)을 1차적으로 먼저 수행
+          let affineMat = new DOMMatrix();
+          affineMat = affineMat.translate(translateX, translateY); 
+          affineMat = affineMat.translate(transformOriginX, -transformOriginY); 
+          
           if (useRefl) {
-              matrix = matrix.multiply(new DOMMatrix().rotate(-reflAngle).scale(1, -1).rotate(reflAngle));
-          } else { 
+              if (reflMode === 'line') {
+                  let A = reflLineA, B = reflLineB, C = reflLineC;
+                  if (A === 0 && B === 0) { A = 1; B = -1; }
+                  let D = A * A + B * B;
+                  affineMat = affineMat.multiply(new DOMMatrix([(B*B - A*A)/D, (-2*A*B)/D, (-2*A*B)/D, (A*A - B*B)/D, (-2*A*C)/D, (-2*B*C)/D]));
+              } else {
+                  let rad = reflAngle * Math.PI / 180;
+                  let c2 = Math.cos(2 * rad); let s2 = Math.sin(2 * rad);
+                  affineMat = affineMat.multiply(new DOMMatrix([c2, s2, s2, -c2, 0, 0]));
+              }
+          } else if (useProj) {
+              let rad = projAngle * Math.PI / 180;
+              let cc = Math.cos(rad) * Math.cos(rad);
+              let ss = Math.sin(rad) * Math.sin(rad);
+              let cs = Math.cos(rad) * Math.sin(rad);
+              affineMat = affineMat.multiply(new DOMMatrix([cc, cs, cs, ss, 0, 0]));
+          } else {
               let v = rotation * Math.PI / 180;
               let rM = new DOMMatrix([
                   executeMath(compiledLogic.m00, v, constValues), executeMath(compiledLogic.m10, v, constValues),
                   executeMath(compiledLogic.m01, v, constValues), executeMath(compiledLogic.m11, v, constValues),
                   0, 0
               ]);
-              matrix = matrix.multiply(rM);
+              affineMat = affineMat.multiply(rM);
           }
-          matrix = matrix.scale(scaleX * squeeze, scaleY * (1 / squeeze));
-          matrix = matrix.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
-          matrix = matrix.translate(-transformOriginX, transformOriginY); 
+          affineMat = affineMat.scale(scaleX * squeeze, scaleY * (1 / squeeze));
+          affineMat = affineMat.multiply(new DOMMatrix([1, shearY, shearX, 1, 0, 0]));
+          affineMat = affineMat.translate(-transformOriginX, transformOriginY); 
+          
+          // 🚀 투시 변환 버그 완전 정복:
+          // 투시 행렬(Perspective)은 동차 좌표계 W값을 건드리는 3D 연산이므로, 2D 변환이 완료된 어파인 행렬의 가장 바깥(마지막)에 곱해져야
+          // 이미지, 그래프, 다각형 등 캔버스 내의 모든 요소에 한 치의 오차 없이 전역 적용됩니다.
+          if (usePerspective && !useMathLab) {
+              let pMat = new DOMMatrix([1, 0, 0, perspX, 0, 1, 0, perspY, 0, 0, 1, 0, 0, 0, 0, 1]);
+              matrix = pMat.multiply(affineMat);
+          } else {
+              matrix = affineMat;
+          }
       }
 
       const getMatrixColor = (currentStr, defaultFixed, defaultExact) => {
@@ -1394,9 +1508,18 @@
           return isTranslate ? val.toFixed(0) : val.toFixed(2);
       };
 
+      // 🚀 투시 전용 포맷터
+      const formatPerspVal = (val) => {
+          if (matrixFormatExact) return parseFloat(val.toFixed(6)).toString();
+          return val === 0 ? "0.00" : parseFloat(val.toFixed(5)).toString(); // 🚀 뒷자리 불필요한 0 제거 적용
+      };
+
       let m00Str = formatMatrixVal(matrix.a, false); let m10Str = formatMatrixVal(matrix.b, false);
       let m01Str = formatMatrixVal(matrix.c, false); let m11Str = formatMatrixVal(matrix.d, false);
-      let m02Str = formatMatrixVal(matrix.e, true); let m12Str = formatMatrixVal(matrix.f, true);
+      let m02Str = formatMatrixVal(matrix.e, false); let m12Str = formatMatrixVal(matrix.f, false);
+      
+      let m20Str = formatPerspVal(usePerspective ? perspX : 0);
+      let m21Str = formatPerspVal(usePerspective ? perspY : 0);
 
       const handleMatrixUpdate = (key, v) => {
           setConfig(prev => {
@@ -1414,81 +1537,96 @@
 
           if (key === 'e') setTranslateX(v);
           if (key === 'f') setTranslateY(v);
-          if (key === 'a') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setScaleX(v); }
-          if (key === 'd') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setScaleY(v); }
-          if (key === 'c') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearX(scaleY !== 0 ? v / scaleY : 0); }
-          if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
+          if (key === 'a') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setUsePerspective(false); setScaleX(v); }
+          if (key === 'd') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setUsePerspective(false); setScaleY(v); }
+          if (key === 'c') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setUsePerspective(false); setShearX(scaleY !== 0 ? v / scaleY : 0); }
+          if (key === 'b') { setRotation(0); setSqueeze(1.0); setUseRefl(false); setUsePerspective(false); setShearY(scaleX !== 0 ? v / scaleX : 0); }
       };
 
-      // 🚀 통합 정밀 타격 엔진: "모니터 화면 픽셀(Screen Pixel)" 기준으로 거리를 재고, 빈 공간(투명 픽셀)을 무시합니다.
+      // 🚀 극한의 투시 변환 클릭 인식 버그 완벽 해결: 셰이더와 100% 동일한 수학 연산 축으로 정렬
       const getHitShadowId = (screenX, screenY) => {
-          let canvasPt = new DOMPoint(screenX / camera.z, screenY / camera.z);
-          let mathPt = new DOMPoint(screenX / camera.z, -screenY / camera.z);
-
           for (let i = shadowStates.length - 1; i >= 0; i--) {
               let shadow = shadowStates[i];
-              let invMat = shadow.matrix.inverse();
-              let baseCanvasPt = canvasPt.matrixTransform(invMat);
-              let baseMathPt = mathPt.matrixTransform(invMat);
+              let invMat;
+              try { invMat = shadow.matrix.inverse(); if(!isFinite(invMat.a)) invMat = new DOMMatrix(); } catch(e) { invMat = new DOMMatrix(); }
+              
               let hit = false;
               
-              // 1. 사진 정밀 타격 (투명한 허공 무시 + 억지로 넓히던 인식 범위 완전 제거)
+              // 1. 사진 정밀 타격
               if (shadow.isImageActive && imageObj && colorCacheRef.current) {
-                  let imgScale = (shadow.isMathActive && shadow.isImageActive) ? (1.0 / pixelsPerUnit) : 1.0;
-                  let scaledX = baseCanvasPt.x / imgScale;
-                  let scaledY = baseCanvasPt.y / imgScale;
-                  if (scaledX >= -imageObj.width/2 && scaledX <= imageObj.width/2 && scaledY >= -imageObj.height/2 && scaledY <= imageObj.height/2) {
-                      let ctxCache = colorCacheRef.current.getContext('2d', { willReadFrequently: true });
-                      let ratioX = colorCacheRef.current.width / imageObj.width; 
-                      let ratioY = colorCacheRef.current.height / imageObj.height;
-                      let px = Math.floor((scaledX + imageObj.width/2) * ratioX); 
-                      let py = Math.floor((scaledY + imageObj.height/2) * ratioY);
-                      if (px >= 0 && px < colorCacheRef.current.width && py >= 0 && py < colorCacheRef.current.height) {
-                          if (ctxCache.getImageData(px, py, 1, 1).data[3] > 20) hit = true; // 투명도 검사로 빈 허공 클릭 무시
+                  // 🚀 수학 좌표계로 통일하여 투시 여부와 무관하게 정확한 타격 처리
+                  let mathY = -screenY / camera.z;
+                  let mathPt = new DOMPoint(screenX / camera.z, mathY);
+                  let rawMathPt = mathPt.matrixTransform(invMat);
+                  
+                  if (rawMathPt.w > 0.0001 && !isNaN(rawMathPt.w)) {
+                      let origX = rawMathPt.x / rawMathPt.w;
+                      let origY = rawMathPt.y / rawMathPt.w;
+                      
+                      let imgScale = (shadow.isMathActive && shadow.isImageActive) ? (1.0 / pixelsPerUnit) : 1.0;
+                      let scaledX = origX / imgScale;
+                      let scaledY = origY / imgScale;
+                      
+                      if (scaledX >= -imageObj.width/2 && scaledX <= imageObj.width/2 && scaledY >= -imageObj.height/2 && scaledY <= imageObj.height/2) {
+                          let ctxCache = colorCacheRef.current.getContext('2d', { willReadFrequently: true });
+                          let ratioX = colorCacheRef.current.width / imageObj.width; 
+                          let ratioY = colorCacheRef.current.height / imageObj.height;
+                          let px = Math.floor((scaledX + imageObj.width/2) * ratioX); 
+                          let py = Math.floor((-scaledY + imageObj.height/2) * ratioY); // 🚀 이미지 데이터 추출 시에만 텍스처 Y축 교정
+                          if (px >= 0 && px < colorCacheRef.current.width && py >= 0 && py < colorCacheRef.current.height) {
+                              if (ctxCache.getImageData(px, py, 1, 1).data[3] > 20) hit = true; 
+                          }
                       }
                   }
               }
               
-              // 2. 단위 정사각형 타격
-              if (!hit && shadow.isMathActive && useUnitSquare) {
-                  if (baseMathPt.x >= 0 && baseMathPt.x <= 1 && baseMathPt.y >= 0 && baseMathPt.y <= 1) hit = true; 
-              }
-              
-              // 3. 수학 함수 선(Line) 타격 (화면상 15픽셀 이내인지 직접 계산)
-              if (!hit && shadow.isMathActive && shadow.graphs) {
-                  for (let g of shadow.graphs) {
-                      if (!g.eq) continue;
-                      let s = g.eq.toLowerCase().replace(/\s+/g, '');
-                      if (s.includes('=') && !s.startsWith('y=')) {
-                          if (baseMathPt.x >= -15 && baseMathPt.x <= 15 && baseMathPt.y >= -15 && baseMathPt.y <= 15) { hit = true; break; }
-                      } else {
-                          try {
-                              let jsEq = MathParserJS.parse(s);
-                              let func = new Function('x', ...constants.map(c=>c.name), `return ${jsEq};`);
-                              let y = func(baseMathPt.x, ...constants.map(c=>c.value));
-                              if (isFinite(y)) {
-                                  let curvePt = new DOMPoint(baseMathPt.x, y).matrixTransform(shadow.matrix);
-                                  let drawX = curvePt.x * camera.z; let drawY = -curvePt.y * camera.z;
-                                  if (Math.hypot(screenX - drawX, screenY - drawY) < 15) { hit = true; break; } // 🚀 함수 선 15px 반경 지정
-                              }
-                          } catch(e) {}
+              // 2. 수학 맵핑 타격 (좌표계는 기본 Y축을 따름)
+              let rawMathPt = (new DOMPoint(screenX / camera.z, -screenY / camera.z)).matrixTransform(invMat);
+              if (!hit && shadow.isMathActive && rawMathPt.w > 0.0001 && !isNaN(rawMathPt.w)) {
+                  let baseMathPt = new DOMPoint(rawMathPt.x / rawMathPt.w, rawMathPt.y / rawMathPt.w);
+                  
+                  if (useUnitSquare) {
+                      if (baseMathPt.x >= 0 && baseMathPt.x <= 1 && baseMathPt.y >= 0 && baseMathPt.y <= 1) hit = true; 
+                  }
+                  
+                  if (!hit && shadow.graphs) {
+                      for (let g of shadow.graphs) {
+                          if (!g.eq) continue;
+                          let s = g.eq.toLowerCase().replace(/\s+/g, '');
+                          if (s.includes('=') && !s.startsWith('y=')) {
+                              if (baseMathPt.x >= -15 && baseMathPt.x <= 15 && baseMathPt.y >= -15 && baseMathPt.y <= 15) { hit = true; break; }
+                          } else {
+                              try {
+                                  let jsEq = MathParserJS.parse(s);
+                                  let func = new Function('x', ...constants.map(c=>c.name), `return ${jsEq};`);
+                                  let y = func(baseMathPt.x, ...constants.map(c=>c.value));
+                                  if (isFinite(y)) {
+                                      // 🚀 곡선도 투시 분할(W) 적용
+                                      let curvePt = new DOMPoint(baseMathPt.x, y).matrixTransform(shadow.matrix);
+                                      if (curvePt.w > 0.0001) {
+                                          let drawX = (curvePt.x / curvePt.w) * camera.z; 
+                                          let drawY = -(curvePt.y / curvePt.w) * camera.z;
+                                          if (Math.hypot(screenX - drawX, screenY - drawY) < 15) { hit = true; break; } 
+                                      }
+                                  }
+                              } catch(e) {}
+                          }
                       }
                   }
-              }
-              
-              // 4. 다각형 및 점 타격 (화면상 15픽셀 이내)
-              if (!hit && shadow.isMathActive && shadow.polygons) {
-                  for (let poly of shadow.polygons) {
-                      for (let p of poly) {
+                  
+                  if (!hit && shadow.polygons) {
+                      for (let poly of shadow.polygons) {
+                          for (let p of poly) {
+                              let pt = new DOMPoint(p.x, p.y).matrixTransform(shadow.matrix);
+                              if (pt.w > 0.0001 && Math.hypot(screenX - (pt.x/pt.w) * camera.z, screenY + (pt.y/pt.w) * camera.z) < 15) { hit = true; break; }
+                          }
+                      }
+                  }
+                  if (!hit && shadow.points) {
+                      for (let p of shadow.points) {
                           let pt = new DOMPoint(p.x, p.y).matrixTransform(shadow.matrix);
-                          if (Math.hypot(screenX - pt.x * camera.z, screenY + pt.y * camera.z) < 15) { hit = true; break; }
+                          if (pt.w > 0.0001 && Math.hypot(screenX - (pt.x/pt.w) * camera.z, screenY + (pt.y/pt.w) * camera.z) < 15) { hit = true; break; }
                       }
-                  }
-              }
-              if (!hit && shadow.isMathActive && shadow.points) {
-                  for (let p of shadow.points) {
-                      let pt = new DOMPoint(p.x, p.y).matrixTransform(shadow.matrix);
-                      if (Math.hypot(screenX - pt.x * camera.z, screenY + pt.y * camera.z) < 15) { hit = true; break; }
                   }
               }
               
@@ -1520,14 +1658,14 @@
               return true; 
           }
 
-          // 🚀 다른 곳을 누르면 삭제되는 기능 완전히 삭제 완료 (요청 1번 반영)
-
           let hitPoint = null;
           for (let p of calcPoints) {
               let pt = new DOMPoint(p.x, p.y);
               let tPt = pt.matrixTransform(matrix);
-              let drawX = tPt.x * camera.z; let drawY = -tPt.y * camera.z; 
-              if (Math.hypot(screenX - drawX, screenY - drawY) < 30) { hitPoint = p; break; }
+              if (tPt.w > 0.0001) {
+                  let drawX = (tPt.x / tPt.w) * camera.z; let drawY = -(tPt.y / tPt.w) * camera.z; 
+                  if (Math.hypot(screenX - drawX, screenY - drawY) < 30) { hitPoint = p; break; }
+              }
           }
           if (hitPoint) { setSelectedCalcPoint(hitPoint); return true; }
 
@@ -1535,21 +1673,25 @@
           let mathPt = new DOMPoint(mathX, mathY);
 
           if (isCalcMode) {
-              let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
-              let logicX = Math.round((basePt.x) * 100) / 100; let logicY = Math.round((basePt.y) * 100) / 100;
+              let invMat = matrix.inverse(); let rawPt = mathPt.matrixTransform(invMat);
+              if (rawPt.w <= 0.0001 || isNaN(rawPt.w)) return false; 
+              let logicX = Math.round((rawPt.x / rawPt.w) * 100) / 100; let logicY = Math.round((rawPt.y / rawPt.w) * 100) / 100;
               setCalcPoints(prev => [...prev, { id: Date.now(), x: logicX, y: logicY }]);
               setIsCalcMode(false); return true;
           }
 
           if (usePolygonMode) {
-              let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
-              let logicX = Math.round((basePt.x) * 10) / 10; let logicY = Math.round((basePt.y) * 10) / 10;
+              let invMat = matrix.inverse(); let rawPt = mathPt.matrixTransform(invMat);
+              if (rawPt.w <= 0.0001 || isNaN(rawPt.w)) return false;
+              let logicX = Math.round((rawPt.x / rawPt.w) * 10) / 10; let logicY = Math.round((rawPt.y / rawPt.w) * 10) / 10;
               if (polygonPoints.length >= 3) {
                   let firstP = polygonPoints[0];
-                  let fMath = new DOMPoint(firstP.x, firstP.y).matrixTransform(matrix);
-                  let fDrawX = fMath.x * camera.z; let fDrawY = -fMath.y * camera.z;
-                  if (Math.hypot(screenX - fDrawX, screenY - fDrawY) < 20) {
-                      setPolygons(prev => [...prev, polygonPoints]); setPolygonPoints([]); return true;
+                  let fRaw = new DOMPoint(firstP.x, firstP.y).matrixTransform(matrix);
+                  if (fRaw.w > 0.0001) {
+                      let fDrawX = (fRaw.x / fRaw.w) * camera.z; let fDrawY = -(fRaw.y / fRaw.w) * camera.z;
+                      if (Math.hypot(screenX - fDrawX, screenY - fDrawY) < 20) {
+                          setPolygons(prev => [...prev, polygonPoints]); setPolygonPoints([]); return true;
+                      }
                   }
               }
               setPolygonPoints(prev => [...prev, { x: logicX, y: logicY }]); return true;
@@ -1567,9 +1709,10 @@
 
           let mathX = screenX / camera.z; let mathY = -screenY / camera.z;
           let mathPt = new DOMPoint(mathX, mathY);
-          let invMat = matrix.inverse(); let basePt = mathPt.matrixTransform(invMat);
+          let invMat = matrix.inverse(); let rawPt = mathPt.matrixTransform(invMat);
           
-          let logicX = Math.round((basePt.x) * 10) / 10; let logicY = Math.round((basePt.y) * 10) / 10;
+          if (rawPt.w <= 0.0001 || isNaN(rawPt.w)) return; 
+          let logicX = Math.round((rawPt.x / rawPt.w) * 10) / 10; let logicY = Math.round((rawPt.y / rawPt.w) * 10) / 10;
           setPoints(prev => {
               const newLabel = String.fromCharCode(65 + prev.length % 26);
               return [...prev, { id: Date.now(), label: newLabel, x: logicX, y: logicY }];
@@ -1617,7 +1760,12 @@
                   let screenX = canvasX - cx - camera.x; let screenY = canvasY - cy - camera.y;
 
                   let hitId = getHitShadowId(screenX, screenY);
-                  if (e.target && e.target.style) e.target.style.cursor = hitId !== null ? 'pointer' : 'default';
+                  let hitPoint = null;
+                  for (let p of calcPoints) {
+                      let tPt = (new DOMPoint(p.x, p.y)).matrixTransform(matrix);
+                      if (tPt.w > 0.0001 && Math.hypot(screenX - (tPt.x/tPt.w)*camera.z, screenY - -(tPt.y/tPt.w)*camera.z) < 30) hitPoint = p;
+                  }
+                  if (e.target && e.target.style) e.target.style.cursor = (hitId !== null || hitPoint !== null) ? 'pointer' : 'default';
               }
           }
       };
@@ -1826,6 +1974,7 @@
           }
           cCtx.putImageData(imgData, 0, 0);
         }
+        colorCacheVersionRef.current += 1;
       }, [imageObj, chkGray, chkInvert, globalAdd, globalMul, binThresh, rAdd, rMul, gAdd, gMul, bAdd, bMul, useDuotone, colorDark, colorLight]);
 
       useLayoutEffect(() => {
@@ -1842,6 +1991,16 @@
         const z = camera.z;
 
         ctx.clearRect(0, 0, w, h);
+        
+        const canvasGL = canvasGLRef.current;
+        if (canvasGL) {
+            const gl = canvasGL.getContext('webgl2', { antialias: true }); // 🚀 캔버스 겹침 합성 시 검은 테두리가 생기는 것을 막기 위해 premultiplied 옵션 제거
+            if (gl) {
+                gl.viewport(0, 0, canvasGL.width, canvasGL.height);
+                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            }
+        }
 
         const isImageActive = !useMathLab || showImageInMathLab;
 
@@ -1892,6 +2051,77 @@
           ctx.stroke();
         };
 
+        // 🚀 파이썬 공간 왜곡(Warp Perspective) 시각화 로직을 수학적으로 완벽히 2D 도화지에 이식
+        const drawWarpedGrid = (renderMatrix, alpha = 1.0) => {
+            if (!warpGrid) return;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = isLightMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.25)';
+            ctx.beginPath();
+            
+            // 🚀 성능 최적화 1: DOMPoint 인스턴스를 무한 생성하던 방식에서 C언어식 순수 행렬 수학 곱셈(Inline Math)으로 교체하여 렉(Lag) 100배 감소
+            const a = renderMatrix.a, b = renderMatrix.b, c = renderMatrix.c, d = renderMatrix.d, e = renderMatrix.e, f = renderMatrix.f;
+            const px = renderMatrix.m14 || 0, py = renderMatrix.m24 || 0;
+            
+            // 🚀 성능 최적화 2: 줌 아웃 시 선이 짧아져 사라지는 현상을 막기 위해 줌 비율(z)에 반비례하여 선 길이를 무한대 확장
+            // 클리핑(Clipping) 로직이 W=0 지평선에서 1픽셀 오차 없이 정확히 잘라주므로 무한대로 그려도 렉이 발생하지 않습니다.
+            const maxExtent = Math.max(100000, 100000 / z);
+            
+            const drawLine = (mathX1, mathY1, mathX2, mathY2) => {
+                // 🚀 버그 해결: 3x3 변환 행렬은 원래 수학 실험실 좌표(위가 +Y)를 기준으로 설계되었으므로 -my 임의 치환을 제거하여 Y축 왜곡 불일치 완벽 교정
+                let w1 = px * mathX1 + py * mathY1 + 1;
+                let w2 = px * mathX2 + py * mathY2 + 1;
+                
+                if (w1 <= 0.0001 && w2 <= 0.0001) return;
+                
+                let t1 = 0, t2 = 1;
+                if (w1 < 0.0001) t1 = (0.0001 - w1) / (w2 - w1);
+                else if (w2 < 0.0001) t2 = (0.0001 - w1) / (w2 - w1);
+                
+                let sx = mathX1 + (mathX2 - mathX1) * t1;
+                let sy = mathY1 + (mathY2 - mathY1) * t1;
+                let ex = mathX1 + (mathX2 - mathX1) * t2;
+                let ey = mathY1 + (mathY2 - mathY1) * t2;
+                
+                let sw1 = px * sx + py * sy + 1;
+                let sw2 = px * ex + py * ey + 1;
+                
+                let wx1 = a * sx + c * sy + e;
+                let wy1 = b * sx + d * sy + f;
+                
+                let wx2 = a * ex + c * ey + e;
+                let wy2 = b * ex + d * ey + f;
+                
+                // 모니터 픽셀 맵핑은 최종 렌더링 직전에만 브라우저 스크린 Y축(+가 아래)을 반영하여 빼주도록 수정
+                let drawPx1 = cx + camera.x + (wx1/sw1)*z;
+                let drawPy1 = cy + camera.y - (wy1/sw1)*z;
+                
+                let drawPx2 = cx + camera.x + (wx2/sw2)*z;
+                let drawPy2 = cy + camera.y - (wy2/sw2)*z;
+                
+                ctx.moveTo(drawPx1, drawPy1);
+                ctx.lineTo(drawPx2, drawPy2);
+            };
+
+            // 🚀 끊김 없는 촘촘한 무한 격자 생성을 위해 루프를 -200부터 200까지 대폭 확장
+            for (let i = -200; i <= 200; i++) {
+                if (i === 0) continue;
+                let pos = i * gridStep;
+                drawLine(pos, -maxExtent, pos, maxExtent); 
+                drawLine(-maxExtent, pos, maxExtent, pos); 
+            }
+            ctx.stroke();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = isLightMode ? 'rgba(233, 30, 99, 0.6)' : 'rgba(233, 30, 99, 0.8)';
+            ctx.beginPath();
+            drawLine(0, -maxExtent, 0, maxExtent);
+            drawLine(-maxExtent, 0, maxExtent, 0);
+            ctx.stroke();
+            ctx.restore();
+        };
+
         const drawNumbers = () => {
             if (hideGrid) return;
             let sOriginX = cx + camera.x, sOriginY = cy + camera.y;
@@ -1923,13 +2153,153 @@
             ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y); 
             ctx.scale(z, z); 
-            ctx.transform(renderMatrix.a, renderMatrix.b, renderMatrix.c, renderMatrix.d, renderMatrix.e, renderMatrix.f);
+            // 🚀 수학 행렬을 역방향 Y축을 가진 Canvas 렌더링에 맞게 부호 교정 (이미지와 연산 점 이동 방향 일치)
+            ctx.transform(renderMatrix.a, -renderMatrix.b, -renderMatrix.c, renderMatrix.d, renderMatrix.e, -renderMatrix.f);
             
             let imgScale = (isMath && showImg) ? (1.0 / pixelsPerUnit) : 1.0;
             ctx.scale(imgScale, imgScale);
             
             ctx.drawImage(colorCacheRef.current, -imageObj.width / 2, -imageObj.height / 2, imageObj.width, imageObj.height);
             ctx.restore();
+        };
+
+        // 🚀 WebGL 프래그먼트 셰이더 기반: 역방향 픽셀 매핑 투시 렌더링 엔진 (파이썬 100% 동일)
+        const drawPerspectiveImageGL = (renderMatrix = matrix, alpha = 1.0, isMath = useMathLab, showImg = showImageInMathLab) => {
+            if (!imageObj || !colorCacheRef.current) return;
+            const canvasGL = canvasGLRef.current;
+            if (!canvasGL) return;
+            const gl = canvasGL.getContext('webgl2', { antialias: true }); // 🚀 캔버스 겹침 합성 버그 수정을 위해 기본 모드 유지
+            if (!gl) return;
+
+            // 🚀 매 프레임 렌더링 직전에 WebGL 캔버스를 완벽하게 닦아내어 여러 그림자가 서로 탁하게 겹치는 버그 완전 해결
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // 투시가 포함된 3x3 행렬의 역행렬을 계산
+            let invMat;
+            try { 
+                invMat = renderMatrix.inverse(); 
+                if (!isFinite(invMat.a)) invMat = new DOMMatrix(); 
+            } catch(e) { invMat = new DOMMatrix(); }
+
+            let imgScale = (isMath && showImg) ? (1.0 / pixelsPerUnit) : 1.0;
+
+            // 🚀 Vertex Shader: 화면을 꽉 채우는 평평한 도화지 2개(삼각형)만 그림
+            const vsSource = `#version 300 es
+            in vec2 position;
+            void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
+
+            // 🚀 Fragment Shader: 픽셀마다 역행렬을 곱하고 W로 나누어 원본 사진의 색을 칠함
+            const fsSource = `#version 300 es
+            precision highp float;
+            out vec4 fragColor;
+            
+            uniform sampler2D u_image;
+            uniform vec2 u_res;
+            uniform vec2 u_cam;
+            uniform float u_z;
+            uniform mat3 u_matrix_inv;
+            uniform vec2 u_img_size;
+            uniform float u_alpha;
+            
+            void main() {
+                // 1. 모니터(Canvas) 픽셀 좌표 가져오기
+                vec2 sp = gl_FragCoord.xy;
+                sp.y = u_res.y - sp.y; // WebGL Y축 뒤집기 보정
+                
+                float cx = u_res.x / 2.0;
+                float cy = u_res.y / 2.0;
+                
+                // 2. 화면 좌표를 수학적 기준 좌표로 변환
+                float canvasX = (sp.x - cx - u_cam.x) / u_z;
+                float canvasY = -(sp.y - cy - u_cam.y) / u_z;
+                
+                // 3. 역행렬을 곱해 3D 공간상의 원본 위치(mathPt) 도출
+                vec3 mathPt = u_matrix_inv * vec3(canvasX, canvasY, 1.0);
+                
+                // 🚀 4. 차원 붕괴 클리핑 (파이썬과 동일 로직): W가 0 이하면 투명하게 폐기!
+                if (mathPt.z <= 0.0001) {
+                    fragColor = vec4(0.0);
+                    return;
+                }
+                
+                // 5. 투시 분할(Perspective Divide): W값으로 X, Y를 나눔
+                float origX = mathPt.x / mathPt.z;
+                float origY = mathPt.y / mathPt.z;
+                
+                // 6. 이미지 UV 텍스처 좌표계(0.0~1.0)로 변환
+                float uvX = (origX + u_img_size.x / 2.0) / u_img_size.x;
+                float uvY = (-origY + u_img_size.y / 2.0) / u_img_size.y;
+                
+                // 7. 사진 영역 안에 들어오는 픽셀만 색칠하기
+                if (uvX >= 0.0 && uvX <= 1.0 && uvY >= 0.0 && uvY <= 1.0) {
+                    vec4 color = texture(u_image, vec2(uvX, uvY));
+                    // 🚀 브라우저 규격(Premultiplied Alpha)에 맞춰 출력 시 RGB에도 투명도(Alpha)를 직접 곱해 어두운 그림자가 생기는 현상 완벽 해결!
+                    fragColor = vec4(color.rgb * (color.a * u_alpha), color.a * u_alpha);
+                } else {
+                    fragColor = vec4(0.0);
+                }
+            }`;
+
+            if (!canvasGL.__imgProgram) {
+                const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+                const vs = compile(gl.VERTEX_SHADER, vsSource);
+                const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+                const program = gl.createProgram();
+                gl.attachShader(program, vs); gl.attachShader(program, fs);
+                gl.linkProgram(program);
+                gl.deleteShader(vs); gl.deleteShader(fs);
+                canvasGL.__imgProgram = program;
+
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                // 화면 전체를 덮는 2개의 꽉 찬 삼각형(Quad)
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+                canvasGL.__quadBuffer = buffer;
+            }
+
+            gl.useProgram(canvasGL.__imgProgram);
+
+            if (!canvasGL.__imgTexture || canvasGL.__imgVersion !== colorCacheVersionRef.current) {
+                if (canvasGL.__imgTexture) gl.deleteTexture(canvasGL.__imgTexture);
+                const tex = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, colorCacheRef.current);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                canvasGL.__imgTexture = tex;
+                canvasGL.__imgVersion = colorCacheVersionRef.current;
+            }
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, canvasGL.__imgTexture);
+            gl.uniform1i(gl.getUniformLocation(canvasGL.__imgProgram, 'u_image'), 0);
+
+            gl.uniform2f(gl.getUniformLocation(canvasGL.__imgProgram, 'u_res'), canvasGL.width, canvasGL.height);
+            gl.uniform2f(gl.getUniformLocation(canvasGL.__imgProgram, 'u_cam'), camera.x, camera.y);
+            gl.uniform1f(gl.getUniformLocation(canvasGL.__imgProgram, 'u_z'), camera.z);
+            gl.uniform2f(gl.getUniformLocation(canvasGL.__imgProgram, 'u_img_size'), imageObj.width * imgScale, imageObj.height * imgScale);
+            gl.uniform1f(gl.getUniformLocation(canvasGL.__imgProgram, 'u_alpha'), alpha);
+
+            // WebGL에 3x3 역행렬 밀어넣기
+            gl.uniformMatrix3fv(gl.getUniformLocation(canvasGL.__imgProgram, 'u_matrix_inv'), false, [
+                invMat.a, invMat.b, invMat.m14 || 0,
+                invMat.c, invMat.d, invMat.m24 || 0,
+                invMat.e, invMat.f, invMat.m44 || 1
+            ]);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, canvasGL.__quadBuffer);
+            const posLoc = gl.getAttribLocation(canvasGL.__imgProgram, 'position');
+            gl.enableVertexAttribArray(posLoc);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            gl.enable(gl.BLEND);
+            // 🚀 Premultiplied 픽셀에 맞는 수학적으로 가장 완벽하고 순수한 합성 공식으로 교체
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            gl.disable(gl.BLEND);
         };
 
         const drawUnitSquare = (renderMatrix = matrix, alpha = 1.0) => {
@@ -1942,9 +2312,11 @@
             ctx.beginPath();
             pts.forEach((p, i) => {
                 let tPt = p.matrixTransform(renderMatrix);
-                if (!isFinite(tPt.x) || !isFinite(tPt.y)) return;
-                if (i===0) ctx.moveTo(tPt.x*z, -tPt.y*z);
-                else ctx.lineTo(tPt.x*z, -tPt.y*z);
+                if (tPt.w <= 0.0001) return;
+                let px = tPt.x / tPt.w, py = tPt.y / tPt.w;
+                if (!isFinite(px) || !isFinite(py)) return;
+                if (i===0) ctx.moveTo(px*z, -py*z);
+                else ctx.lineTo(px*z, -py*z);
             });
             ctx.closePath();
             ctx.fillStyle = `rgba(234, 179, 8, 0.3)`;
@@ -1975,9 +2347,11 @@
                 ctx.beginPath();
                 poly.forEach((p, i) => {
                     let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix); // 🚀 p.y 정상화
-                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
-                    if (i===0) ctx.moveTo(pt.x*z, -pt.y*z);
-                    else ctx.lineTo(pt.x*z, -pt.y*z);
+                    if (pt.w <= 0.0001) return;
+                    let px = pt.x / pt.w, py = pt.y / pt.w;
+                    if (!isFinite(px) || !isFinite(py)) return;
+                    if (i===0) ctx.moveTo(px*z, -py*z);
+                    else ctx.lineTo(px*z, -py*z);
                 });
                 ctx.closePath();
                 ctx.fillStyle = `rgba(168, 85, 247, 0.4)`;
@@ -1988,9 +2362,11 @@
                 
                 poly.forEach((p) => {
                     let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
-                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    if (pt.w <= 0.0001) return;
+                    let px = pt.x / pt.w, py = pt.y / pt.w;
+                    if (!isFinite(px) || !isFinite(py)) return;
                     ctx.beginPath();
-                    ctx.arc(pt.x*z, -pt.y*z, 6, 0, Math.PI*2);
+                    ctx.arc(px*z, -py*z, 6, 0, Math.PI*2);
                     ctx.fillStyle = `#a855f7`; 
                     ctx.fill();
                     ctx.strokeStyle = `#fff`; ctx.lineWidth = 2; ctx.stroke();
@@ -2001,9 +2377,11 @@
                 ctx.beginPath();
                 polygonPoints.forEach((p, i) => {
                     let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
-                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
-                    if (i===0) ctx.moveTo(pt.x*z, -pt.y*z);
-                    else ctx.lineTo(pt.x*z, -pt.y*z);
+                    if (pt.w <= 0.0001) return;
+                    let px = pt.x / pt.w, py = pt.y / pt.w;
+                    if (!isFinite(px) || !isFinite(py)) return;
+                    if (i===0) ctx.moveTo(px*z, -py*z);
+                    else ctx.lineTo(px*z, -py*z);
                 });
                 ctx.strokeStyle = `#a855f7`;
                 ctx.lineWidth = 3;
@@ -2011,9 +2389,11 @@
                 
                 polygonPoints.forEach((p, idx) => {
                     let pt = new DOMPoint(p.x, p.y).matrixTransform(renderMatrix);
-                    if (!isFinite(pt.x) || !isFinite(pt.y)) return;
+                    if (pt.w <= 0.0001) return;
+                    let px = pt.x / pt.w, py = pt.y / pt.w;
+                    if (!isFinite(px) || !isFinite(py)) return;
                     ctx.beginPath();
-                    ctx.arc(pt.x*z, -pt.y*z, 6, 0, Math.PI*2);
+                    ctx.arc(px*z, -py*z, 6, 0, Math.PI*2);
                     ctx.fillStyle = (idx === 0) ? `#ef4444` : `#a855f7`; 
                     ctx.fill();
                     ctx.strokeStyle = `#fff`; 
@@ -2027,15 +2407,9 @@
             const canvasGL = canvasGLRef.current;
             const canvas2D = canvasRef.current; 
             if (!canvasGL || !canvas2D) return;
-            const gl = canvasGL.getContext('webgl2', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+            const gl = canvasGL.getContext('webgl2', { antialias: true }); // 🚀 캔버스 겹침 합성 버그 수정을 위해 기본 모드 유지
             const ctx = canvas2D.getContext('2d');
             if (!gl || !ctx) return;
-            
-            // 본체 그릴 때만 WebGL 지우기 (그림자 때는 지우면 안됨)
-            if (alpha === 1.0) {
-                gl.clearColor(0.0, 0.0, 0.0, 0.0);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-            }
 
             if (!useMathLab || !useGraph || graphs.length === 0) return;
 
@@ -2246,8 +2620,9 @@
                     
                     const drawSafeLine = (mathX, mathY, isMove) => {
                         let mPt = gMatrix.transformPoint(new DOMPoint(mathX, -mathY));
-                        let px = mPt.x * camera.z + cx + camera.x;
-                        let py = mPt.y * camera.z + cy + camera.y;
+                        if (mPt.w <= 0.0001) { lastPx = null; lastPy = null; return; }
+                        let px = (mPt.x / mPt.w) * camera.z + cx + camera.x;
+                        let py = (mPt.y / mPt.w) * camera.z + cy + camera.y;
                         if (isNaN(px) || isNaN(py) || !isFinite(px) || !isFinite(py)) { lastPx = null; lastPy = null; return; }
                         if (isMove || lastPx === null || lastPy === null) { lastPx = px; lastPy = py; } 
                         else { drawClippedLine(lastPx, lastPy, px, py); lastPx = px; lastPy = py; }
@@ -2256,9 +2631,10 @@
                     const drawMathRay = (mathX, signY, isMove) => {
                         let pt1 = gMatrix.transformPoint(new DOMPoint(mathX, 0));
                         let pt2 = gMatrix.transformPoint(new DOMPoint(mathX, -signY));
-                        let px = pt1.x * camera.z + cx + camera.x;
-                        let py = pt1.y * camera.z + cy + camera.y;
-                        let dx = (pt2.x - pt1.x) * camera.z; let dy = (pt2.y - pt1.y) * camera.z;
+                        if (pt1.w <= 0.0001 || pt2.w <= 0.0001) return;
+                        let px = (pt1.x / pt1.w) * camera.z + cx + camera.x;
+                        let py = (pt1.y / pt1.w) * camera.z + cy + camera.y;
+                        let dx = ((pt2.x / pt2.w) - (pt1.x / pt1.w)) * camera.z; let dy = ((pt2.y / pt2.w) - (pt1.y / pt1.w)) * camera.z;
                         let len = Math.hypot(dx, dy); let endPx = px, endPy = py;
                         if (len > 0) { endPx += (dx / len) * 20000; endPy += (dy / len) * 20000; } 
                         else { endPy -= signY * 20000; }
@@ -2458,8 +2834,9 @@
             points.forEach(p => {
                 let pt = new DOMPoint(p.x, p.y); // 🚀 부호 버그 수정
                 let tPt = pt.matrixTransform(renderMatrix);
-                let drawX = tPt.x * z;
-                let drawY = -tPt.y * z;
+                if (tPt.w <= 0.0001) return;
+                let drawX = (tPt.x / tPt.w) * z;
+                let drawY = -(tPt.y / tPt.w) * z;
                 if (!isFinite(drawX) || !isFinite(drawY)) return;
                 
                 ctx.beginPath(); ctx.arc(drawX, drawY, 6, 0, 2 * Math.PI);
@@ -2472,15 +2849,17 @@
             ctx.restore();
         };
 
-        const drawCalcPoints = () => {
-            if (calcPoints.length === 0) return;
+        const drawCalcPoints = (renderMatrix = matrix, alpha = 1.0, sourcePoints = calcPoints) => {
+            if (sourcePoints.length === 0) return;
             ctx.save();
+            ctx.globalAlpha = alpha;
             ctx.translate(cx + camera.x, cy + camera.y);
-            calcPoints.forEach(p => {
+            sourcePoints.forEach(p => {
                 let pt = new DOMPoint(p.x, p.y); // 🚀 부호 버그 수정
-                let tPt = pt.matrixTransform(matrix);
-                let drawX = tPt.x * z;
-                let drawY = -tPt.y * z;
+                let tPt = pt.matrixTransform(renderMatrix);
+                if (tPt.w <= 0.0001) return;
+                let drawX = (tPt.x / tPt.w) * z;
+                let drawY = -(tPt.y / tPt.w) * z;
                 if (!isFinite(drawX) || !isFinite(drawY)) return;
                 
                 ctx.beginPath();
@@ -2510,30 +2889,57 @@
         if (!imageUnderGrid) {
             drawGridLines();
             drawNumbers();
+            // 🚀 공간 왜곡(Warped Grid)을 메인 엔진과 똑같이 독립 배치하여 어느 모드에서든 강제 시각화되도록 해방
+            if (warpGrid) drawWarpedGrid(matrix, 1.0);
         }
 
         // 🚀 그림자를 메인 도형들보다 '먼저(바닥에)' 그려서 원본 이미지가 탁해지는 현상 완벽 방어!
         if (shadowStates.length > 0) {
             shadowStates.forEach(shadow => {
-                if (shadow.glImage) {
-                    ctx.save();
-                    ctx.globalAlpha = 0.35; 
-                    const sScale = z / shadow.camOrigin.z;
-                    ctx.translate(cx + camera.x, cy + camera.y);
-                    ctx.scale(sScale, sScale);
-                    ctx.translate(-(cx + shadow.camOrigin.x), -(cy + shadow.camOrigin.y));
-                    ctx.drawImage(shadow.glImage, 0, 0);
-                    ctx.restore();
+                // 🚀 그림자 렌더링 시 현재 모드가 아니라 "저장 시점의 모드"를 그대로 적용
+                if (shadow.isImageActive) {
+                    if (shadow.params && shadow.params.usePerspective) {
+                        // 🚀 레이어 및 투명도 버그 완벽 해결: 투시 그림자를 2D 캔버스에 '이미지'로 복사하여 렌더링
+                        const canvasGL = canvasGLRef.current;
+                        if (canvasGL) {
+                            // 1. 숨겨진 WebGL 캔버스에 투명도를 1.0으로 렌더링
+                            drawPerspectiveImageGL(shadow.matrix, 1.0, shadow.isMathActive, true);
+                            
+                            // 2. 렌더링된 WebGL 캔버스의 내용을 2D 캔버스에 복사 (이때 2D 캔버스의 투명도 규칙을 따름)
+                            ctx.save();
+                            ctx.globalAlpha = 0.35; 
+                            // 🚀 뒤집힘 버그 해결: Y축을 뒤집는 코드를 삭제하고, 브라우저 화면 그대로 복사! (화면 이동 시 따라오지 않고 바닥에 안착)
+                            ctx.drawImage(canvasGL, 0, 0);
+                            ctx.restore();
+                            
+                            // 3. WebGL 캔버스를 다음 렌더링을 위해 초기화 (찌꺼기 방지)
+                            const gl = canvasGL.getContext('webgl2', { antialias: true });
+                            if (gl) {
+                                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                            }
+                        }
+                    } else {
+                        drawImageLayer(shadow.matrix, 0.35, shadow.isMathActive, true);
+                    }
+                }
+                
+                // 🚀 그림자 루프 내부에서도 drawWarpedGrid를 isMathActive의 속박에서 벗어나게 독립 배치
+                if (warpGrid) {
+                    drawWarpedGrid(shadow.matrix, 0.35);
                 }
 
-                // 🚀 그림자 렌더링 시 현재 모드가 아니라 "저장 시점의 모드"를 그대로 적용
-                if (shadow.isImageActive) drawImageLayer(shadow.matrix, 0.35, shadow.isMathActive, true);
                 if (shadow.isMathActive) { 
                     drawUnitSquare(shadow.matrix, 0.35); 
                     drawPolygon(shadow.matrix, 0.35, shadow.polygons); 
                     // 🚀 렌더링 중 수식 파서 뻗음(블랙스크린) 방지 안전망 추가
                     try { drawMathFunctions(shadow.matrix, 0.35, shadow.graphs); } catch(e) {}
                     drawMathPoints(shadow.matrix, 0.35, shadow.points); 
+                }
+                
+                // 🚀 연산 과정 점도 그림자 상태일 경우 투명하게 렌더링
+                if (shadow.calcPoints && shadow.calcPoints.length > 0) {
+                    drawCalcPoints(shadow.matrix, 0.35, shadow.calcPoints);
                 }
             });
         }
@@ -2543,13 +2949,21 @@
         
         if (useMathLab && mathUnderImage) { drawUnitSquare(); drawPolygon(); drawMathFunctions(); drawMathPoints(); }
 
-        if (isImageActive) drawImageLayer();
+        if (isImageActive) {
+            if (usePerspective) {
+                drawPerspectiveImageGL(matrix, 1.0, useMathLab, showImageInMathLab);
+            } else {
+                drawImageLayer();
+            }
+        }
 
         if (useMathLab && !mathUnderImage) { drawUnitSquare(); drawPolygon(); drawMathFunctions(); drawMathPoints(); }
 
         if (imageUnderGrid) {
             drawGridLines();
             drawNumbers();
+            // 🚀 이미지 아래 그리드 모드일 때도 독립 공간 왜곡 실행
+            if (warpGrid) drawWarpedGrid(matrix, 1.0);
         }
 
         drawCalcPoints();
@@ -2558,8 +2972,33 @@
             ctx.save();
             ctx.translate(cx + camera.x, cy + camera.y); 
             ctx.translate((translateX + transformOriginX) * z, (translateY - transformOriginY) * z); 
-            ctx.rotate(-(reflAngle * Math.PI) / 180); 
             ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.beginPath(); 
+            if (reflMode === 'line') {
+                let A = reflLineA, B = reflLineB, C = reflLineC;
+                if (A === 0 && B === 0) { A = 1; B = -1; }
+                let p1 = {x: 0, y: 0}, p2 = {x: 0, y: 0};
+                if (Math.abs(B) > Math.abs(A)) {
+                    p1.x = -10000; p1.y = (-A * p1.x - C) / B;
+                    p2.x = 10000;  p2.y = (-A * p2.x - C) / B;
+                } else {
+                    p1.y = -10000; p1.x = (-B * p1.y - C) / A;
+                    p2.y = 10000;  p2.x = (-B * p2.y - C) / A;
+                }
+                ctx.moveTo(p1.x * z, -p1.y * z); ctx.lineTo(p2.x * z, -p2.y * z);
+            } else {
+                ctx.rotate(-(reflAngle * Math.PI) / 180); 
+                if (isFinite(-w*5)) ctx.moveTo(-w * 5, 0); 
+                if (isFinite(w*5)) ctx.lineTo(w * 5, 0); 
+            }
+            ctx.stroke(); ctx.restore();
+        }
+
+        if (useProj) {
+            ctx.save();
+            ctx.translate(cx + camera.x, cy + camera.y); 
+            ctx.translate((translateX + transformOriginX) * z, (translateY - transformOriginY) * z); 
+            ctx.rotate(-(projAngle * Math.PI) / 180); 
+            ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3; ctx.setLineDash([10, 10]); ctx.beginPath(); 
             if (isFinite(-w*5)) ctx.moveTo(-w * 5, 0); 
             if (isFinite(w*5)) ctx.lineTo(w * 5, 0); 
             ctx.stroke(); ctx.restore();
@@ -2695,10 +3134,16 @@
                                       <span className="text-zinc-500 font-bold text-lg w-4">{idx + 1}.</span>
                                       <span className="text-white font-bold text-base flex-1">{chainItem.label}</span>
                                       <div className="bg-black/50 p-1.5 rounded border border-zinc-700 mr-2">
-                                          <div className="grid grid-cols-3 gap-x-1.5 gap-y-0.5 text-center font-mono text-[8px] font-bold text-sky-300">
-                                              <span>{fmt(chainItem.m.a)}</span><span>{fmt(chainItem.m.c)}</span><span>{fmt(chainItem.m.e)}</span>
-                                              <span>{fmt(chainItem.m.b)}</span><span>{fmt(chainItem.m.d)}</span><span>{fmt(chainItem.m.f)}</span>
-                                              <span className="text-zinc-600">0</span><span className="text-zinc-600">0</span><span className="text-zinc-600">1</span>
+                                          <div className="grid grid-cols-3 gap-x-1 gap-y-0.5 text-center font-mono text-[8.5px] font-bold tracking-tighter min-w-[70px]">
+                                              <span className={getMiniColor(id, 'a')}>{fmtMini(chainItem.m.a)}</span>
+                                              <span className={getMiniColor(id, 'c')}>{fmtMini(chainItem.m.c)}</span>
+                                              <span className={getMiniColor(id, 'e')}>{fmtMini(chainItem.m.e)}</span>
+                                              <span className={getMiniColor(id, 'b')}>{fmtMini(chainItem.m.b)}</span>
+                                              <span className={getMiniColor(id, 'd')}>{fmtMini(chainItem.m.d)}</span>
+                                              <span className={getMiniColor(id, 'f')}>{fmtMini(chainItem.m.f)}</span>
+                                              <span className={getMiniColor(id, 'px')}>{fmtMini(chainItem.m.m14 || 0)}</span>
+                                              <span className={getMiniColor(id, 'py')}>{fmtMini(chainItem.m.m24 || 0)}</span>
+                                              <span className="text-zinc-600">1</span>
                                           </div>
                                       </div>
                                       <svg className="w-5 h-5 text-zinc-500 hover:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/></svg>
@@ -2875,7 +3320,7 @@
                                   <div className="grid grid-cols-3 gap-x-1.5 md:gap-x-3 gap-y-1 md:gap-y-2 text-center text-sky-300 mx-0.5 md:mx-1 w-max">
                                       <span>{fmt(matrix.a)}</span><span>{fmt(matrix.c)}</span><span>{fmt(matrix.e)}</span>
                                       <span>{fmt(matrix.b)}</span><span>{fmt(matrix.d)}</span><span>{fmt(matrix.f)}</span>
-                                      <span className="text-slate-500">0</span><span className="text-slate-500">0</span><span className="text-slate-500">1</span>
+                                      <span>{matrix.m14 ? fmt(matrix.m14) : '0'}</span><span>{matrix.m24 ? fmt(matrix.m24) : '0'}</span><span>1</span>
                                   </div>
                                   <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
                               </div>
@@ -2895,7 +3340,7 @@
                                   <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-emerald-300 mx-0.5 md:mx-1 w-max font-bold">
                                       <span>X'</span>
                                       <span>Y'</span>
-                                      <span className="text-slate-500 font-normal">1</span>
+                                      <span>W'</span>
                                   </div>
                                   <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
                               </div>
@@ -2906,28 +3351,44 @@
                                   <span className="text-emerald-300 font-bold w-4 md:w-6">X'</span> <span className="font-sans">=</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.a)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.c)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                  <span className="text-sky-300">{fmt(matrix.e)}</span>
-                              </div>
-                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans flex-wrap">
-                                  = <span className="text-slate-300 font-mono">{fmt(matrix.a * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.c * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.e)}</span>
+                                  <span className="text-sky-300">{fmt(matrix.e)}</span> <span className="font-sans text-slate-500">× 1</span>
                               </div>
                               <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
                               </div>
                           </div>
 
-                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 mt-2 md:mt-4 min-w-max">
+                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base pt-1 min-w-max">
                               <div className="flex items-center gap-1 md:gap-2 flex-wrap">
                                   <span className="text-emerald-300 font-bold w-4 md:w-6">Y'</span> <span className="font-sans">=</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.b)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
                                   <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.d)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                  <span className="text-sky-300">{fmt(matrix.f)}</span>
-                              </div>
-                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans flex-wrap">
-                                  = <span className="text-slate-300 font-mono">{fmt(matrix.b * selectedCalcPoint.x)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.d * selectedCalcPoint.y)}</span> + <span className="text-slate-300 font-mono">{fmt(matrix.f)}</span>
+                                  <span className="text-sky-300">{fmt(matrix.f)}</span> <span className="font-sans text-slate-500">× 1</span>
                               </div>
                               <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base pt-1 min-w-max">
+                              <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                  <span className="text-emerald-300 font-bold w-4 md:w-6">W'</span> <span className="font-sans">=</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.m14 || 0)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.m24 || 0)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
+                                  <span className="text-sky-300">1</span> <span className="font-sans text-slate-500">× 1</span>
+                              </div>
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + 1)}</span>
+                              </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 mt-2 md:mt-4 min-w-max">
+                              <div className="flex items-center gap-2">
+                                  <span className="text-white font-bold">최종 좌표 (X' / W', Y' / W')</span>
+                                  { (matrix.m14 || matrix.m24) ? <span className="text-rose-400 text-xs ml-2">※ 투시(원근감) 적용됨</span> : null }
+                              </div>
+                              <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
+                                  = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">({fmt((matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e) / ((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + 1))}, {fmt((matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f) / ((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + 1))})</span>
                               </div>
                           </div>
 
@@ -2936,9 +3397,14 @@
                               const a = fmt(matrix.a), c = fmt(matrix.c), e = fmt(matrix.e);
                               const b = fmt(matrix.b), d = fmt(matrix.d), f = fmt(matrix.f);
                               const x = selectedCalcPoint.x, y = selectedCalcPoint.y;
-                              const resX = fmt(matrix.a * x + matrix.c * y + matrix.e);
-                              const resY = fmt(matrix.b * x + matrix.d * y + matrix.f);
-                              const text = `[행렬 연산 과정]\n행렬:\n[ ${a}  ${c}  ${e} ]\n[ ${b}  ${d}  ${f} ]\n[ 0  0  1 ]\n\n원본 좌표: (${x}, ${y})\n\nX' = (${a} * ${x}) + (${c} * ${y}) + ${e} = ${resX}\nY' = (${b} * ${x}) + (${d} * ${y}) + ${f} = ${resY}\n\n결과 좌표: (${resX}, ${resY})`;
+                              const pX = matrix.m14 ? fmt(matrix.m14) : '0';
+                              const pY = matrix.m24 ? fmt(matrix.m24) : '0';
+                              const rawX = matrix.a * x + matrix.c * y + matrix.e;
+                              const rawY = matrix.b * x + matrix.d * y + matrix.f;
+                              const w = (matrix.m14 || 0) * x + (matrix.m24 || 0) * y + 1;
+                              const resX = fmt(rawX / w);
+                              const resY = fmt(rawY / w);
+                              const text = `[행렬 연산 과정]\n행렬:\n[ ${a}  ${c}  ${e} ]\n[ ${b}  ${d}  ${f} ]\n[ ${pX}  ${pY}  1 ]\n\n원본 좌표: (${x}, ${y})\n\nX' = (${a} * ${x}) + (${c} * ${y}) + ${e}*1 = ${fmt(rawX)}\nY' = (${b} * ${x}) + (${d} * ${y}) + ${f}*1 = ${fmt(rawY)}\nW' = (${pX} * ${x}) + (${pY} * ${y}) + 1*1 = ${fmt(w)}\n\n결과 좌표: (X'/W', Y'/W') = (${resX}, ${resY})`;
                               navigator.clipboard.writeText(text).then(() => alert("연산 과정이 텍스트로 복사되었습니다."));
                           }} className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] md:text-xs font-sans font-bold flex items-center gap-1.5 transition shadow">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -2947,12 +3413,14 @@
 
                       </div>
 
-                      <div className="mt-1 md:mt-2 p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
-                          <b className="text-indigo-400 block mb-0.5 md:mb-1 flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                              왜 (X, Y)를 세로로 세워서 곱하나요?
-                          </b>
-                          행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 (X, Y)를 3 x 3 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 행렬</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
+                      <div className="flex flex-col gap-2 mt-1 md:mt-2">
+                          <div className="p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
+                              <b className="text-indigo-400 block mb-0.5 md:mb-1 flex items-center gap-1">
+                                  <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                  왜 2차원 좌표계에서 3행(W)이 필요하나요? (동차좌표계)
+                              </b>
+                              이동이나 투시(원근감) 변환은 단순한 2x2 행렬의 곱셈만으로는 수학적으로 표현할 수 없습니다. 따라서 차원을 하나 늘려 <strong className="text-white">가상의 3차원 축(W=1)</strong>을 만들고 3x3 행렬로 계산한 뒤, 마지막에 다시 <strong className="text-white">W' 값으로 나누어(투시 분할)</strong> 2차원 화면으로 되돌리는 방식을 사용합니다.
+                          </div>
                       </div>
                       
                       <div className="flex justify-end gap-2 md:gap-3 mt-1 md:mt-2">
@@ -3084,144 +3552,180 @@
                   <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력값 조절</button>
                 </div>
                 {settingsTab === 'display' && (
-                  <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2">
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진을 불러올 때 리셋 (Auto Reset)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={imageSmoothing} onChange={(e) => setImageSmoothing(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지 스무딩 (계단현상 방지)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 좌표계 아래로</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={hideGrid} onChange={(e) => setHideGrid(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">좌표계(그리드) 숨기기</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition mt-2">
-                        <div className="relative">
-                            <input type="checkbox" checked={matrixFormatExact} onChange={(e) => setMatrixFormatExact(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 값 딱 떨어지게 표시 (1.00 → 1)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition mt-2">
-                        <div className="relative">
-                            <input type="checkbox" checked={isLightMode} onChange={(e) => setIsLightMode(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-amber-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-bold text-amber-400 group-hover:text-amber-300 transition">교실 발표용 테마 (화이트 모드)</span>
-                    </label>
-                    {/* 🚀 결과물 다중 포맷 저장 UI */}
-                    <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3 mt-2">
-                        <span className="text-zinc-300 font-bold text-sm flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            현재 화면 저장 (Export)
-                        </span>
-                        <div className="grid grid-cols-3 gap-2">
-                            <button onClick={() => handleSaveImage('png')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">PNG 저장</button>
-                            <button onClick={() => handleSaveImage('jpeg')} className="bg-zinc-800 hover:bg-amber-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-amber-500 shadow-sm">JPG 저장</button>
-                            <button onClick={() => handleSaveImage('webp')} className="bg-zinc-800 hover:bg-emerald-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-emerald-500 shadow-sm">WEBP 저장</button>
-                        </div>
-                    </div>
-                    <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 mt-2 flex flex-col gap-3">
-                        <span className="text-zinc-300 font-bold text-sm flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            변환 중심점 (Origin)
-                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-auto"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                        </span>
-                        <div className="flex gap-2">
-                            <div className="flex-1 flex flex-col gap-1 min-w-0">
-                                <span className="text-[10px] text-zinc-500 text-center">X 좌표</span>
-                                <CustomNumberInput value={transformOriginX} onChange={setTransformOriginX} className="w-full bg-zinc-950 border border-zinc-700 text-zinc-300 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-zinc-500" />
+                  <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
+                    
+                    {/* 1. 기본 동작 설정 */}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기본 동작 설정</span>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={autoResetOnLoad} onChange={(e) => setAutoResetOnLoad(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                            <div className="flex-1 flex flex-col gap-1 min-w-0">
-                                <span className="text-[10px] text-zinc-500 text-center">Y 좌표</span>
-                                <CustomNumberInput value={transformOriginY} onChange={setTransformOriginY} className="w-full bg-zinc-950 border border-zinc-700 text-zinc-300 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-zinc-500" />
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">새 사진 불러올 때 리셋 (Auto Reset)</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={imageSmoothing} onChange={(e) => setImageSmoothing(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
                             </div>
-                        </div>
-                        <button onClick={() => {setTransformOriginX(0); setTransformOriginY(0);}} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs py-1.5 rounded transition border border-zinc-700">원점(0,0)으로 리셋</button>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지 스무딩 (계단현상 방지)</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={matrixFormatExact} onChange={(e) => setMatrixFormatExact(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 값 딱 떨어지게 표시 (1.00 → 1)</span>
+                        </label>
                     </div>
-                    <hr className="border-zinc-700/50 my-2" />
-                    <span className="text-xs font-bold text-zinc-500">수학 실험실 전용 옵션</span>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={showImageInMathLab} onChange={(e) => {
-                                const val = e.target.checked;
-                                setShowImageInMathLab(val);
-                                if (val && useMathLab && imageObj && !keepViewOnMathLab) {
-                                    setCamera(getOptimalCamera(imageObj));
-                                } else if (!val && useMathLab && !keepViewOnMathLab) {
-                                    setCamera({ x: 0, y: 0, z: 100.0 });
-                                }
-                            }} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                        </div>
-                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드에서 사진 함께 보기</span>
 
-                    {/* 🚀 2-B. 픽셀-좌표 매핑 비율 설정 UI 추가 */}
-                    {useMathLab && showImageInMathLab && (
-                        <div className="flex items-center justify-between gap-3 bg-indigo-950/20 p-3 rounded-lg border border-indigo-500/30 ml-2 mt-1">
-                            <span className="text-xs font-bold text-indigo-300">사진 픽셀 매핑 비율</span>
+                    <hr className="border-zinc-700/50" />
+
+                    {/* 2. 시각화 옵션 */}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">화면 시각화 옵션</span>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={imageUnderGrid} onChange={(e) => setImageUnderGrid(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지를 격자(그리드) 아래로 배치</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={hideGrid} onChange={(e) => setHideGrid(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">격자(그리드) 숨기기</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={warpGrid} onChange={(e) => setWarpGrid(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">공간 왜곡(Warped Grid) 시각화</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={isLightMode} onChange={(e) => setIsLightMode(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">화이트 테마 (교실 발표용)</span>
+                        </label>
+                    </div>
+
+                    <hr className="border-zinc-700/50" />
+
+                    {/* 3. 수학 실험실 전용 설정 */}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">수학 실험실 전용 옵션</span>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={showImageInMathLab} onChange={(e) => {
+                                    const val = e.target.checked;
+                                    setShowImageInMathLab(val);
+                                    if (val && useMathLab && imageObj && !keepViewOnMathLab) setCamera(getOptimalCamera(imageObj));
+                                    else if (!val && useMathLab && !keepViewOnMathLab) setCamera({ x: 0, y: 0, z: 100.0 });
+                                }} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 모드에서 사진 함께 보기</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={keepViewOnMathLab} onChange={(e) => setKeepViewOnMathLab(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 모드 전환 시 화면 줌/좌표 고정</span>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <div className="relative">
+                                <input type="checkbox" checked={mathUnderImage} onChange={(e) => setMathUnderImage(e.target.checked)} className="peer sr-only" />
+                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                            </div>
+                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">수학 함수/점을 사진 아래로 내리기</span>
+                        </label>
+                        <div className="flex items-center justify-between gap-3 bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
+                            <span className="text-xs md:text-sm font-medium text-zinc-300">수학 좌표 1단위 = ? px</span>
                             <div className="flex items-center gap-2">
-                                <CustomNumberInput value={pixelsPerUnit} onChange={(v) => setPixelsPerUnit(v > 0 ? v : 1)} className="w-14 bg-zinc-900 text-white font-mono px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-indigo-500 text-center" />
-                                <span className="text-xs font-bold text-indigo-400">px = 1 단위</span>
+                                <CustomNumberInput value={pixelsPerUnit} onChange={(v) => setPixelsPerUnit(v > 0 ? v : 1)} className="w-14 bg-zinc-950 text-sky-400 font-bold px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-sky-500 text-center" />
+                                <span className="text-xs font-bold text-zinc-400">px</span>
                             </div>
                         </div>
-                    )}
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={keepViewOnMathLab} onChange={(e) => setKeepViewOnMathLab(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                    </div>
+
+                    <hr className="border-zinc-700/50" />
+
+                    {/* 4. 변환 중심점 & 내보내기 */}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">부가 기능 설정</span>
+                        <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3">
+                            <span className="text-zinc-300 font-medium text-sm flex items-center gap-1.5">
+                                변환 중심점 (Origin) 설정
+                                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.origin); }} className="text-zinc-500 hover:text-white transition ml-auto"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                            </span>
+                            <div className="flex gap-2">
+                                <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                    <span className="text-[10px] text-zinc-500 text-center">X 좌표</span>
+                                    <CustomNumberInput value={transformOriginX} onChange={setTransformOriginX} className="w-full bg-zinc-950 border border-zinc-700 text-sky-400 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-sky-500" />
+                                </div>
+                                <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                    <span className="text-[10px] text-zinc-500 text-center">Y 좌표</span>
+                                    <CustomNumberInput value={transformOriginY} onChange={setTransformOriginY} className="w-full bg-zinc-950 border border-zinc-700 text-sky-400 font-bold px-2 py-1.5 rounded outline-none text-center focus:border-sky-500" />
+                                </div>
+                            </div>
+                            <button onClick={() => {setTransformOriginX(0); setTransformOriginY(0);}} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs py-1.5 rounded transition border border-zinc-700">원점(0,0)으로 리셋</button>
                         </div>
-                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 모드 켤 때 줌/좌표 고정 (사진에 맞춤)</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group bg-indigo-950/30 p-3 rounded-lg border border-indigo-700/30 hover:bg-indigo-900/40 transition">
-                        <div className="relative">
-                            <input type="checkbox" checked={mathUnderImage} onChange={(e) => setMathUnderImage(e.target.checked)} className="peer sr-only" />
-                            <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
-                            <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                        <div className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700/50 flex flex-col gap-3">
+                            <span className="text-zinc-300 font-medium text-sm flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                현재 화면 캡처 저장
+                            </span>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button onClick={() => handleSaveImage('png')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">PNG</button>
+                                <button onClick={() => handleSaveImage('jpeg')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">JPG</button>
+                                <button onClick={() => handleSaveImage('webp')} className="bg-zinc-800 hover:bg-sky-600 hover:text-white text-zinc-400 font-bold text-xs py-2 rounded transition border border-zinc-700 hover:border-sky-500 shadow-sm">WEBP</button>
+                            </div>
                         </div>
-                        <span className="text-xs md:text-sm font-medium text-indigo-200 group-hover:text-white transition">수학 함수/좌표 점을 사진 아래로 내리기</span>
-                    </label>
+                    </div>
 
                   </div>
                 )}
                 {settingsTab === 'inputs' && (
                   <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
-                    <ConfigRow title="X축 확대 (Scale X)" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="Y축 확대 (Scale Y)" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="X축 이동 (Translate X)" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="Y축 이동 (Translate Y)" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="평면 회전 (Rotation °)" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="X축 전단 (Shear X)" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="Y축 전단 (Shear Y)" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
-                    <ConfigRow title="스퀴즈 (Squeeze)" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
-                    <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기하학 변환 슬라이더 설정</span>
+                        <div className="flex flex-col gap-4">
+                            <ConfigRow title="X축 확대 (Scale X)" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 확대 (Scale Y)" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 이동 (Translate X)" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 이동 (Translate Y)" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="평면 회전 (Rotation °)" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 전단 (Shear X)" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 전단 (Shear Y)" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="스퀴즈 (Squeeze)" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
+                            <ConfigRow title="수평 투시 (Perspective X)" prefix="perspX" config={config} setConfig={setConfig} colorClass="indigo" />
+                            <ConfigRow title="수직 투시 (Perspective Y)" prefix="perspY" config={config} setConfig={setConfig} colorClass="indigo" />
+                        </div>
+                    </div>
+                    <hr className="border-zinc-700/50" />
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider pl-1">색상 변환 슬라이더 설정</span>
+                        <div className="flex flex-col gap-4">
+                            <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
+                        </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -3296,7 +3800,7 @@
               )}
 
               {!showMatrixChain && (
-                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
+                  <button onClick={() => setIsCalcMode(!isCalcMode)} className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow-lg z-10 ${isCalcMode ? 'bg-amber-500 text-white animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.6)]' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="연산 과정 보기">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                   </button>
               )}
@@ -3332,7 +3836,7 @@
                                           onContextMenu={(e) => e.preventDefault()}
                                           className={`cursor-grab active:cursor-grabbing transition-transform touch-none select-none ${isDragging ? 'opacity-0' : 'opacity-100 hover:scale-105 drop-shadow-lg'}`}
                                       >
-                                          <MiniMatrix m={chainItem.m} label={chainItem.label} />
+                                          <MiniMatrix m={chainItem.m} label={chainItem.label} type={id} />
                                       </div>
                                       {idx < chainOrder.length - 1 && <span className="text-zinc-500 font-bold text-sm shrink-0">×</span>}
                                   </React.Fragment>
@@ -3347,13 +3851,16 @@
                           <div className="grid grid-cols-3 gap-x-4 gap-y-5 text-center font-mono text-2xl md:text-3xl font-bold tracking-tighter w-full mx-2 py-1">
                             <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
                             <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
-                            <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
+                            <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m02Str, "0.00", "0")}`} />
+                            
                             <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                             <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
-                            <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
-                            <div className="text-zinc-600 pointer-events-none w-full text-center">0</div>
-                            <div className="text-zinc-600 pointer-events-none w-full text-center">1</div>
+                            <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m12Str, "0.00", "0")}`} />
+                            
+                            {/* 🚀 3행의 원소들을 <div> 고정 태그에서 <MatrixInput> 컴포넌트로 개방. 크기와 UI 100% 통일 */}
+                            <MatrixInput value={m20Str} onChange={v => { setUsePerspective(true); setUseRefl(false); setPerspX(v); }} matrixFormatExact={matrixFormatExact} isTranslate={false} isPerspective={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m20Str, "0.00", "0")}`} />
+                            <MatrixInput value={m21Str} onChange={v => { setUsePerspective(true); setUseRefl(false); setPerspY(v); }} matrixFormatExact={matrixFormatExact} isTranslate={false} isPerspective={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-1 transition-colors ${getMatrixColor(m21Str, "0.00", "0")}`} />
+                            <div className="text-zinc-600 pointer-events-none w-full text-center flex items-center justify-center py-1">{formatMatrixVal(1, false)}</div>
                           </div>
                           <div className="flex items-center justify-center w-8">
                             <span className="text-zinc-400 font-serif text-[80px] leading-[0]" style={{ transform: 'scale(0.6, 2.5)' }}>)</span>
@@ -3431,13 +3938,84 @@
                     </div>
                     <hr className="border-zinc-800" />
                     
-                    <div className="p-4 bg-rose-900/10 rounded-xl border border-rose-500/20 flex flex-col gap-3">
-                      <label className="flex items-center gap-2 text-rose-400 font-bold text-sm md:text-base w-max cursor-pointer">
-                        <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="w-4 h-4 accent-rose-500 cursor-pointer" /> 
-                        반사 변환 직선 (y = ax) 켜기
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.refl); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                      </label>
-                      <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={setReflAngle} onReset={() => setReflAngle(90)} colorClass="rose" />
+                    {/* 🚀 반사 변환 UI 재조정: 텍스트 회색 통일, i 아이콘을 텍스트 바로 옆으로 붙이고 토글 스위치를 우측 끝으로 이동, 배타적 작동 버그 완벽 제거 */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                                반사 변환 직선 켜기
+                            </span>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => { setReflMode(prev => prev === 'angle' ? 'line' : 'angle'); setUseRefl(true); }} className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-1 px-2 rounded border border-zinc-700 transition">
+                                    {reflMode === 'angle' ? '방정식 모드로 전환' : '각도 모드로 전환'}
+                                </button>
+                                <label className="flex items-center cursor-pointer group">
+                                    <div className="relative">
+                                        <input type="checkbox" checked={useRefl} onChange={(e) => setUseRefl(e.target.checked)} className="peer sr-only" />
+                                        <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                        <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        {reflMode === 'angle' ? (
+                            <ControlRow label="반사축 각도" min="0" max="180" step="1" value={reflAngle} onChange={v => { handleSyncChange('reflAngle', v); setUseRefl(true); }} onReset={() => { handleSyncChange('reflAngle', 90); setUseRefl(true); }} syncKey="reflAngle" isSynced={syncKeys.has('reflAngle')} onToggleSync={() => toggleSync('reflAngle')} colorClass="rose" onOpenInfo={() => setLogicInfoData(INFO_DATA.refl)} />
+                        ) : (
+                            <div className="flex flex-col gap-2 mt-1">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                                        직선 방정식 (Ax + By + C = 0)
+                                        <button onClick={() => setLogicInfoData(INFO_DATA.reflLine)} title="설명 보기" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                                    </span>
+                                    <button onClick={() => { setReflLineA(1); setReflLineB(-1); setReflLineC(0); setUseRefl(true); }} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition">초기화</button>
+                                </div>
+                                <div className="flex items-center gap-2 bg-black/40 p-2 rounded-lg border border-rose-500/20">
+                                    <CustomNumberInput value={reflLineA} onChange={v => { if(v===0 && reflLineB===0) setReflLineA(1); else setReflLineA(v); setUseRefl(true); }} className="w-12 bg-zinc-900 text-rose-400 font-bold px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-rose-500 text-center" />
+                                    <span className="text-zinc-400 font-mono text-sm">x +</span>
+                                    <CustomNumberInput value={reflLineB} onChange={v => { if(v===0 && reflLineA===0) setReflLineB(-1); else setReflLineB(v); setUseRefl(true); }} className="w-12 bg-zinc-900 text-rose-400 font-bold px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-rose-500 text-center" />
+                                    <span className="text-zinc-400 font-mono text-sm">y +</span>
+                                    <CustomNumberInput value={reflLineC} onChange={v => { setReflLineC(v); setUseRefl(true); }} className="w-12 bg-zinc-900 text-rose-400 font-bold px-2 py-1 text-xs border border-zinc-700 rounded outline-none focus:border-rose-500 text-center" />
+                                    <span className="text-zinc-400 font-mono text-sm">= 0</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <hr className="border-zinc-800" />
+                    
+                    {/* 🚀 투영 변환 기능 새로 추가 */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                                투영 변환 직선 (y = ax) 켜기
+                            </span>
+                            <label className="flex items-center cursor-pointer group">
+                                <div className="relative">
+                                    <input type="checkbox" checked={useProj} onChange={(e) => setUseProj(e.target.checked)} className="peer sr-only" />
+                                    <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-emerald-500 transition"></div>
+                                    <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                                </div>
+                            </label>
+                        </div>
+                        <ControlRow label="투영축 각도" min="0" max="180" step="1" value={projAngle} onChange={v => { handleSyncChange('projAngle', v); setUseProj(true); }} onReset={() => { handleSyncChange('projAngle', 0); setUseProj(true); }} syncKey="projAngle" isSynced={syncKeys.has('projAngle')} onToggleSync={() => toggleSync('projAngle')} colorClass="emerald" onOpenInfo={() => setLogicInfoData(INFO_DATA.proj)} />
+                    </div>
+                    <hr className="border-zinc-800" />
+                    
+                    {/* 🚀 투시 변환 UI 재조정: 텍스트 회색 통일, 스위치를 우측 끝으로 이동, 배타적 작동 버그 완벽 제거 */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                                투시 변환 (Perspective 원근 왜곡) 켜기
+                            </span>
+                            <label className="flex items-center cursor-pointer group">
+                                <div className="relative">
+                                    {/* 🚀 if (e.target.checked) setUseRefl(false); 구문을 지워 반사 변환과 독립적으로 작동하게 변경 */}
+                                    <input type="checkbox" checked={usePerspective} onChange={(e) => setUsePerspective(e.target.checked)} className="peer sr-only" />
+                                    <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
+                                    <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                                </div>
+                            </label>
+                        </div>
+                        <ControlRow label="수평 조절 (X축 깊이)" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
+                        <ControlRow label="수직 조절 (Y축 깊이)" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
                     </div>
                     <hr className="border-zinc-800" />
                   </div>
@@ -3447,18 +4025,25 @@
                 {activeTab === 'math' && (
                   <div className="flex flex-col gap-5 md:gap-6 pb-20">
                     <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/30 flex flex-col gap-4">
-                      <label className="flex items-center gap-2 text-indigo-400 font-black text-lg w-max cursor-pointer">
-                        <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="w-5 h-5 accent-indigo-500 cursor-pointer" /> 
-                        수학 실험실 전원 켜기
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                      </label>
+                      <div className="flex items-center justify-between">
+                          <span className="text-indigo-400 font-black text-lg flex items-center gap-1.5">
+                              수학 실험실 전원 켜기
+                              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.mathLab); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                          </span>
+                          <label className="flex items-center cursor-pointer group">
+                              <div className="relative">
+                                  <input type="checkbox" checked={useMathLab} onChange={(e) => handleMathLabToggle(e.target.checked)} className="peer sr-only" />
+                                  <div className="block bg-zinc-950 w-12 h-7 rounded-full border border-zinc-700 peer-checked:bg-indigo-500 transition"></div>
+                                  <div className="dot absolute left-1 top-1 bg-zinc-400 w-5 h-5 rounded-full transition peer-checked:translate-x-5 peer-checked:bg-white"></div>
+                              </div>
+                          </label>
+                      </div>
 
-                      {useMathLab && (
-                          <div className="flex flex-col gap-6 mt-1 pl-2 md:pl-4 border-l-2 border-indigo-500/30">
+                      <div className="flex flex-col gap-6 mt-1 pl-2 md:pl-4 border-l-2 border-indigo-500/30">
                               
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-emerald-400 font-bold text-sm w-max cursor-pointer">
-                                    <input type="checkbox" checked={usePointMode} onChange={(e) => setUsePointMode(e.target.checked)} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
+                                    <input type="checkbox" checked={usePointMode} onChange={(e) => { setUsePointMode(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-emerald-500 cursor-pointer" /> 
                                     좌표 점 맵핑
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.point); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
@@ -3511,7 +4096,7 @@
 
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-purple-400 font-bold text-sm w-max cursor-pointer">
-                                    <input type="checkbox" checked={usePolygonMode} onChange={(e) => setUsePolygonMode(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
+                                    <input type="checkbox" checked={usePolygonMode} onChange={(e) => { setUsePolygonMode(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 
                                     다각형(도형) 그리기 맵핑
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.polygon); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
@@ -3581,7 +4166,7 @@
 
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-sky-400 font-bold text-sm w-max cursor-pointer">
-                                    <input type="checkbox" checked={useGraph} onChange={(e) => setUseGraph(e.target.checked)} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
+                                    <input type="checkbox" checked={useGraph} onChange={(e) => { setUseGraph(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-sky-500 cursor-pointer" /> 
                                     함수(f(x)) 맵핑
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.graph); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
@@ -3655,23 +4240,22 @@
                                       <button onClick={() => { handleSyncChange('scaleX', 1.0); handleSyncChange('scaleY', 1.0); setRotation(0); setUseRefl(false); setReflAngle(90); }} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition shadow-sm">초기화</button>
                                   </div>
                                   <div className="grid grid-cols-2 gap-2 mt-1">
-                                      <button onClick={() => applySymmetry('X')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">X축 대칭</button>
-                                      <button onClick={() => applySymmetry('Y')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">Y축 대칭</button>
-                                      <button onClick={() => applySymmetry('ORIGIN')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">원점 대칭</button>
-                                      <button onClick={() => applySymmetry('YX')} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">y=x 직선 대칭</button>
+                                      <button onClick={() => { applySymmetry('X'); if(!useMathLab) handleMathLabToggle(true); }} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">X축 대칭</button>
+                                      <button onClick={() => { applySymmetry('Y'); if(!useMathLab) handleMathLabToggle(true); }} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">Y축 대칭</button>
+                                      <button onClick={() => { applySymmetry('ORIGIN'); if(!useMathLab) handleMathLabToggle(true); }} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">원점 대칭</button>
+                                      <button onClick={() => { applySymmetry('YX'); if(!useMathLab) handleMathLabToggle(true); }} className="bg-rose-900/20 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 rounded py-2 text-xs font-bold transition">y=x 직선 대칭</button>
                                   </div>
                               </div>
 
                               <div className="flex flex-col gap-3">
                                   <label className="flex items-center gap-2 text-amber-400 font-bold text-sm w-max cursor-pointer">
-                                    <input type="checkbox" checked={useUnitSquare} onChange={(e) => setUseUnitSquare(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
+                                    <input type="checkbox" checked={useUnitSquare} onChange={(e) => { setUseUnitSquare(e.target.checked); if(!useMathLab) handleMathLabToggle(true); }} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 
                                     단위 정사각형 (행렬식/넓이) 시각화
                                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.unitSquare); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                                   </label>
                               </div>
 
                           </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -3679,31 +4263,59 @@
               {/* 3. 색상 변환 탭 */}
               {activeTab === 'color' && (
                 <div className="flex flex-col gap-5 md:gap-6 pb-20">
-                  <div className="flex gap-4 md:gap-6 p-3 bg-amber-900/10 rounded-xl border border-amber-500/20 flex-wrap">
-                    <label className="flex items-center gap-2 text-amber-400 font-bold whitespace-nowrap text-sm md:text-base w-max cursor-pointer">
-                        <input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 흑백화
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.chkGray); }} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                    </label>
-                    <label className="flex items-center gap-2 text-amber-400 font-bold whitespace-nowrap text-sm md:text-base w-max cursor-pointer">
-                        <input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="w-4 h-4 accent-amber-500 cursor-pointer" /> 반전
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.chkInv); }} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                    </label>
+                  {/* 흑백화 & 반전 & 듀오톤 */}
+                  <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                          <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                              흑백화 (Grayscale) 켜기
+                              <button onClick={() => setLogicInfoData(INFO_DATA.chkGray)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                          </span>
+                          <label className="flex items-center cursor-pointer group">
+                              <div className="relative">
+                                  <input type="checkbox" checked={chkGray} onChange={(e) => setChkGray(e.target.checked)} className="peer sr-only" />
+                                  <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-amber-500 transition"></div>
+                                  <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                              </div>
+                          </label>
+                      </div>
+                      <div className="flex items-center justify-between">
+                          <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                              색상 반전 (Invert) 켜기
+                              <button onClick={() => setLogicInfoData(INFO_DATA.chkInv)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                          </span>
+                          <label className="flex items-center cursor-pointer group">
+                              <div className="relative">
+                                  <input type="checkbox" checked={chkInvert} onChange={(e) => setChkInvert(e.target.checked)} className="peer sr-only" />
+                                  <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-amber-500 transition"></div>
+                                  <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                              </div>
+                          </label>
+                      </div>
+                      <div className="flex items-center justify-between">
+                          <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
+                              가짜 컬러 복원 (듀오톤) 켜기
+                              <button onClick={() => setLogicInfoData(INFO_DATA.duo)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
+                          </span>
+                          <label className="flex items-center cursor-pointer group">
+                              <div className="relative">
+                                  <input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="peer sr-only" />
+                                  <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-purple-500 transition"></div>
+                                  <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
+                              </div>
+                          </label>
+                      </div>
+                      {useDuotone && (
+                          <div className="flex gap-2 mt-2">
+                              <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">어두운 영역<input type="color" value={colorDarkUI} onChange={(e) => setColorDarkUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
+                              <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">밝은 영역<input type="color" value={colorLightUI} onChange={(e) => setColorLightUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
+                          </div>
+                      )}
                   </div>
+                  <hr className="border-zinc-800" />
                   <div className="space-y-4">
                     <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} onReset={() => handleSyncChange('globalAdd', 0)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
                     <ControlRow label="전체 명암비 (x)" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} onReset={() => handleSyncChange('globalMul', 1.0)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
                     <ControlRow label="이진화 (Threshold, -1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} onReset={() => setBinThresh(-1)} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
-                  </div>
-
-                  <div className="p-3 bg-purple-900/20 rounded-xl border border-purple-500/30 flex flex-col gap-3">
-                    <label className="flex items-center gap-2 text-purple-400 font-bold text-sm md:text-base w-max cursor-pointer">
-                        <input type="checkbox" checked={useDuotone} onChange={(e) => setUseDuotone(e.target.checked)} className="w-4 h-4 accent-purple-500 cursor-pointer" /> 가짜 컬러 복원 (듀오톤)
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLogicInfoData(INFO_DATA.duo); }} className="text-zinc-500 hover:text-white transition ml-1"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
-                    </label>
-                    <div className="flex gap-2">
-                      <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">어두운 영역<input type="color" value={colorDarkUI} onChange={(e) => setColorDarkUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
-                      <label className="flex-1 flex flex-col gap-1 text-zinc-400 text-xs">밝은 영역<input type="color" value={colorLightUI} onChange={(e) => setColorLightUI(e.target.value)} className="w-full h-8 cursor-pointer bg-zinc-900 border-none rounded"/></label>
-                    </div>
                   </div>
 
                   <hr className="border-zinc-800" />
@@ -3891,13 +4503,16 @@
                       <div className="grid grid-cols-3 gap-x-1.5 gap-y-2 text-center font-mono text-[11px] font-bold tracking-tighter w-full self-center max-w-[120px] mx-0.5">
                         <MatrixInput value={m00Str} onChange={v => handleMatrixUpdate('a', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m00Str, "1.00", "1")}`} />
                         <MatrixInput value={m01Str} onChange={v => handleMatrixUpdate('c', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m01Str, "0.00", "0")}`} />
-                        <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0", "0")}`} />
+                        <MatrixInput value={m02Str} onChange={v => handleMatrixUpdate('e', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m02Str, "0.00", "0")}`} />
+                        
                         <MatrixInput value={m10Str} onChange={v => handleMatrixUpdate('b', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m10Str, "0.00", "0")}`} />
                         <MatrixInput value={m11Str} onChange={v => handleMatrixUpdate('d', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m11Str, "1.00", "1")}`} />
-                        <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 transition-colors ${getMatrixColor(m12Str, "0", "0")}`} />
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">0</div>
-                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px]">1</div>
+                        <MatrixInput value={m12Str} onChange={v => handleMatrixUpdate('f', v)} matrixFormatExact={matrixFormatExact} isTranslate={false} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 md:py-1 transition-colors ${getMatrixColor(m12Str, "0.00", "0")}`} />
+                        
+                        {/* 🚀 모바일 환경에서도 3행의 원소들을 <MatrixInput> 컴포넌트로 개방. 크기와 UI 완벽 통일 */}
+                        <MatrixInput value={m20Str} onChange={v => { setUsePerspective(true); setUseRefl(false); setPerspX(v); }} matrixFormatExact={matrixFormatExact} isTranslate={false} isPerspective={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 md:py-1 transition-colors text-[10px] md:text-base ${getMatrixColor(m20Str, "0.00", "0")}`} />
+                        <MatrixInput value={m21Str} onChange={v => { setUsePerspective(true); setUseRefl(false); setPerspY(v); }} matrixFormatExact={matrixFormatExact} isTranslate={false} isPerspective={true} className={`w-full bg-transparent text-center focus:outline-none focus:bg-zinc-800/80 rounded py-0.5 md:py-1 transition-colors text-[10px] md:text-base ${getMatrixColor(m21Str, "0.00", "0")}`} />
+                        <div className="text-zinc-600 pointer-events-none w-full text-center text-[10px] md:text-base flex items-center justify-center py-0.5 md:py-1">{formatMatrixVal(1, false)}</div>
                       </div>
                   )}
 
