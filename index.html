@@ -1066,14 +1066,21 @@
       if (!colorCacheRef.current && typeof document !== 'undefined') { colorCacheRef.current = document.createElement('canvas'); }
 
       useEffect(() => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 400; canvas.height = 400;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = 'rgb(59, 130, 246)'; ctx.fillRect(100, 100, 200, 200);
-          ctx.fillStyle = 'rgb(239, 68, 68)'; ctx.beginPath(); ctx.arc(200, 200, 50, 0, Math.PI * 2); ctx.fill();
-          const img = new Image();
-          img.onload = () => setImageObj(img);
-          img.src = canvas.toDataURL();
+      const img = new Image();
+    
+      // 💡 차근차근 오류 점검 1: CORS(교차 출처) 보안 오류 방지
+      // 외부 환경에서 이미지를 불러와 캔버스에 그릴 때 발생할 수 있는 'Tainted Canvas' 오류를 차단합니다.
+      img.crossOrigin = "Anonymous"; 
+    
+      // 로드 성공 시 이미지 상태 업데이트
+      img.onload = () => setImageObj(img);
+    
+      // 💡 차근차근 오류 점검 2: 파일 경로 문제 발생 시 디버깅을 위한 에러 처리 추가
+      img.onerror = () => console.error("기본 이미지 파일을 불러오는 데 실패했습니다. 파일 경로를 다시 확인해주세요.");
+    
+      // 깃허브나 프로젝트 폴더 내에 배치한 실제 이미지 파일의 경로로 수정합니다.
+      // (예: index.html과 같은 위치에 default-image.png 파일이 있는 경우)
+      img.src = './default-image.png'; 
       }, []);
 
       useEffect(() => {
