@@ -63,35 +63,35 @@
     const GRAPH_COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4'];
 
     const INFO_DATA = {
-        perspX: { title: "수평 투시 (Perspective X)", desc: "X축 방향으로 원근감을 주어 이미지를 눕힙니다. 값이 작을수록 픽셀 좌표계에서 자연스럽습니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
-        perspY: { title: "수직 투시 (Perspective Y)", desc: "Y축 방향으로 원근감을 주어 이미지를 세웁니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] },
-        scaleX: { title: "X축 확대 (Scale X)", desc: "X좌표에만 지정한 배율(sx)을 곱하여 가로로 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
-        scaleY: { title: "Y축 확대 (Scale Y)", desc: "Y좌표에만 지정한 배율(sy)을 곱하여 세로로 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
-        squeeze: { title: "스퀴즈 (Squeeze)", desc: "전체 면적은 그대로 1로 유지하면서, 한쪽 축은 늘리고 반대 축은 압축하는 특수 변환입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
-        transX: { title: "X축 이동 (Translate X)", desc: "모든 픽셀의 X좌표에 일정 값(dx)을 더하여 좌우로 평행 이동시킵니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
-        transY: { title: "Y축 이동 (Translate Y)", desc: "모든 픽셀의 Y좌표에 일정 값(dy)을 더하여 상하로 평행 이동시킵니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
-        rot: { title: "평면 회전 (Rotation)", desc: "원점을 기준으로 이미지를 지정된 각도(θ)만큼 평면 회전시키는 변환입니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
-        shearX: { title: "X축 전단 (Shear X)", desc: "Y값이 커질수록 X축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 눕힙니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
-        shearY: { title: "Y축 전단 (Shear Y)", desc: "X값이 커질수록 Y축 방향으로 더 많이 밀려나게 하여 이미지를 비스듬히 세웁니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
-        refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 기울기가 m인 직선(y=mx)을 거울 삼아 도형을 선대칭시킵니다. 수학 '도형의 이동' 단원의 핵심 개념입니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
-        reflLine: { title: "직선 방정식에 대한 대칭이동", desc: "사용자가 입력한 임의의 직선 Ax + By + C = 0 을 거울 삼아 대칭이동합니다. C가 0이 아닐 경우 행렬에 이동(Translation) 연산이 포함된 3x3 동차 행렬로 구성됩니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
-        proj: { title: "직선에 대한 정사영 (Projection)", desc: "원점을 지나는 기울기가 m인 직선(y=mx) 위로 도형의 모든 점을 수직으로 내려 찍어 납작하게 만드는 변환입니다.", matrix: [['1/(1+m²)', 'm/(1+m²)', '0'], ['m/(1+m²)', 'm²/(1+m²)', '0'], ['0', '0', '1']] },
-        mathLab: { title: "수학 모드", desc: "이미지 렌더링을 끄고 순수한 2D 좌표평면을 띄워 실험하는 전문가용 모드입니다." },
-        graph: { title: "함수 그리기", desc: "입력된 수학 함수 f(x)의 각 점에 3x3 변환 행렬을 곱하여 곡선을 구부립니다.", formulas: ["y = f(x)", "Point = Matrix * [x, y, 1]"] },
-        point: { title: "점 그리기", desc: "화면을 클릭하여 생성된 수학적 원본 좌표(x,y)에 실시간으로 행렬을 곱합니다.", formulas: ["Point = Matrix * [x, y, 1]"] },
-        polygon: { title: "도형 그리기", desc: "화면을 터치해 꼭짓점을 찍고, 처음 찍은 점을 다시 클릭하면 다각형 도형이 생성됩니다. 행렬 변환 시 뼈대 점들이 어떻게 움직여 도형이 찌그러지는지 확인해보세요." },
-        symmetry: { title: "도형의 대칭이동", desc: "고등학교 1학년 수학 과정의 핵심인 x축, y축, 원점, y=x 직선에 대한 대칭이동을 원클릭으로 수행합니다. 각 버튼을 누르면 그에 맞는 변환 행렬로 자동 셋팅됩니다." },
-        unitSquare: { title: "단위 정사각형", desc: "한 변의 길이가 1인 기준 정사각형을 띄웁니다. 행렬 변환 후 이 정사각형의 넓이가 바로 행렬식(Determinant, |ad-bc|)의 값을 의미합니다. 넓이가 어떻게 뻥튀기되는지 관찰하세요.", formulas: ["넓이 변화율 = |ad - bc|"] },
-        origin: { title: "변환 중심점", desc: "기본적으로 모든 도형과 사진의 회전 및 확대는 원점(0,0)을 기준으로 일어납니다. 이 좌표를 조절하면 행렬 변환의 '축'이 바뀌어 전혀 다른 궤적의 이동이 발생합니다." },
-        chkGray: { title: "흑백화", desc: "빛의 3원색(RGB)에 눈의 민감도를 곱해 무채색으로 변환합니다.", formulas: ["Gray = R*0.299 + G*0.587 + B*0.114", "R = Gray, G = Gray, B = Gray"] },
-        chkInv: { title: "색상 반전", desc: "빛의 삼원색 한계치(255)에서 현재 색상을 빼 보색을 만듭니다.", formulas: ["R = 255 - R", "G = 255 - G", "B = 255 - B"] },
-        gAdd: { title: "전체 밝기", desc: "모든 픽셀에 동일한 상수를 더해 화면 전체를 밝게 하거나 어둡게 합니다.", formulas: ["R' = R + Add"] },
-        gMul: { title: "전체 명암비", desc: "밝은 곳은 더 밝게, 어두운 곳은 더 어둡게 배율을 곱해 색상의 대비를 키웁니다.", formulas: ["R' = R * Contrast"] },
-        binThresh: { title: "이진화", desc: "특정 임계값을 기준으로 픽셀을 오직 흰색(255)과 검은색(0)으로만 나눕니다.", formulas: ["if (Gray > Threshold) 255", "else 0"] },
-        duo: { title: "듀오톤", desc: "이미지를 흑백으로 바꾼 뒤, 어두운 부분과 밝은 부분에 두 가지 색상만 매핑합니다.", formulas: ["Color = Dark + (Light - Dark) * Ratio"] },
-        cAdd: { title: "색상별 밝기", desc: "특정 색상(R/G/B) 채널의 값만 더하거나 뺍니다.", formulas: ["Channel = Channel + Add"] },
-        cMul: { title: "색상별 명암비", desc: "특정 색상 채널의 값에만 배율을 곱합니다.", formulas: ["Channel = Channel * Contrast"] },
-        matrixChain: { title: "행렬 곱셈 순서 변경", desc: "컴퓨터가 도형을 찌그러뜨릴 때 곱해지는 행렬들의 순서를 보여줍니다. 행렬 곱셈은 교환법칙이 성립하지 않기 때문에(AB ≠ BA), 블록을 위아래로 끌어다 순서를 바꾸면 화면의 도형이 전혀 다르게 움직이는 것을 확인할 수 있습니다." }
+        perspX: { title: "수평 투시", desc: "화면을 가로 방향으로 원근감을 주어 비스듬히 눕힙니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
+        perspY: { title: "수직 투시", desc: "화면을 세로 방향으로 원근감을 주어 벽처럼 세웁니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] },
+        scaleX: { title: "X축 확대", desc: "가로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        scaleY: { title: "Y축 확대", desc: "세로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
+        squeeze: { title: "스퀴즈", desc: "전체 넓이는 변하지 않고 한쪽 축은 늘어나면서 반대쪽 축은 압축됩니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
+        transX: { title: "X축 이동", desc: "화면을 왼쪽이나 오른쪽으로 평행하게 이동합니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
+        transY: { title: "Y축 이동", desc: "화면을 위나 아래로 평행하게 이동합니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
+        rot: { title: "평면 회전", desc: "중심점을 기준으로 지정한 각도만큼 화면을 돌립니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
+        shearX: { title: "X축 전단", desc: "위아래를 고정한 채로 가로 방향으로 비스듬하게 밀어냅니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        shearY: { title: "Y축 전단", desc: "좌우를 고정한 채로 세로 방향으로 비스듬하게 밀어냅니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
+        refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 직선을 거울 삼아 도형을 대칭시킵니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
+        reflLine: { title: "직선 방정식에 대한 대칭이동", desc: "원점을 지나지 않는 선분을 기준으로 도형을 대칭시킵니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
+        proj: { title: "직선에 대한 정사영", desc: "모든 점을 직선 위로 수직으로 떨어뜨려 납작하게 만듭니다.", matrix: [['1/(1+m²)', 'm/(1+m²)', '0'], ['m/(1+m²)', 'm²/(1+m²)', '0'], ['0', '0', '1']] },
+        mathLab: { title: "수학 모드", desc: "사진을 감추고 좌표 평면 위에서 순수한 도형과 함수를 실험하는 모드입니다." },
+        graph: { title: "함수 그리기", desc: "수식으로 그려진 곡선이 변환 행렬에 의해 어떻게 구부러지는지 확인합니다.", formulas: ["y = f(x)", "변환된 점 = 변환 행렬 × [x, y, 1]"] },
+        point: { title: "점 그리기", desc: "화면을 눌러서 만든 점이 행렬 연산에 의해 어디로 이동하는지 봅니다.", formulas: ["변환된 점 = 변환 행렬 × [x, y, 1]"] },
+        polygon: { title: "도형 그리기", desc: "화면에 여러 개의 꼭짓점을 찍어 도형을 만듭니다. 처음 찍은 점을 다시 누르면 완성됩니다." },
+        symmetry: { title: "도형의 대칭이동", desc: "기본적인 X축, Y축, 원점 대칭이동을 버튼 하나로 수행합니다." },
+        unitSquare: { title: "단위 정사각형", desc: "넓이가 1인 기준 정사각형을 띄워, 행렬 변환 후 넓이가 얼마나 커지는지 직관적으로 비교합니다.", formulas: ["넓이 변화율 = |ad - bc|"] },
+        origin: { title: "변환 중심점", desc: "변환의 중심이 되는 기준점을 바꿉니다." },
+        chkGray: { title: "흑백화", desc: "빛의 3원색을 계산하여 이미지를 무채색(흑백)으로 만듭니다.", formulas: ["명도 = 빨강 × 0.299 + 초록 × 0.587 + 파랑 × 0.114", "빨강 = 명도, 초록 = 명도, 파랑 = 명도"] },
+        chkInv: { title: "색상 반전", desc: "현재 색상의 보색(반대되는 색)으로 이미지를 뒤집어 보여줍니다.", formulas: ["빨강 = 255 - 빨강", "초록 = 255 - 초록", "파랑 = 255 - 파랑"] },
+        gAdd: { title: "전체 밝기", desc: "화면 전체의 빛을 더하거나 빼서 전체적으로 밝게 하거나 어둡게 합니다.", formulas: ["새 픽셀값 = 기존 픽셀값 + 밝기 조절값"] },
+        gMul: { title: "전체 명암비", desc: "밝은 곳은 더 밝게, 어두운 곳은 더 어둡게 만들어 색깔의 차이를 키웁니다.", formulas: ["새 픽셀값 = 기존 픽셀값 × 명암비 배율"] },
+        binThresh: { title: "이진화", desc: "특정 기준치보다 밝으면 완전히 하얀색으로, 어두우면 완전히 검은색으로만 칠합니다.", formulas: ["만약 (명도 > 기준치) 흰색(255)", "그 외에는 검은색(0)"] },
+        duo: { title: "이중 색상 변환", desc: "이미지를 두 가지 색깔로만 표현하여 예술적인 느낌을 줍니다.", formulas: ["새 색상 = 어두운 색 + (밝은 색 - 어두운 색) × 비율"] },
+        cAdd: { title: "색상별 밝기", desc: "빨강, 초록, 파랑 중 특정한 한 가지 색상의 빛만 더하거나 뺍니다.", formulas: ["새 색상값 = 기존 색상값 + 밝기 조절값"] },
+        cMul: { title: "색상별 명암비", desc: "특정한 한 가지 색상에만 대비 효과를 곱합니다.", formulas: ["새 색상값 = 기존 색상값 × 명암비 배율"] },
+        matrixChain: { title: "행렬 곱셈 순서 변경", desc: "행렬 곱셈은 곱하는 순서에 따라 결과가 완전히 달라집니다. 순서를 바꾸어 화면이 어떻게 다르게 움직이는지 관찰해보세요." }
     };
 
     function getOptimalGridStep(z) {
@@ -131,15 +131,19 @@
 
     function compileMath(expr, constNames = []) {
         try {
-            let s = expr.toLowerCase();
-            
-            // 🚀 새 UI(y= 직접 입력)에 맞춰, '=' 기호가 있으면 우변만 잘라서 사용하도록 호환성 추가
-            if (s.includes('=')) {
-                s = s.split('=')[1];
-            }
-            
-            s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
-            const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi'];
+                let s = expr.toLowerCase();
+                
+                // 🚀 새 UI(y= 직접 입력)에 맞춰, '=' 기호가 있으면 우변만 잘라서 사용하도록 호환성 추가
+                if (s.includes('=')) {
+                    s = s.split('=')[1];
+                }
+                
+                // 🚀 삼각함수 거듭제곱 양방향 완벽 변환 (sin^2(v) 및 sin(v)^2 모두 안전하게 거듭제곱 함수로 컴파일)
+                s = s.replace(/(sin|cos|tan)\^([0-9a-z.]+)\(([^)]+)\)/g, '(Math.pow(Math.$1($3),$2))');
+                s = s.replace(/(sin|cos|tan)\(([^)]+)\)\^([0-9a-z.]+)/g, '(Math.pow(Math.$1($2),$3))');
+                
+                s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
+                const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi'];
             const map = {};
             keywords.forEach((kw, i) => {
                 const char = String.fromCharCode(0xE000 + i);
@@ -286,8 +290,8 @@
                     <button onClick={resetToDefault} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition">초기화</button>
                 </div>
                 <div className="flex gap-2">
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최소<CustomNumberInput value={config[`${prefix}Min`]} validate={(v) => v <= config[`${prefix}Max`] && v >= restrictMin} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
-                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최대<CustomNumberInput value={config[`${prefix}Max`]} validate={(v) => v >= config[`${prefix}Min`]} onChange={v => handleConfigChange('Max', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최솟값<CustomNumberInput value={config[`${prefix}Min`]} validate={(v) => v <= config[`${prefix}Max`] && v >= restrictMin} onChange={v => handleConfigChange('Min', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
+                    <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">최댓값<CustomNumberInput value={config[`${prefix}Max`]} validate={(v) => v >= config[`${prefix}Min`]} onChange={v => handleConfigChange('Max', v)} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                     <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">간격<CustomNumberInput value={config[`${prefix}Step`]} validate={(v) => Math.abs(v) > 0} onChange={v => handleConfigChange('Step', Math.abs(v))} className={`bg-zinc-950 border border-zinc-700 text-${colorClass}-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center`} /></label>
                 </div>
             </div>
@@ -406,9 +410,75 @@
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [padTab, setPadTab] = useState('math'); 
       const [tempGraphEq, setTempGraphEq] = useState("");
-      const [editingGraphId, setEditingGraphId] = useState(null);
-      const inputRef = useRef(null);
-      const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
+          const [mathCursorPos, setMathCursorPos] = useState(0);
+          const [editingGraphId, setEditingGraphId] = useState(null);
+          const inputRef = useRef(null);
+          const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
+
+          // 🚀 일체형 종이 필기 스타일 수식 렌더러 (클릭한 문자에 커서 위치 이동 및 위첨자/근호 내부 커서 표시)
+          const renderMathWithCaret = (eq, caretPos) => {
+              if (!eq) {
+                  return '<span class="text-zinc-600 font-sans text-xl">수식을 입력하세요</span><span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[1px]"></span>';
+              }
+              let html = '';
+              let i = 0;
+              const len = eq.length;
+              while (i < len) {
+                  if (i === caretPos) {
+                      html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>';
+                  }
+                  if (eq[i] === '^') {
+                      let expStart = i + 1;
+                      let expEnd = expStart;
+                      if (expStart < len && eq[expStart] === '(') {
+                          let count = 1; expEnd = expStart + 1;
+                          while (expEnd < len && count > 0) {
+                              if (eq[expEnd] === '(') count++;
+                              else if (eq[expEnd] === ')') count--;
+                              expEnd++;
+                          }
+                      } else {
+                          while (expEnd < len && /[0-9a-zA-Z.]/.test(eq[expEnd])) expEnd++;
+                      }
+                      html += '<sup class="text-[0.65em] font-bold text-amber-300 ml-0.5 border-b border-amber-300/30 pb-0.5">';
+                      for (let k = expStart; k < expEnd; k++) {
+                          if (k === caretPos) html += '<span class="inline-block w-[2px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                          html += `<span data-idx="${k}" class="hover:text-white px-[0.5px]">${eq[k]}</span>`;
+                      }
+                      if (caretPos === expEnd) html += '<span class="inline-block w-[2px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                      html += '</sup>';
+                      i = expEnd;
+                      continue;
+                  }
+                  if (eq.slice(i, i + 5) === 'sqrt(') {
+                      html += `<span data-idx="${i}" class="text-emerald-400 font-sans font-bold text-xl">√</span><span class="border-t-2 border-emerald-400/80 px-1 ml-0.5 inline-block">`;
+                      i += 5;
+                      let pCount = 1;
+                      while (i < len && pCount > 0) {
+                          if (i === caretPos) html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                          if (eq[i] === '(') pCount++;
+                          else if (eq[i] === ')') {
+                              pCount--;
+                              if (pCount === 0) { i++; break; }
+                          }
+                          html += `<span data-idx="${i}">${eq[i]}</span>`;
+                          i++;
+                      }
+                      html += '</span>';
+                      continue;
+                  }
+                  let ch = eq[i];
+                  let dispCh = ch;
+                  if (ch === '*') dispCh = '×';
+                  else if (ch === '/') dispCh = '÷';
+                  html += `<span data-idx="${i}" class="hover:text-sky-300 px-[0.5px]">${dispCh}</span>`;
+                  i++;
+              }
+              if (caretPos >= len) {
+                  html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>';
+              }
+              return html;
+          };
 
       const [graphSettingsId, setGraphSettingsId] = useState(null);
 
@@ -707,44 +777,61 @@
           });
       }, [graphs]);
 
+      const [focusedLogicCell, setFocusedLogicCell] = useState('m00');
+
+      const moveMathCursor = (dir) => {
+          let pos = mathCursorPos + dir;
+          if (pos < 0) pos = 0;
+          if (pos > tempGraphEq.length) pos = tempGraphEq.length;
+          setMathCursorPos(pos);
+          const el = inputRef.current;
+          if (el) {
+              setTimeout(() => { el.setSelectionRange(pos, pos); el.focus(); }, 0);
+          }
+      };
+
       const openMathPad = (id, currentEq) => { 
           setEditingGraphId(id); 
           setTempGraphEq(currentEq); 
+          setMathCursorPos(currentEq ? currentEq.length : 0);
           setMathPadOpen(true); 
           setPadTab('math');
       };
       
       const handleMathPadKey = (char) => {
           const el = inputRef.current;
-          if (el) {
-              const pos = el.selectionStart;
-              const newEq = tempGraphEq.slice(0, pos) + char + tempGraphEq.slice(pos);
-              setTempGraphEq(newEq);
-              setTimeout(() => {
-                  el.setSelectionRange(pos + char.length, pos + char.length);
+          let pos = mathCursorPos;
+          if (el && el.selectionStart !== null) pos = el.selectionStart;
+          const newEq = tempGraphEq.slice(0, pos) + char + tempGraphEq.slice(pos);
+          setTempGraphEq(newEq);
+          const newPos = pos + char.length;
+          setMathCursorPos(newPos);
+          setTimeout(() => {
+              if (el) {
+                  el.setSelectionRange(newPos, newPos);
                   el.focus();
-              }, 0);
-          } else {
-              setTempGraphEq(tempGraphEq + char);
-          }
+              }
+          }, 0);
       };
 
       const handleMathPadDelete = () => {
           const el = inputRef.current;
-          if (el) {
-              const start = el.selectionStart;
-              const end = el.selectionEnd;
-              if (start !== end) {
-                  const newEq = tempGraphEq.slice(0, start) + tempGraphEq.slice(end);
-                  setTempGraphEq(newEq);
-                  setTimeout(() => { el.setSelectionRange(start, start); el.focus(); }, 0);
-              } else if (start > 0) {
-                  const newEq = tempGraphEq.slice(0, start - 1) + tempGraphEq.slice(start);
-                  setTempGraphEq(newEq);
-                  setTimeout(() => { el.setSelectionRange(start - 1, start - 1); el.focus(); }, 0);
-              }
-          } else {
-              setTempGraphEq(tempGraphEq.slice(0, -1));
+          let start = mathCursorPos;
+          let end = mathCursorPos;
+          if (el && el.selectionStart !== null) {
+              start = el.selectionStart;
+              end = el.selectionEnd;
+          }
+          if (start !== end) {
+              const newEq = tempGraphEq.slice(0, start) + tempGraphEq.slice(end);
+              setTempGraphEq(newEq);
+              setMathCursorPos(start);
+              setTimeout(() => { if (el) { el.setSelectionRange(start, start); el.focus(); } }, 0);
+          } else if (start > 0) {
+              const newEq = tempGraphEq.slice(0, start - 1) + tempGraphEq.slice(start);
+              setTempGraphEq(newEq);
+              setMathCursorPos(start - 1);
+              setTimeout(() => { if (el) { el.setSelectionRange(start - 1, start - 1); el.focus(); } }, 0);
           }
       };
 
@@ -855,14 +942,21 @@
               if (s.includes('()') || /^[+*/^]/.test(s) || /[-+*/^]$/.test(s)) throw new Error("수식 미완성");
 
               // 🚀 [추가됨] 단순 문자열 검사를 넘어 실제 브라우저 실행(Compile & Run) 테스트!
-              // 알 수 없는 변수(예: y=xx)가 입력되어 렌더링 중 앱이 뻗어버리는 현상을 원천 차단합니다.
-              let jsEq = MathParserJS.parse(s);
-              let testFunc = new Function('x', ...constants.map(c=>c.name), `return ${jsEq};`);
-              testFunc(1, ...constants.map(c=>c.value)); // 모의 실행 (에러 시 catch로 빠짐)
-          } catch(e) {
-              setMathError("⚠️ 수식 문법이 올바르지 않습니다.");
-              return;
-          }
+                // 알 수 없는 변수(예: y=xx)가 입력되어 렌더링 중 앱이 뻗어버리는 현상을 원천 차단합니다.
+                let jsEq = MathParserJS.parse(s);
+                
+                // 🚀 동적 상수 자동 추출 로직: 수식에 사용된 문자(상수)를 미리 파악하여 통과시킵니다.
+                let neededConsts = new Set(constants.map(c => c.name));
+                let matches = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '').replace(/(sin|cos|tan|log|ln|abs|sqrt|exp|pi|e|x|y)/g, '').match(/[a-z]/g);
+                if (matches) matches.forEach(m => neededConsts.add(m));
+                let constArray = Array.from(neededConsts);
+                
+                let testFunc = new Function('x', ...constArray, `return ${jsEq};`);
+                testFunc(1, ...constArray.map(() => 1.0)); // 모의 실행 (에러 시 catch로 빠짐)
+            } catch(e) {
+                setMathError("⚠️ 수식 문법이 올바르지 않습니다.");
+                return;
+            }
           
           setMathError("");
           setGraphs(prev => prev.map(g => g.id === editingGraphId ? { ...g, eq: tempGraphEq || 'x' } : g));
@@ -1338,10 +1432,22 @@
           }
 
           // 다운로드 트리거
-          const link = document.createElement('a');
-          link.download = `vision_matrix_export.${format === 'jpeg' ? 'jpg' : format}`;
-          link.href = tempCanvas.toDataURL(`image/${format}`, 1.0);
-          link.click();
+          const dataUrl = tempCanvas.toDataURL(`image/${format}`, 1.0);
+          if (window.innerWidth < 768 || navigator.userAgent.includes('Android')) {
+              // 모바일 기기 또는 안드로이드 앱 환경에서는 새 창이나 문서에 띄워 꾹 눌러 저장 유도
+              const newWindow = window.open();
+              if(newWindow) {
+                  newWindow.document.write(`<img src="${dataUrl}" style="width:100%; height:auto;"/><p style="text-align:center; font-family:sans-serif; margin-top:20px; font-weight:bold;">이미지를 꾹 눌러 저장하세요</p>`);
+              } else {
+                  // 팝업이 차단된 경우 현재 창의 URL을 이미지로 교체
+                  window.location.href = dataUrl;
+              }
+          } else {
+              const link = document.createElement('a');
+              link.download = `vision_matrix_export.${format === 'jpeg' ? 'jpg' : format}`;
+              link.href = dataUrl;
+              link.click();
+          }
       };
 
       const handleImageUpload = (e) => { // <-- (기존 코드 위치)
@@ -3021,7 +3127,7 @@
         }
 
       // 🚀 다중 그림자 배열(shadowStates) 감지 추가
-      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab, calcPoints, useUnitSquare, usePolygonMode, polygonPoints, polygons, shadowStates]); 
+      }, [camera, matrix, imageObj, imageUnderGrid, hideGrid, useRefl, reflAngle, translateX, translateY, scaleX, scaleY, rotation, shearX, shearY, squeeze, usePerspective, perspX, perspY, chainOrder, showMatrixChain, useMathLab, useGraph, usePointMode, points, graphs, imageSmoothing, constants, mathUnderImage, showImageInMathLab, calcPoints, useUnitSquare, usePolygonMode, polygonPoints, polygons, shadowStates]); 
 
       return (
         <div className="flex w-full h-screen overflow-hidden animate-fade-in bg-zinc-950 relative">
@@ -3145,8 +3251,7 @@
                               const isDragging = mobileGhost && mobileGhost.id === id;
                               return (
                                   <div key={id} data-mobile-idx={idx}
-                                       onTouchStart={(e) => handleMobileChainTouchStart(e, idx, id)}
-                                       className={`flex items-center gap-3 bg-zinc-800 border ${isDragging ? 'opacity-0' : 'border-zinc-700 opacity-100'} px-4 py-3 rounded-xl touch-none select-none cursor-grab active:cursor-grabbing shadow-sm`}>
+                                       className={`flex items-center gap-3 bg-zinc-800 border ${isDragging ? 'opacity-0' : 'border-zinc-700 opacity-100'} px-4 py-3 rounded-xl select-none shadow-sm`}>
                                       <span className="text-zinc-500 font-bold text-lg w-4">{idx + 1}.</span>
                                       <span className="text-white font-bold text-base flex-1">{chainItem.label}</span>
                                       <div className="bg-black/50 p-1.5 rounded border border-zinc-700 mr-2">
@@ -3162,7 +3267,7 @@
                                               <span className="text-zinc-600">1</span>
                                           </div>
                                       </div>
-                                      <svg className="w-5 h-5 text-zinc-500 hover:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/></svg>
+                                      <svg onTouchStart={(e) => handleMobileChainTouchStart(e, idx, id)} className="w-7 h-7 text-zinc-500 hover:text-white cursor-grab active:cursor-grabbing touch-none p-1 bg-zinc-700/30 rounded" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/></svg>
                                   </div>
                               );
                           })}
@@ -3175,33 +3280,69 @@
             <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
               <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
-                  <h3 className="text-white font-bold text-lg">수식 입력 (y = f(x))</h3>
+                  <h3 className="text-white font-bold text-lg">수식 입력</h3>
                   <button onClick={() => { setMathPadOpen(false); setMathError(""); }} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
                 
-                <div className="bg-zinc-950 border border-zinc-700 rounded-xl p-3 flex flex-col mb-4 shadow-inner">
-                    <div className="flex items-center text-purple-400 font-mono text-xl w-full border-b border-zinc-800 pb-2 mb-2 relative">
-                        <span className="mr-2 text-zinc-500 text-sm">수식:</span>
-                        <input
-                            ref={inputRef} type="text" value={tempGraphEq} 
-                            onChange={(e) => { setTempGraphEq(e.target.value); setMathError(""); }} 
-                            onKeyDown={(e) => { if (e.key === 'Enter') applyMathPad(); }}
-                            className="flex-1 bg-transparent outline-none text-white tracking-wider font-mono min-w-0"
-                            autoFocus autoComplete="off" spellCheck="false"
-                            inputMode="none"
-                        />
-                    </div>
-                    <div className="flex justify-start text-purple-300 font-serif text-2xl tracking-wide min-h-[36px] items-center pl-8 opacity-80"
-                         dangerouslySetInnerHTML={{ __html: tempGraphEq ? tempGraphEq.replace(/log_([0-9a-zA-Z]+)/g, 'log<sub>$1</sub>').replace(/\^([0-9a-zA-Z]+|\([^)]+\))/g, '<sup>$1</sup>').replace(/\(([^)]+)\)\/\(([^)]+)\)/g, '<span class="inline-flex flex-col items-center align-middle mx-1 text-[0.65em]"><span class="border-b border-purple-400/50 px-1 pb-0.5">$1</span><span class="pt-0.5">$2</span></span>').replace(/\*/g, '·') : "<span class='text-zinc-600 text-sm'>수식 미리보기</span>" }}>
-                    </div>
+                {/* 🚀 단일 일체형 필기 화면: 지수, 밑, 괄호 등 수식의 어느 지점이든 직접 클릭하여 중간을 수정 */}
+                <div 
+                    onClick={(e) => {
+                        const target = e.target.closest('[data-idx]');
+                        const el = inputRef.current;
+                        if (target) {
+                            const idx = parseInt(target.getAttribute('data-idx'), 10);
+                            const rect = target.getBoundingClientRect();
+                            const clickPos = (e.clientX - rect.left > rect.width / 2) ? idx + 1 : idx;
+                            setMathCursorPos(clickPos);
+                            if (el) { el.focus(); el.setSelectionRange(clickPos, clickPos); }
+                        } else {
+                            const endPos = tempGraphEq.length;
+                            setMathCursorPos(endPos);
+                            if (el) { el.focus(); el.setSelectionRange(endPos, endPos); }
+                        }
+                    }}
+                    className="bg-zinc-950 border border-zinc-700 rounded-xl p-4 min-h-[95px] flex items-center justify-center mb-4 shadow-inner relative overflow-x-auto scrollbar-hide cursor-text select-none group"
+                >
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={tempGraphEq}
+                        onChange={(e) => {
+                            setTempGraphEq(e.target.value);
+                            setMathCursorPos(e.target.selectionStart || 0);
+                            setMathError("");
+                        }}
+                        onSelect={(e) => {
+                            if (e.target.selectionStart !== null) setMathCursorPos(e.target.selectionStart);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') applyMathPad();
+                            else if (e.key === 'ArrowLeft') { e.preventDefault(); moveMathCursor(-1); }
+                            else if (e.key === 'ArrowRight') { e.preventDefault(); moveMathCursor(1); }
+                        }}
+                        className="opacity-0 w-0 h-0 absolute pointer-events-none"
+                        autoFocus
+                        autoComplete="off"
+                        spellCheck="false"
+                    />
+                    <div 
+                        className="text-white font-serif text-3xl md:text-4xl tracking-wider w-full text-center py-2 flex items-center justify-center flex-wrap"
+                        dangerouslySetInnerHTML={{ __html: renderMathWithCaret(tempGraphEq, mathCursorPos) }}
+                    />
                 </div>
 
                 {/* 🚀 에러 발생 시 빨간 경고창 표시 */}
                 {mathError && <div className="text-rose-400 font-bold text-xs mb-4 -mt-2 text-center bg-rose-900/20 py-2 rounded-lg border border-rose-500/30">{mathError}</div>}
                 
-                <div className="flex gap-2 mb-4 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                    <button onClick={() => setPadTab('math')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'math' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>기본 수식</button>
-                    <button onClick={() => setPadTab('const')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 추가 (a~z)</button>
+                <div className="flex justify-between items-center mb-4 gap-2">
+                    <div className="flex gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                        <button onClick={() => moveMathCursor(-1)} className="px-4 py-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors font-bold">◀</button>
+                        <button onClick={() => moveMathCursor(1)} className="px-4 py-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors font-bold">▶</button>
+                    </div>
+                    <div className="flex flex-1 gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                        <button onClick={() => setPadTab('math')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'math' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>기본 수식</button>
+                        <button onClick={() => setPadTab('const')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 (a~z)</button>
+                    </div>
                 </div>
 
                 {padTab === 'math' && (
@@ -3209,53 +3350,53 @@
                         <div className="flex gap-2">
                             {/* 🚀 좌측: 함수 및 변수 (3열) */}
                             <div className="grid grid-cols-3 gap-1.5 flex-[1.2]">
-                                <button onClick={()=>handleMathPadKey('x')} className="bg-purple-600/30 text-purple-400 border border-purple-500/30 py-2 rounded-lg font-bold text-lg hover:bg-purple-600/50">x</button>
-                                <button onClick={()=>handleMathPadKey('y')} className="bg-pink-600/30 text-pink-400 border border-pink-500/30 py-2 rounded-lg font-bold text-lg hover:bg-pink-600/50">y</button>
-                                <button onClick={()=>handleMathPadKey('pi')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">π</button>
+                                <button onClick={()=>handleMathPadKey('x')} className="bg-zinc-800 text-zinc-200 py-2 rounded-lg font-bold text-lg hover:bg-zinc-700 transition">x</button>
+                                <button onClick={()=>handleMathPadKey('y')} className="bg-zinc-800 text-zinc-200 py-2 rounded-lg font-bold text-lg hover:bg-zinc-700 transition">y</button>
+                                <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">|x|</button>
                                 
-                                <button onClick={()=>handleMathPadKey('e')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">e</button>
-                                <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">x²</button>
-                                <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">xⁿ</button>
-                                
-                                <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">√</button>
-                                <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">|x|</button>
-                                <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">exp</button>
+                                <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">x²</button>
+                                <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">xⁿ</button>
+                                <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">√</button>
 
-                                <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">sin</button>
-                                <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">cos</button>
-                                <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">tan</button>
+                                <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">sin</button>
+                                <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">cos</button>
+                                <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">tan</button>
 
-                                <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">ln</button>
-                                <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log₁₀</button>
-                                <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-amber-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log_n</button>
+                                <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">ln</button>
+                                <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">log₁₀</button>
+                                <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">log_n</button>
+
+                                <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-black hover:bg-zinc-700 transition text-sm">π</button>
+                                <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-black hover:bg-zinc-700 transition text-sm">e</button>
+                                <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">exp</button>
                             </div>
 
                             {/* 🚀 우측: 숫자 및 사칙연산 (4열) */}
                             <div className="grid grid-cols-4 gap-1.5 flex-[1.6]">
-                                <button onClick={handleMathPadClear} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-2 rounded-lg font-bold hover:bg-rose-600/40 text-xs transition">AC</button>
-                                <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">(</button>
-                                <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">)</button>
-                                <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">⌫</button>
+                                <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">(</button>
+                                <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">)</button>
+                                <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">⌫</button>
+                                <button onClick={handleMathPadClear} className="bg-rose-600/80 text-white py-2 rounded-lg font-bold hover:bg-rose-600 transition text-xs">AC</button>
 
-                                <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">7</button>
-                                <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">8</button>
-                                <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">9</button>
-                                <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">÷</button>
+                                <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">7</button>
+                                <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">8</button>
+                                <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">9</button>
+                                <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">÷</button>
 
-                                <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">4</button>
-                                <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">5</button>
-                                <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">6</button>
-                                <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">×</button>
+                                <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">4</button>
+                                <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">5</button>
+                                <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">6</button>
+                                <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">×</button>
 
-                                <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">1</button>
-                                <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">2</button>
-                                <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">3</button>
-                                <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-xl hover:bg-sky-600/40">-</button>
+                                <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">1</button>
+                                <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">2</button>
+                                <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">3</button>
+                                <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-xl hover:bg-sky-600 transition">-</button>
 
-                                <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">0</button>
-                                <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">.</button>
-                                <button onClick={()=>handleMathPadKey('=')} className="bg-amber-600/20 text-amber-400 border border-amber-500/30 py-2 rounded-lg font-bold text-lg hover:bg-amber-600/40">=</button>
-                                <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">+</button>
+                                <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">0</button>
+                                <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">.</button>
+                                <button onClick={()=>handleMathPadKey('=')} className="bg-indigo-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-indigo-500 transition">=</button>
+                                <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">+</button>
                             </div>
                         </div>
                         <button onClick={applyMathPad} className="mt-1 w-full bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm py-3 transition shadow-[0_0_15px_rgba(168,85,247,0.3)]">
@@ -3319,8 +3460,8 @@
           {/* 🚀 3번 기능 개선: 모바일 계산과정 UI 폰트/간격 축소 및 가로스크롤 최적화 */}
           {selectedCalcPoint && (
               <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 md:p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
-                  <div className="bg-zinc-900 border border-zinc-600 rounded-2xl p-4 md:p-6 shadow-2xl max-w-lg w-full flex flex-col gap-3 md:gap-4 transform transition-all" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-between items-center border-b border-zinc-700 pb-2 md:pb-3">
+                  <div className="bg-zinc-900 border border-zinc-600 rounded-xl p-4 md:p-5 shadow-2xl max-w-md w-full flex flex-col gap-3 transform transition-all" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-700 pb-2">
                           <h3 className="text-white font-bold text-sm md:text-xl flex items-center gap-2">
                               <svg className="w-4 h-4 md:w-5 md:h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                               행렬 연산 과정
@@ -3328,37 +3469,37 @@
                           <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-lg md:text-xl">✕</button>
                       </div>
                       
-                      <div className="bg-[#1e293b] p-3 md:p-5 rounded-xl border border-slate-700 font-mono text-slate-200 overflow-x-auto shadow-inner scrollbar-hide relative pb-10 md:pb-12">
+                      <div className="bg-zinc-950 p-3 md:p-4 rounded-lg border border-zinc-800 font-mono text-zinc-300 overflow-x-auto shadow-inner scrollbar-hide relative pb-10 md:pb-12 text-[10px] md:text-sm">
                           
-                          <div className="flex items-center gap-1 md:gap-3 text-[11px] md:text-lg mb-4 md:mb-6 justify-center min-w-max">
-                              <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="grid grid-cols-3 gap-x-1.5 md:gap-x-3 gap-y-1 md:gap-y-2 text-center text-sky-300 mx-0.5 md:mx-1 w-max">
+                          <div className="flex items-center gap-1 md:gap-2 mb-4 justify-center min-w-max">
+                              <div className="flex items-stretch">
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
+                                  <div className="grid grid-cols-3 gap-x-1.5 gap-y-1 text-center text-sky-400 mx-0.5 w-max items-center py-2">
                                       <span>{fmt(matrix.a)}</span><span>{fmt(matrix.c)}</span><span>{fmt(matrix.e)}</span>
                                       <span>{fmt(matrix.b)}</span><span>{fmt(matrix.d)}</span><span>{fmt(matrix.f)}</span>
                                       <span>{matrix.m14 ? fmt(matrix.m14) : '0'}</span><span>{matrix.m24 ? fmt(matrix.m24) : '0'}</span><span>1</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                               </div>
                               <span className="text-slate-400 font-sans font-bold px-1">×</span>
-                              <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-amber-300 mx-0.5 md:mx-1 w-max">
+                              <div className="flex items-stretch">
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
+                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-amber-300 mx-0.5 md:mx-1 w-max items-center justify-center py-2">
                                       <span>{selectedCalcPoint.x}</span>
                                       <span>{selectedCalcPoint.y}</span>
                                       <span className="text-slate-500">1</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                               </div>
                               <span className="text-slate-400 font-sans font-bold px-1">=</span>
-                              <div className="flex items-center">
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>(</span>
-                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-emerald-300 mx-0.5 md:mx-1 w-max font-bold">
+                              <div className="flex items-stretch">
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
+                                  <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-emerald-300 mx-0.5 md:mx-1 w-max font-bold items-center justify-center py-2">
                                       <span>X'</span>
                                       <span>Y'</span>
                                       <span>W'</span>
                                   </div>
-                                  <span className="text-slate-500 font-serif text-[28px] md:text-[60px] leading-[0]" style={{ transform: 'scale(0.5, 1.8)' }}>)</span>
+                                  <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                               </div>
                           </div>
 
@@ -3429,13 +3570,22 @@
 
                       </div>
 
-                      <div className="flex flex-col gap-2 mt-1 md:mt-2">
-                          <div className="p-2.5 md:p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-[10px] md:text-[13px] text-indigo-200 leading-relaxed shadow-sm">
-                              <b className="text-indigo-400 block mb-0.5 md:mb-1 flex items-center gap-1">
-                                  <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                  왜 (X, Y)를 세로로 세워서 곱하나요?
+                      <div className="flex flex-col gap-2 mt-1">
+                          <div className="p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-[11px] md:text-xs text-zinc-300 leading-relaxed">
+                              <b className="text-white block mb-1.5 flex items-center gap-1.5">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                  연산 원리 알아보기
                               </b>
-                              행렬 곱셈은 <strong className="text-white">앞 행렬의 가로줄(행)</strong>과 <strong className="text-white">뒤 행렬의 세로줄(열)</strong>을 곱해 더합니다. 좌표 (X, Y)를 3 x 3 행렬 연산에 맞추려면 <strong className="text-white">세로로 세운 행렬</strong> 형태로 대입해야 정상적인 계산이 성립합니다.
+                              <div className="flex flex-col gap-2">
+                                  <p>
+                                      <strong className="text-white bg-zinc-700 px-1 rounded">왜 좌표를 세로로 세워서 곱할까요?</strong><br/>
+                                      가로줄과 세로줄을 순서대로 짝지어 곱하는 행렬의 곱셈 방식에 따라, 점의 가로(x)와 세로(y) 좌표를 세로로 나열하여 계산합니다.
+                                  </p>
+                                  <p className="border-t border-zinc-700 pt-2">
+                                      <strong className="text-white bg-zinc-700 px-1 rounded">마지막에 깊이 값(W)으로 왜 다시 나누나요?</strong><br/>
+                                      화면에 입체적인 깊이감을 표현할 때, 거리에 비례하여 크기를 조절할 수 있도록 계산된 비율 값(W')으로 나누어 최종 평면 좌표를 구합니다.
+                                  </p>
+                              </div>
                           </div>
                       </div>
                       
@@ -3518,26 +3668,82 @@
           )}
 
           {logicModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
-              <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
+            <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                  <h3 className="text-white font-bold text-lg md:text-xl">삼각비 변경</h3>
+                  <h3 className="text-white font-bold text-lg md:text-xl">회전 변환식 설정</h3>
                   <button onClick={() => setLogicModalOpen(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
-                <p className="text-zinc-400 text-[11px] md:text-xs">
-                  회전 변환의 함수식을 직접 수정합니다.<br/>
-                  변수 <code className="text-sky-400 bg-zinc-800 px-1 rounded mx-0.5">v</code>는 슬라이더의 라디안 값입니다.<br/>
-                  <span className="text-zinc-500">(예: <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">tan(v)</code>, <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">-sin(v)*2</code>)</span>
+                <p className="text-zinc-400 text-xs leading-relaxed">
+                  회전에 사용되는 2x2 행렬 공식을 직접 수정합니다.<br/>
+                  수식의 중심 각도 변수는 <b>v</b>입니다. (예: <b>tan(v)</b>, <b>sin^2(v)</b>)
                 </p>
-                <div className="grid grid-cols-2 gap-3 font-mono text-sm md:text-base">
-                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m00</span><input type="text" value={tempLogic.m00} onChange={e => setTempLogic({...tempLogic, m00: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
-                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m01</span><input type="text" value={tempLogic.m01} onChange={e => setTempLogic({...tempLogic, m01: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
-                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m10</span><input type="text" value={tempLogic.m10} onChange={e => setTempLogic({...tempLogic, m10: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
-                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m11</span><input type="text" value={tempLogic.m11} onChange={e => setTempLogic({...tempLogic, m11: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                
+                {/* 🚀 회전 변환식 4개 셀: ^ 기호 없이 교과서 표준(sin²(v)) 형식으로 미려하게 렌더링 */}
+                <div className="bg-black border border-zinc-800 rounded-xl p-4 flex justify-center items-stretch relative shadow-inner h-[120px]">
+                    <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
+                    <div className="grid grid-cols-2 gap-3 w-full max-w-[210px] z-10 mx-2 items-center">
+                        {['m00', 'm01', 'm10', 'm11'].map((cellKey) => {
+                            let text = tempLogic[cellKey] || '0';
+                            let formatted = text
+                                .replace(/(sin|cos|tan)\(v\)\^([0-9a-z.]+)/g, '$1^$2(v)')
+                                .replace(/(sin|cos|tan)\^([0-9a-z.]+)\(v\)/g, '$1<sup class="text-amber-300 font-bold ml-0.5">$2</sup>(v)')
+                                .replace(/v\^([0-9a-z.]+)/g, 'v<sup class="text-amber-300 font-bold ml-0.5">$1</sup>')
+                                .replace(/\^([0-9a-z.]+)/g, '<sup class="text-amber-300 font-bold ml-0.5">$1</sup>');
+                            return (
+                                <div
+                                    key={cellKey}
+                                    onClick={() => setFocusedLogicCell(cellKey)}
+                                    className={`bg-zinc-900 border ${focusedLogicCell === cellKey ? 'border-sky-500 ring-2 ring-sky-500/40 text-sky-300' : 'border-zinc-700 text-zinc-300'} px-2 py-2 rounded text-center font-mono text-xs md:text-sm transition-all cursor-pointer flex items-center justify-center select-none min-h-[38px]`}
+                                    dangerouslySetInnerHTML={{ __html: formatted }}
+                                />
+                            );
+                        })}
+                    </div>
+                    <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                 </div>
-                <div className="flex gap-3 mt-2">
-                  <button onClick={() => setTempLogic({m00:'cos(v)', m01:'-sin(v)', m10:'sin(v)', m11:'cos(v)'})} className="flex-1 py-2 rounded bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition text-sm">초기화</button>
-                  <button onClick={saveLogicModal} className="flex-1 py-2 rounded bg-sky-600 text-white font-bold hover:bg-sky-500 transition text-sm">적용하기</button>
+
+                {/* 🚀 계산기 표준 x^□ 버튼 탑재: 삼각비 거듭제곱을 누르면 sin(v)^2가 아닌 교과서 표준 sin^2(v)로 지능형 결합 */}
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + 'sin('})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">sin</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + 'cos('})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">cos</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + 'tan('})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">tan</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + 'v'})} className="bg-sky-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-sky-500 shadow-sm">각도(v)</button>
+                    
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + '+'})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-lg hover:bg-zinc-600">+</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + '-'})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-lg hover:bg-zinc-600">-</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + '('})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-600">(</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell] + ')'})} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-600">)</button>
+
+                    <button 
+                        onClick={() => {
+                            let cur = tempLogic[focusedLogicCell] || '';
+                            if (/(sin|cos|tan)\(v\)$/.test(cur)) {
+                                cur = cur.replace(/(sin|cos|tan)\(v\)$/, '$1^2(v)');
+                            } else if (/(sin|cos|tan)\^([0-9]+)\(v\)$/.test(cur)) {
+                                cur = cur.replace(/(sin|cos|tan)\^([0-9]+)\(v\)$/, (m, fn, p) => `${fn}^${parseInt(p, 10) + 1}(v)`);
+                            } else if (cur.endsWith('v')) {
+                                cur += '^2';
+                            } else if (/(sin|cos|tan)\($/.test(cur)) {
+                                cur = cur.replace(/(sin|cos|tan)\($/, '$1^2(v)');
+                            } else {
+                                cur += '^2';
+                            }
+                            setTempLogic({ ...tempLogic, [focusedLogicCell]: cur });
+                        }} 
+                        className="bg-indigo-600/80 text-white py-3 rounded-lg font-bold text-sm hover:bg-indigo-500 shadow-md flex items-center justify-center gap-0.5 col-span-2"
+                        title="거듭제곱"
+                    >
+                        <span className="font-serif italic font-bold text-base">x</span>
+                        <sup className="text-[10px] border border-dashed border-white/80 w-3.5 h-3.5 inline-flex items-center justify-center rounded-sm ml-0.5">□</sup>
+                    </button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: tempLogic[focusedLogicCell].slice(0, -1)})} className="bg-zinc-600 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-500">⌫</button>
+                    <button onClick={() => setTempLogic({...tempLogic, [focusedLogicCell]: ''})} className="bg-rose-600 text-white py-3 rounded-lg font-bold text-xs hover:bg-rose-500">AC</button>
+                </div>
+
+                <div className="flex gap-3 mt-1">
+                  <button onClick={() => setTempLogic({m00:'cos(v)', m01:'-sin(v)', m10:'sin(v)', m11:'cos(v)'})} className="flex-1 py-3 rounded-lg bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition shadow text-sm">초기화</button>
+                  <button onClick={saveLogicModal} className="flex-1 py-3 rounded-lg bg-sky-600 text-white font-bold hover:bg-sky-500 transition shadow-[0_0_15px_rgba(2,132,199,0.3)] text-sm">적용하기</button>
                 </div>
               </div>
             </div>
@@ -3723,23 +3929,23 @@
                     <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기하학 변환</span>
                         <div className="flex flex-col gap-4">
-                            <ConfigRow title="X축 확대 (Scale X)" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 확대 (Scale Y)" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="X축 이동 (Translate X)" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 이동 (Translate Y)" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="평면 회전 (Rotation °)" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="X축 전단 (Shear X)" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 전단 (Shear Y)" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="스퀴즈 (Squeeze)" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
-                            <ConfigRow title="수평 투시 (Perspective X)" prefix="perspX" config={config} setConfig={setConfig} colorClass="indigo" />
-                            <ConfigRow title="수직 투시 (Perspective Y)" prefix="perspY" config={config} setConfig={setConfig} colorClass="indigo" />
+                            <ConfigRow title="X축 확대" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 확대" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 이동" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 이동" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="평면 회전" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 전단" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 전단" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="스퀴즈" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
+                            <ConfigRow title="수평 투시" prefix="perspX" config={config} setConfig={setConfig} colorClass="indigo" />
+                            <ConfigRow title="수직 투시" prefix="perspY" config={config} setConfig={setConfig} colorClass="indigo" />
                         </div>
                     </div>
                     <hr className="border-zinc-700/50" />
                     <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">색상 변환</span>
                         <div className="flex flex-col gap-4">
-                            <ConfigRow title="명암비 (Contrast 배율)" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
+                            <ConfigRow title="전체 명암비" prefix="cont" config={config} setConfig={setConfig} colorClass="zinc" restrictMin={0} />
                         </div>
                     </div>
                   </div>
@@ -3905,7 +4111,7 @@
                 
                 <button 
                   onClick={() => setActiveTab('math')} 
-                  title="수학 실험실" 
+                  title="수학 모드" 
                   className={`flex-1 md:flex-none md:h-[50px] flex items-center justify-center transition-colors border-r md:border-r-0 md:border-b border-zinc-800 last:border-r-0 md:last:border-b-0 ${activeTab === 'math' ? 'bg-zinc-900 text-indigo-400 shadow-[inset_0_-3px_0_currentColor] md:shadow-[inset_3px_0_0_currentColor]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -3934,23 +4140,23 @@
                 {activeTab === 'geo' && (
                   <div className="flex flex-col gap-5 md:gap-6 pb-20">
                     <div className="space-y-4">
-                      <ControlRow label="X축 확대 (Scale X)" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
-                      <ControlRow label="Y축 확대 (Scale Y)" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
-                      <ControlRow label="스퀴즈 (Squeeze)" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
+                      <ControlRow label="X축 확대" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
+                      <ControlRow label="Y축 확대" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
+                      <ControlRow label="스퀴즈" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(INFO_DATA.squeeze)} />
                     </div>
                     <hr className="border-zinc-800" />
                     <div className="space-y-4">
-                      <ControlRow label="X축 이동 (Translate X)" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
-                      <ControlRow label="Y축 이동 (Translate Y)" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
+                      <ControlRow label="X축 이동" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
+                      <ControlRow label="Y축 이동" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
                     </div>
                     <hr className="border-zinc-800" />
                     <div className="space-y-4">
-                      <ControlRow label="평면 회전 (Rotation °)" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
+                      <ControlRow label="평면 회전" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
                     </div>
                     <hr className="border-zinc-800" />
                     <div className="space-y-4">
-                      <ControlRow label="X축 전단 (Shear X)" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
-                      <ControlRow label="Y축 전단 (Shear Y)" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                      <ControlRow label="X축 전단" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
+                      <ControlRow label="Y축 전단" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
                     </div>
                     <hr className="border-zinc-800" />
                     
@@ -4019,7 +4225,7 @@
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                                투시 변환 (Perspective)
+                                투시 변환
                             </span>
                             <label className="flex items-center cursor-pointer group">
                                 <div className="relative">
@@ -4030,8 +4236,8 @@
                                 </div>
                             </label>
                         </div>
-                        <ControlRow label="수평 투시 (Perspective X)" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
-                        <ControlRow label="수직 투시 (Perspective Y)" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
+                        <ControlRow label="수평 투시" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
+                        <ControlRow label="수직 투시" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
                     </div>
                     <hr className="border-zinc-800" />
                   </div>
@@ -4155,7 +4361,7 @@
                                                               <div className="flex flex-col gap-1.5 px-3 py-2.5 bg-zinc-950/50 border-t border-purple-500/20">
                                                                   {poly.map((p, pIdx) => (
                                                                       <div key={pIdx} className="flex justify-between items-center text-[11px] font-mono text-zinc-400 pl-2">
-                                                                          <span className="text-purple-300/70">Pt {pIdx+1}</span>
+                                                                          <span className="text-purple-300/70">점 {pIdx+1}</span>
                                                                           <span>({p.x}, {p.y})</span>
                                                                       </div>
                                                                   ))}
@@ -4170,7 +4376,7 @@
                                               <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto scrollbar-hide pr-1 mt-1">
                                                   {polygonPoints.map((p, i) => (
                                                       <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded border text-xs font-mono shadow-sm ${i===0 ? 'bg-rose-900/20 border-rose-500/30 text-rose-300' : 'bg-zinc-900 border-zinc-700 text-purple-300'}`}>
-                                                          <span>Pt {i+1}</span>
+                                                          <span>점 {i+1}</span>
                                                           <span>({p.x}, {p.y})</span>
                                                       </div>
                                                   ))}
@@ -4203,10 +4409,10 @@
                                                                   {g.eq || '수식을 입력하세요 (예: x^2+y^2=4)'}
                                                               </div>
                                                               <div className="flex gap-1 shrink-0">
-                                                                  <button onClick={() => setGraphSettingsId(g.id)} className={`w-8 h-8 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
+                                                                  <button onClick={() => setGraphSettingsId(g.id)} className={`w-9 h-9 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
                                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                                                                   </button>
-                                                                  <button onClick={() => removeGraph(g.id)} className="text-rose-400 hover:text-rose-300 font-bold px-2 py-1.5 bg-zinc-700/50 rounded transition">✕</button>
+                                                                  <button onClick={() => removeGraph(g.id)} className="w-9 h-9 flex items-center justify-center text-rose-400 hover:text-white hover:bg-rose-500 font-black text-lg bg-zinc-700/50 rounded shadow transition">✕</button>
                                                               </div>
                                                           </div>
                                                           {g.matrixMode !== 'global' && (
@@ -4227,17 +4433,31 @@
                                           
                                           {isGraphListExpanded && constants.length > 0 && (
                                               <div className="mt-4 pt-4 border-t border-sky-500/30 flex flex-col gap-3">
-                                                  <span className="text-zinc-400 text-xs font-bold">동적 상수(Constant) 연동</span>
+                                                  <span className="text-zinc-400 text-xs font-bold">상수</span>
                                                   {constants.map(c => (
-                                                      <div key={c.name} className="flex flex-col gap-1">
-                                                          <ControlRow 
-                                                              label={`상수 ${c.name}`} 
-                                                              min={c.min} max={c.max} step={c.step} 
-                                                              value={c.value} 
-                                                              onChange={v => updateConstant(c.name, 'value', v)} 
-                                                              onReset={() => updateConstant(c.name, 'value', 1.0)}
-                                                              colorClass="indigo" 
-                                                          />
+                                                      <div key={c.name} className="flex flex-col gap-1 bg-indigo-900/10 p-3 rounded-lg border border-indigo-500/20">
+                                                          <div className="flex justify-between items-center w-full">
+                                                              <div className="flex-1">
+                                                                  <ControlRow 
+                                                                      label={`상수 ${c.name}`} 
+                                                                      min={c.min} max={c.max} step={c.step} 
+                                                                      value={c.value} 
+                                                                      onChange={v => updateConstant(c.name, 'value', v)} 
+                                                                      onReset={() => updateConstant(c.name, 'value', 1.0)}
+                                                                      colorClass="indigo" 
+                                                                  />
+                                                              </div>
+                                                              <button onClick={() => toggleConstConfig(c.name)} className="ml-3 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded transition shadow-sm shrink-0">
+                                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                              </button>
+                                                          </div>
+                                                          {activeConstConfig === c.name && (
+                                                              <div className="flex gap-2 mt-2 pt-2 border-t border-indigo-500/20">
+                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">최솟값<CustomNumberInput value={c.min} onChange={v => updateConstant(c.name, 'min', v)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
+                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">최댓값<CustomNumberInput value={c.max} onChange={v => updateConstant(c.name, 'max', v)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
+                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">간격<CustomNumberInput value={c.step} onChange={v => updateConstant(c.name, 'step', v > 0 ? v : 0.1)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
+                                                              </div>
+                                                          )}
                                                       </div>
                                                   ))}
                                               </div>
@@ -4309,7 +4529,7 @@
                       </div>
                       <div className="flex items-center justify-between">
                           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                              가짜 색상 복원 (듀오톤)
+                              이중 색상 변환
                               <button onClick={() => setLogicInfoData(INFO_DATA.duo)} className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button>
                           </span>
                           <label className="flex items-center cursor-pointer group">
@@ -4329,8 +4549,8 @@
                   </div>
                   <hr className="border-zinc-800" />
                   <div className="space-y-4">
-                    <ControlRow label="전체 밝기 (+)" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} onReset={() => handleSyncChange('globalAdd', 0)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
-                    <ControlRow label="전체 명암비 (x)" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} onReset={() => handleSyncChange('globalMul', 1.0)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
+                    <ControlRow label="전체 밝기" min="-255" max="255" step="1" value={globalAdd} onChange={v=>handleSyncChange('globalAdd', v)} onReset={() => handleSyncChange('globalAdd', 0)} syncKey="globalAdd" isSynced={syncKeys.has('globalAdd')} onToggleSync={()=>toggleSync('globalAdd')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gAdd)} />
+                    <ControlRow label="전체 명암비" min={Math.max(0, config.contMin)} max={config.contMax} step={config.contStep} value={globalMul} onChange={v=>handleSyncChange('globalMul', v)} onReset={() => handleSyncChange('globalMul', 1.0)} syncKey="globalMul" isSynced={syncKeys.has('globalMul')} onToggleSync={()=>toggleSync('globalMul')} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.gMul)} />
                     <ControlRow label="이진화 (-1 끄기)" min="-1" max="255" step="1" value={binThresh} onChange={setBinThresh} onReset={() => setBinThresh(-1)} colorClass="zinc" onOpenInfo={() => setLogicInfoData(INFO_DATA.binThresh)} />
                   </div>
 
@@ -4439,7 +4659,7 @@
             {isCalcMode && (
                 <div className="absolute top-16 md:top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[70] pointer-events-none w-[92vw] md:w-auto">
                     <div className="bg-amber-500/95 text-white px-4 py-3 md:px-5 md:py-2.5 rounded-2xl md:rounded-full font-bold text-xs md:text-base shadow-[0_0_15px_rgba(245,158,11,0.5)] flex flex-col md:flex-row items-center gap-2 md:gap-3 pointer-events-auto text-center break-keep w-full md:w-auto">
-                        <span>화면을 터치하여 계산 과정을 볼 점을 찍어주세요</span>
+                        <span>화면을 터치하여 연산 과정을 볼 점을 찍어주세요</span>
                         <div className="flex gap-2 w-full justify-center md:w-auto mt-1 md:mt-0">
                             <button onClick={() => setShowManualCalcPointUI(!showManualCalcPointUI)} className="bg-white text-amber-600 px-3 py-1.5 md:py-1 rounded-full text-xs hover:bg-amber-100 transition whitespace-nowrap shadow-sm">
                                 직접 입력
