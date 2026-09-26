@@ -1068,26 +1068,20 @@
       useEffect(() => {
           const img = new Image();
           
-          // 1. 외부 서버(깃허브 이슈) 캔버스 보안 오류 방지
-          img.crossOrigin = "Anonymous"; 
-          
-          // 2. 이미지 로드 성공 및 에러 처리
           img.onload = () => {
               setImageObj(img);
           };
           
           img.onerror = () => {
-              console.error("기본 이미지를 불러오는 데 실패했습니다.");
+              if (img.src.includes('raw.githubusercontent.com')) {
+                  console.error("기본 이미지를 불러오는 데 실패했습니다.");
+                  return;
+              }
+              img.crossOrigin = "Anonymous";
+              img.src = 'https://raw.githubusercontent.com/bgroupmatrix/Matrix-visualization-project/main/default-image.png';
           };
           
-          // 3. 로컬 서버(VS Code)인지 깃허브 페이지인지 감지
-          const isLocal = window.location.hostname === '127.0.0.1' || 
-                          window.location.hostname === 'localhost';
-          
-          // 4. 환경에 맞게 이미지 주소 분기 적용
-          img.src = isLocal 
-              ? './default-image.png' 
-              : 'https://github.com/user-attachments/assets/20bb6a50-c938-4655-b59b-0244f2394612';
+          img.src = './default-image.png';
       }, []);
 
       useEffect(() => {
