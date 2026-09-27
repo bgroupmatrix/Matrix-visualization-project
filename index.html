@@ -410,22 +410,35 @@
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [padTab, setPadTab] = useState('math'); 
       const [tempGraphEq, setTempGraphEq] = useState("");
-          const [mathCursorPos, setMathCursorPos] = useState(0);
-          const [editingGraphId, setEditingGraphId] = useState(null);
-          const inputRef = useRef(null);
-          const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
+      const [mathCursorPos, setMathCursorPos] = useState(0);
+      const [editingGraphId, setEditingGraphId] = useState(null);
+      const inputRef = useRef(null);
+      const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
+
+      const [isRadMode, setIsRadMode] = useState(true);
+      const [isInvMode, setIsInvMode] = useState(false);
+      const [mathSubTab, setMathSubTab] = useState('basic');
+      const [showHistory, setShowHistory] = useState(false);
+      const [calcHistory, setCalcHistory] = useState([]);
 
           // 🚀 일체형 종이 필기 스타일 수식 렌더러 (클릭한 문자에 커서 위치 이동 및 위첨자/근호 내부 커서 표시)
-          const renderMathWithCaret = (eq, caretPos) => {
+          const renderMathWithCaret = (eq, caretPos = null) => {
               if (!eq) {
-                  return '<span class="text-zinc-600 font-sans text-xl">수식을 입력하세요</span><span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[1px]"></span>';
+                  if (caretPos === null) return '<span class="text-zinc-500 font-sans text-xs">수식 없음</span>';
+                  return '<span class="border border-dashed border-sky-400/80 rounded px-2 min-w-[20px] min-h-[26px] inline-flex items-center justify-center"><span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span></span>';
               }
               let html = '';
               let i = 0;
+              let caretRendered = false;
               const len = eq.length;
+              const getCaret = (isSup = false) => {
+                  if (caretRendered) return '';
+                  caretRendered = true;
+                  return `<span class="inline-block ${isSup ? 'w-[2px] h-[1em]' : 'w-[2.5px] h-[1.1em]'} bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>`;
+              };
               while (i < len) {
-                  if (i === caretPos) {
-                      html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>';
+                  if (!caretRendered && i === caretPos) {
+                      html += getCaret();
                   }
                   if (eq[i] === '^') {
                       let expStart = i + 1;
@@ -440,26 +453,38 @@
                       } else {
                           while (expEnd < len && /[0-9a-zA-Z.]/.test(eq[expEnd])) expEnd++;
                       }
-                      html += '<sup class="text-[0.65em] font-bold text-zinc-100 ml-0.5">';
+                      html += '<sup class="text-[0.65em] font-bold text-zinc-100 ml-0.5 -top-[0.55em] relative">';
                       if (expStart === expEnd) {
-                          html += `<span data-idx="${expStart}" class="border border-dashed border-sky-400 rounded px-1 min-w-[12px] min-h-[14px] inline-flex items-center justify-center align-middle">${caretPos >= i ? '<span class="inline-block w-[2px] h-[1.1em] bg-sky-400 animate-pulse"></span>' : ''}</span>`;
+                          html += `<span data-idx="${expStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[14px] min-h-[16px] inline-flex items-center justify-center align-middle text-zinc-500 font-sans text-xs">${caretPos !== null && !caretRendered && caretPos >= i ? getCaret(true) : '□'}</span>`;
                       } else {
-                          for (let k = expStart; k < expEnd; k++) {
-                              if (k === caretPos) html += '<span class="inline-block w-[2px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
-                              html += `<span data-idx="${k}" class="hover:text-white px-[0.5px]">${eq[k]}</span>`;
+                          const isParenExp = expStart < len && eq[expStart] === '(';
+                          const innerStart = isParenExp ? expStart + 1 : expStart;
+                          const innerEnd = isParenExp ? expEnd - 1 : expEnd;
+                          if (innerStart === innerEnd) {
+                              html += `<span data-idx="${innerStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[14px] min-h-[16px] inline-flex items-center justify-center align-middle text-zinc-500 font-sans text-xs">${!caretRendered && caretPos >= i && caretPos <= expEnd ? getCaret(true) : '□'}</span>`;
+                          } else {
+                              for (let k = innerStart; k < innerEnd; k++) {
+                                  if (!caretRendered && k === caretPos) html += getCaret(true);
+                                  html += `<span data-idx="${k}" class="hover:text-white px-[0.5px]">${eq[k]}</span>`;
+                              }
                           }
                       }
-                      if (expStart !== expEnd && caretPos === expEnd) html += '<span class="inline-block w-[2px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                      const isParen = expStart < len && eq[expStart] === '(';
+                      if (!caretRendered && ((isParen && caretPos === expEnd - 1) || (!isParen && caretPos === expEnd))) html += getCaret(true);
                       html += '</sup>';
                       i = expEnd;
                       continue;
                   }
                   if (eq.slice(i, i + 5) === 'sqrt(') {
-                      html += `<span data-idx="${i}" class="text-emerald-400 font-sans font-bold text-xl">√</span><span class="border-t-2 border-emerald-400/80 px-1 ml-0.5 inline-block">`;
+                      html += `<span class="inline-flex items-stretch align-middle mx-0.5"><svg viewBox="0 0 10 24" preserveAspectRatio="none" class="w-2.5 self-stretch text-emerald-400 fill-none stroke-current stroke-2 shrink-0"><path d="M1 13 L3 13 L5 21 L9 2" /></svg><span class="border-t-2 border-emerald-400 -ml-[1px] px-1.5 py-0.5 min-w-[18px] min-h-[24px] inline-flex items-center text-zinc-100 font-sans">`;
+                      const sStart = i + 5;
                       i += 5;
                       let pCount = 1;
+                      if (sStart < len && eq[sStart] === ')') {
+                          html += `<span data-idx="${sStart}" class="text-zinc-500 text-xs border border-dashed border-emerald-400/50 rounded px-1.5">${!caretRendered && caretPos >= sStart - 5 && caretPos <= sStart ? getCaret() : '□'}</span>`;
+                      }
                       while (i < len && pCount > 0) {
-                          if (i === caretPos) html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                          if (!caretRendered && i === caretPos) html += getCaret();
                           if (eq[i] === '(') pCount++;
                           else if (eq[i] === ')') {
                               pCount--;
@@ -468,16 +493,20 @@
                           html += `<span data-idx="${i}">${eq[i]}</span>`;
                           i++;
                       }
-                      html += '</span>';
+                      html += '</span></span>';
                       continue;
                   }
                   // 🚀 1. 절댓값 교과서 수직선(|...|) 표기
                   if (eq.slice(i, i + 4) === 'abs(') {
                       html += `<span data-idx="${i}" class="font-bold text-sky-400 text-2xl mx-0.5 align-middle select-none">|</span>`;
+                      const aStart = i + 4;
+                      if (aStart < len && eq[aStart] === ')') {
+                          html += `<span data-idx="${aStart}" class="text-zinc-500 text-xs border border-dashed border-sky-400/50 rounded px-1.5 mx-0.5">${!caretRendered && caretPos >= i && caretPos <= aStart ? getCaret() : '□'}</span>`;
+                      }
                       i += 4;
                       let aDepth = 1;
                       while (i < len && aDepth > 0) {
-                          if (i === caretPos) html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px]"></span>';
+                          if (!caretRendered && i === caretPos) html += getCaret();
                           if (eq.slice(i, i + 4) === 'abs(') { aDepth++; i += 3; }
                           else if (eq[i] === '(') aDepth++;
                           else if (eq[i] === ')') {
@@ -509,16 +538,27 @@
                           while (denEnd < len && /[0-9a-zA-Z._]/.test(eq[denEnd])) denEnd++;
                       }
 
-                      html += '<span class="inline-flex flex-col items-center align-middle mx-1 text-[0.8em] font-sans">';
-                      html += '<span class="border-b-2 border-zinc-300 px-1 py-0.5 text-center min-w-[20px] text-zinc-100 flex items-center justify-center">';
-                      if (caretPos === slashIdx) html += '<span class="inline-block w-[2px] h-[1em] bg-sky-400 animate-pulse"></span>';
-                      html += '</span>';
-                      html += '<span class="px-1 py-0.5 text-center min-w-[20px] text-zinc-100 flex items-center justify-center">';
+                      let numStart = slashIdx - 1;
+                      if (numStart >= 0 && eq[numStart] === ')') {
+                          let p = 1; numStart--;
+                          while (numStart >= 0 && p > 0) { if (eq[numStart] === ')') p++; else if (eq[numStart] === '(') p--; numStart--; }
+                          numStart++;
+                      } else {
+                          while (numStart >= 0 && /[0-9a-zA-Z._]/.test(eq[numStart])) numStart--;
+                          numStart++;
+                      }
+                      let numHtml = '';
+                      const marker = `<span data-idx="${numStart}"`;
+                      const markerPos = html.lastIndexOf(marker);
+                      if (markerPos !== -1) { numHtml = html.slice(markerPos); html = html.slice(0, markerPos); }
+                      html += '<span class="inline-flex flex-col items-center align-middle mx-1.5 my-1 text-[0.85em] font-sans">';
+                      html += '<span class="border-b-2 border-zinc-300 px-1.5 py-0.5 text-center min-w-[20px] min-h-[24px] text-zinc-100 flex items-center justify-center">' + (numHtml || (!caretRendered && caretPos === slashIdx ? getCaret(true) : `<span data-idx="${slashIdx}" class="text-zinc-500 text-xs border border-dashed border-sky-400/50 rounded px-1">□</span>`)) + '</span>';
+                      html += '<span class="px-1.5 py-0.5 text-center min-w-[20px] min-h-[24px] text-zinc-100 flex items-center justify-center">';
                       if (slashIdx + 1 === denEnd) {
-                          html += `<span data-idx="${slashIdx + 1}" class="border border-dashed border-sky-400 rounded px-1.5 min-w-[14px] min-h-[14px] inline-flex items-center justify-center">${caretPos > slashIdx ? '<span class="inline-block w-[2px] h-[1em] bg-sky-400 animate-pulse"></span>' : ''}</span>`;
+                          html += `<span data-idx="${slashIdx + 1}" class="border border-dashed border-sky-400 rounded px-1.5 min-w-[14px] min-h-[14px] inline-flex items-center justify-center text-zinc-500 text-xs">${!caretRendered && caretPos > slashIdx ? getCaret(true) : '□'}</span>`;
                       } else {
                           for (let d = slashIdx + 1; d < denEnd; d++) {
-                              if (d === caretPos) html += '<span class="inline-block w-[2px] h-[1em] bg-sky-400 animate-pulse"></span>';
+                              if (!caretRendered && d === caretPos) html += getCaret(true);
                               html += `<span data-idx="${d}">${eq[d]}</span>`;
                           }
                       }
@@ -527,13 +567,34 @@
                       continue;
                   }
 
+                  const fnMatch = eq.slice(i).match(/^(arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|log|ln|exp)\(/);
+                  if (fnMatch) {
+                      const fnName = fnMatch[1];
+                      const fnDisp = fnName === 'asin' ? 'sin⁻¹' : fnName === 'acos' ? 'cos⁻¹' : fnName === 'atan' ? 'tan⁻¹' : fnName;
+                      const aStart = i + fnMatch[0].length;
+                      let p = 1, aEnd = aStart;
+                      while (aEnd < len && p > 0) { if (eq[aEnd] === '(') p++; else if (eq[aEnd] === ')') p--; aEnd++; }
+                      const innerEnd = p === 0 ? aEnd - 1 : aEnd;
+                      html += `<span data-idx="${i}" class="font-sans text-sky-400 font-bold mx-0.5 select-none">${fnDisp}</span>`;
+                      if (aStart === innerEnd) {
+                          html += `<span data-idx="${aStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[16px] min-h-[20px] inline-flex items-center justify-center text-zinc-500 font-sans text-xs mx-0.5">${!caretRendered && caretPos >= i && caretPos <= aEnd ? getCaret() : '□'}</span>`;
+                      } else {
+                          for (let k = aStart; k < innerEnd; k++) {
+                              if (!caretRendered && k === caretPos) html += getCaret();
+                              html += `<span data-idx="${k}">${eq[k]}</span>`;
+                          }
+                          if (!caretRendered && caretPos === innerEnd) html += getCaret();
+                      }
+                      i = aEnd;
+                      continue;
+                  }
                   let ch = eq[i];
                   let dispCh = ch === '*' ? '×' : ch;
                   html += `<span data-idx="${i}" class="hover:text-sky-300 px-[0.5px]">${dispCh}</span>`;
                   i++;
               }
-              if (caretPos >= len) {
-                  html += '<span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>';
+              if (!caretRendered && caretPos >= len) {
+                  html += getCaret();
               }
               return html;
           };
@@ -883,14 +944,37 @@
 
           const moveMathCursor = (dir) => {
               let pos = mathCursorPos + dir;
+              if (dir > 0 && pos < tempGraphEq.length && (tempGraphEq[pos] === ')' || tempGraphEq.slice(pos, pos + 2) === ')(')) {
+                  pos = tempGraphEq.slice(pos, pos + 2) === ')(' ? pos + 2 : pos + 1;
+              } else if (dir < 0 && pos > 0 && (tempGraphEq[pos - 1] === ')' || tempGraphEq[pos - 1] === '(')) {
+                  pos--;
+              }
               if (pos < 0) pos = 0;
-          if (pos > tempGraphEq.length) pos = tempGraphEq.length;
-          setMathCursorPos(pos);
-          const el = inputRef.current;
-          if (el) {
-              setTimeout(() => { el.setSelectionRange(pos, pos); el.focus(); }, 0);
-          }
-      };
+              if (pos > tempGraphEq.length) pos = tempGraphEq.length;
+              setMathCursorPos(pos);
+              const el = inputRef.current;
+              if (el) { setTimeout(() => { el.setSelectionRange(pos, pos); el.focus(); }, 0); }
+          };
+          const moveMathCursorVertical = (direction) => {
+              const eq = tempGraphEq;
+              const pos = mathCursorPos;
+              const slashIdx = eq.indexOf('/');
+              if (slashIdx !== -1) {
+                  if (direction === 'up' && pos > slashIdx) {
+                      moveMathCursor(slashIdx - pos);
+                      return;
+                  }
+                  if (direction === 'down' && pos <= slashIdx) {
+                      moveMathCursor(slashIdx + 1 - pos);
+                      return;
+                  }
+              }
+              const expIdx = eq.indexOf('^');
+              if (expIdx !== -1) {
+                  if (direction === 'up' && pos <= expIdx) { moveMathCursor(expIdx + 1 - pos); return; }
+                  if (direction === 'down' && pos > expIdx) { moveMathCursor(eq.length - pos); return; }
+              }
+          };
 
       const openMathPad = (id, currentEq) => { 
           setEditingGraphId(id); 
@@ -904,9 +988,12 @@
           const el = inputRef.current;
           let pos = mathCursorPos;
           if (el && el.selectionStart !== null) pos = el.selectionStart;
+          if (/^[+\-*/=]/.test(char) && tempGraphEq[pos] === ')') pos++;
           const newEq = tempGraphEq.slice(0, pos) + char + tempGraphEq.slice(pos);
           setTempGraphEq(newEq);
-          const newPos = pos + char.length;
+          let newPos = pos + char.length;
+          if (char.endsWith('()')) newPos = pos + char.length - 1;
+          else if (char === '()/()') newPos = pos + 1;
           setMathCursorPos(newPos);
           setTimeout(() => {
               if (el) {
@@ -930,10 +1017,21 @@
               setMathCursorPos(start);
               setTimeout(() => { if (el) { el.setSelectionRange(start, start); el.focus(); } }, 0);
           } else if (start > 0) {
-              const newEq = tempGraphEq.slice(0, start - 1) + tempGraphEq.slice(start);
+              const sub = tempGraphEq.slice(0, start);
+              const atomicTokens = [
+                  'arcsin(', 'arccos(', 'arctan(', 'asin(', 'acos(', 'atan(',
+                  'sinh(', 'cosh(', 'tanh(', 'sqrt(', 'cbrt(', 'floor(',
+                  'ceil(', 'round(', 'sign(', 'abs(', 'sin(', 'cos(', 'tan(',
+                  'log(', 'ln(', 'exp(', 'log_'
+              ];
+              let delLen = 1;
+              for (const tok of atomicTokens) {
+                  if (sub.endsWith(tok)) { delLen = tok.length; break; }
+              }
+              const newEq = tempGraphEq.slice(0, start - delLen) + tempGraphEq.slice(start);
               setTempGraphEq(newEq);
-              setMathCursorPos(start - 1);
-              setTimeout(() => { if (el) { el.setSelectionRange(start - 1, start - 1); el.focus(); } }, 0);
+              setMathCursorPos(start - delLen);
+              setTimeout(() => { if (el) { el.setSelectionRange(start - delLen, start - delLen); el.focus(); } }, 0);
           }
       };
 
@@ -1112,6 +1210,7 @@
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
       const [settingsTab, setSettingsTab] = useState('display'); 
       const [imageSmoothing, setImageSmoothing] = useState(true); 
+      const [captureModal, setCaptureModal] = useState({ isOpen: false, url: '', format: 'png' }); 
       const [imageUnderGrid, setImageUnderGrid] = useState(false);
       const [hideGrid, setHideGrid] = useState(false);
       const [warpGrid, setWarpGrid] = useState(false); // 🚀 파이썬 공간 왜곡 시각화 토글 상태 추가
@@ -1536,14 +1635,9 @@
           // 다운로드 트리거
           const dataUrl = tempCanvas.toDataURL(`image/${format}`, 1.0);
           if (window.innerWidth < 768 || navigator.userAgent.includes('Android')) {
-              // 모바일 기기 또는 안드로이드 앱 환경에서는 새 창이나 문서에 띄워 꾹 눌러 저장 유도
-              const newWindow = window.open();
-              if(newWindow) {
-                  newWindow.document.write(`<img src="${dataUrl}" style="width:100%; height:auto;"/><p style="text-align:center; font-family:sans-serif; margin-top:20px; font-weight:bold;">이미지를 꾹 눌러 저장하세요</p>`);
-              } else {
-                  // 팝업이 차단된 경우 현재 창의 URL을 이미지로 교체
-                  window.location.href = dataUrl;
-              }
+              // 모바일 환경: 팝업 차단 및 외부 창 이동 없이 인앱 모달로 띄워 꾹 눌러 저장 유도
+              setCaptureModal({ isOpen: true, url: dataUrl, format });
+              return;
           } else {
               const link = document.createElement('a');
               link.download = `vision_matrix_export.${format === 'jpeg' ? 'jpg' : format}`;
@@ -3378,15 +3472,66 @@
               </div>
           )}
 
-          {mathPadOpen && (
-            <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
-              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col">
-                <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
-                  <h3 className="text-white font-bold text-lg">수식 입력</h3>
-                  <button onClick={() => { setMathPadOpen(false); setMathError(""); }} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+          {/* 🚀 화면 캡처 인앱 모달 (모바일 롱탭 사진첩 저장 지원) */}
+          {captureModal.isOpen && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in" onClick={() => setCaptureModal(prev => ({ ...prev, isOpen: false }))}>
+              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4 md:p-5 max-w-lg w-full flex flex-col gap-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                  <h3 className="text-white font-bold text-base flex items-center gap-2">
+                    <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    화면 캡처 완료 ({captureModal.format.toUpperCase()})
+                  </h3>
+                  <button onClick={() => setCaptureModal(prev => ({ ...prev, isOpen: false }))} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
+                <div className="relative rounded-lg overflow-hidden border border-zinc-800 bg-black flex flex-col items-center p-2">
+                  <img src={captureModal.url} alt="Captured" className="max-h-[50vh] w-auto object-contain rounded select-auto" style={{ WebkitTouchCallout: 'default' }} />
+                  <p className="text-sky-400 font-bold text-xs mt-2 text-center animate-pulse">💡 이미지를 꾹 길게 눌러 사진첩에 저장하세요</p>
+                </div>
+                <div className="flex gap-2 justify-end mt-1">
+                  <a href={captureModal.url} download={`vision_matrix_${Date.now()}.${captureModal.format === 'jpeg' ? 'jpg' : captureModal.format}`} className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-bold text-center border border-zinc-700 transition">직접 다운로드</a>
+                  <button onClick={() => setCaptureModal(prev => ({ ...prev, isOpen: false }))} className="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition shadow-lg">닫기</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mathPadOpen && (
+            <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-md p-2 md:p-4 pb-10">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-4 md:p-5 w-full max-w-[34rem] shadow-2xl animate-fade-in flex flex-col transition-all">
                 
-                {/* 🚀 단일 일체형 필기 화면: 지수, 밑, 괄호 등 수식의 어느 지점이든 직접 클릭하여 중간을 수정 */}
+                {/* 🚀 상단 헤더 & Rad/Deg 모드 및 히스토리 전환 */}
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex gap-2 bg-zinc-950 p-1 rounded-xl border border-zinc-800 shadow-inner">
+                    <button onClick={() => setIsRadMode(true)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isRadMode ? 'bg-sky-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>Rad</button>
+                    <button onClick={() => setIsRadMode(false)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${!isRadMode ? 'bg-sky-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>Deg</button>
+                    <button onClick={() => setIsInvMode(!isInvMode)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isInvMode ? 'bg-amber-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>INV</button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => setShowHistory(!showHistory)} className={`text-sm font-bold flex items-center gap-1.5 transition ${showHistory ? 'text-sky-400' : 'text-zinc-400 hover:text-white'}`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      히스토리
+                    </button>
+                    <button onClick={() => { setMathPadOpen(false); setMathError(""); setShowHistory(false); }} className="text-zinc-500 hover:text-rose-400 font-bold text-xl transition">✕</button>
+                  </div>
+                </div>
+
+                {/* 🚀 수식 기록(History) 패널 */}
+                {showHistory && (
+                  <div className="mb-3 bg-zinc-950 border border-zinc-800 rounded-xl p-3 max-h-32 overflow-y-auto scrollbar-hide flex flex-col gap-2 shadow-inner">
+                     {calcHistory.length === 0 ? (
+                       <span className="text-zinc-600 text-xs text-center py-3 font-medium">수식 기록이 없습니다.</span>
+                     ) : (
+                       calcHistory.map((hist, i) => (
+                         <div key={i} onClick={() => { setTempGraphEq(hist); setMathCursorPos(hist.length); setShowHistory(false); setMathError(""); }} className="text-zinc-400 hover:text-sky-300 text-sm font-mono cursor-pointer bg-zinc-900/50 hover:bg-zinc-800 p-2.5 rounded-lg transition flex justify-between items-center border border-transparent hover:border-zinc-700">
+                           <span>{hist}</span>
+                           <span className="text-zinc-600 text-[10px] bg-zinc-800 px-2 py-1 rounded">불러오기 ↵</span>
+                         </div>
+                       ))
+                     )}
+                  </div>
+                )}
+
+                {/* 🚀 2D 수식 디스플레이 창 (Paper Style) */}
                 <div 
                     onClick={(e) => {
                         const target = e.target.closest('[data-idx]');
@@ -3403,7 +3548,7 @@
                             if (el) { el.focus(); el.setSelectionRange(endPos, endPos); }
                         }
                     }}
-                    className="bg-zinc-950 border border-zinc-700 rounded-xl p-4 min-h-[95px] flex items-center justify-center mb-4 shadow-inner relative overflow-x-auto scrollbar-hide cursor-text select-none group"
+                    className="bg-zinc-950 border border-zinc-700 rounded-2xl p-4 min-h-[110px] flex flex-col justify-center mb-3 shadow-inner relative overflow-x-auto scrollbar-hide cursor-text select-none group"
                 >
                     <input
                         ref={inputRef}
@@ -3418,7 +3563,10 @@
                             if (e.target.selectionStart !== null) setMathCursorPos(e.target.selectionStart);
                         }}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') applyMathPad();
+                            if (e.key === 'Enter') {
+                                if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
+                                applyMathPad();
+                            }
                             else if (e.key === 'ArrowLeft') { e.preventDefault(); moveMathCursor(-1); }
                             else if (e.key === 'ArrowRight') { e.preventDefault(); moveMathCursor(1); }
                         }}
@@ -3428,92 +3576,151 @@
                         spellCheck="false"
                     />
                     <div 
-                        className="text-white font-serif text-3xl md:text-4xl tracking-wider w-full text-center py-2 flex items-center justify-center flex-wrap"
+                        className="text-white font-serif text-3xl md:text-4xl tracking-wider w-full text-right py-2 flex items-center justify-end flex-wrap min-h-[48px]"
                         dangerouslySetInnerHTML={{ __html: renderMathWithCaret(tempGraphEq, mathCursorPos) }}
                     />
+                    
+                    {/* 🚀 그래프 전용 모드: 수치 계산 결과 프리뷰 삭제 */}
+                    {(() => {
+                        return null;
+                        let liveResult = "";
+                        try {
+                            let s = tempGraphEq.toLowerCase().replace(/\s+/g, '');
+                            if (s.includes('=')) s = s.split('=')[1];
+                            let jsEq = MathParserJS.parse(s);
+                            // Deg 모드일 경우 삼각함수 내부에 라디안 변환 로직 동적 삽입
+                            if (!isRadMode) jsEq = jsEq.replace(/Math\.sin\(/g, 'Math.sin(Math.PI/180*').replace(/Math\.cos\(/g, 'Math.cos(Math.PI/180*').replace(/Math\.tan\(/g, 'Math.tan(Math.PI/180*');
+                            let constNames = constants.map(c=>c.name);
+                            let func = new Function('x', 'y', 'v', ...constNames, `return ${jsEq};`);
+                            let res = func(1, 1, 1, ...constants.map(c=>c.value));
+                            if (isFinite(res) && !isNaN(res)) liveResult = "= " + parseFloat(res.toFixed(6));
+                        } catch(e) {}
+                        return liveResult ? <div className="text-zinc-400 font-mono text-sm text-right mt-2 font-bold">{liveResult}</div> : null;
+                    })()}
                 </div>
 
-                {/* 🚀 에러 발생 시 빨간 경고창 표시 */}
-                {mathError && <div className="text-rose-400 font-bold text-xs mb-4 -mt-2 text-center bg-rose-900/20 py-2 rounded-lg border border-rose-500/30">{mathError}</div>}
+                {mathError && <div className="text-rose-400 font-bold text-xs mb-3 text-center bg-rose-900/20 py-2.5 rounded-xl border border-rose-500/30 shadow-sm">{mathError}</div>}
                 
-                <div className="flex justify-between items-center mb-4 gap-2">
-                    <div className="flex gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                        <button onClick={() => moveMathCursor(-1)} className="px-4 py-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors font-bold">◀</button>
-                        <button onClick={() => moveMathCursor(1)} className="px-4 py-2 text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors font-bold">▶</button>
+                <div className="flex gap-2 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800 mb-3 justify-between shadow-inner">
+                    <div className="flex gap-1">
+                        <button onClick={() => { setPadTab('math'); setMathSubTab('basic'); }} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'math' && mathSubTab === 'basic' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>기본/삼각</button>
+                        <button onClick={() => { setPadTab('math'); setMathSubTab('adv'); }} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'math' && mathSubTab === 'adv' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>고급/해석</button>
+                        <button onClick={() => setPadTab('const')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 (a~z)</button>
                     </div>
-                    <div className="flex flex-1 gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                        <button onClick={() => setPadTab('math')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'math' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>기본 수식</button>
-                        <button onClick={() => setPadTab('const')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 (a~z)</button>
+                    <div className="flex gap-1 items-center">
+                        <button onClick={() => moveMathCursor(-1)} className="px-4 py-1.5 text-xs text-sky-400 bg-sky-900/20 hover:bg-sky-900/40 border border-sky-500/30 rounded-lg transition-colors font-bold shadow-sm">◀</button>
+                        <button onClick={() => moveMathCursor(1)} className="px-4 py-1.5 text-xs text-sky-400 bg-sky-900/20 hover:bg-sky-900/40 border border-sky-500/30 rounded-lg transition-colors font-bold shadow-sm">▶</button>
                     </div>
                 </div>
 
                 {padTab === 'math' && (
-                    <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
-                            {/* 🚀 좌측: 함수 및 변수 (3열) */}
-                            <div className="grid grid-cols-3 gap-1.5 flex-[1.2]">
-                                <button onClick={()=>handleMathPadKey('x')} className="bg-zinc-800 text-zinc-200 py-2 rounded-lg font-bold text-lg hover:bg-zinc-700 transition">x</button>
-                                <button onClick={()=>handleMathPadKey('y')} className="bg-zinc-800 text-zinc-200 py-2 rounded-lg font-bold text-lg hover:bg-zinc-700 transition">y</button>
-                                <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">|x|</button>
-                                
-                                <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">x²</button>
-                                <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">xⁿ</button>
-                                <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-sm">√</button>
+                    <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+                        <div className="col-span-3 grid grid-cols-3 gap-1.5 md:gap-2 border-r border-zinc-800 pr-1.5 md:pr-2">
+                            {mathSubTab === 'basic' ? (
+                                <>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'asin(' : 'sin(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'sin⁻¹' : 'sin'}</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'acos(' : 'cos(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'cos⁻¹' : 'cos'}</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'atan(' : 'tan(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'tan⁻¹' : 'tan'}</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'exp(' : 'ln(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'eˣ' : 'ln'}</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? '10^(' : 'log(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? '10ˣ' : 'log'}</button>
+                                    <button onClick={()=>{
+                                        const cur = tempGraphEq;
+                                        if (cur.length > 0 && /[0-9a-zA-Z)]$/.test(cur.slice(0, mathCursorPos))) {
+                                            handleMathPadKey('/');
+                                        } else {
+                                            handleMathPadKey('()/()');
+                                            moveMathCursor(-4);
+                                        }
+                                    }} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition flex items-center justify-center">
+                                        <span className="flex flex-col items-center leading-none text-[10px]"><span>□</span><span className="w-3 h-px bg-zinc-300 my-[2px]"></span><span>□</span></span>
+                                    </button>
+                                    <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">π</button>
+                                    <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">e</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? '^2' : '^')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">{isInvMode ? 'x²' : 'xʸ'}</button>
+                                    <button onClick={()=>handleMathPadKey('abs()')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">|x|</button>
+                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'cbrt()' : 'sqrt()')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">{isInvMode ? '∛' : '√'}</button>
+                                    <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">log_a</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={()=>handleMathPadKey('sinh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">sinh</button>
+                                    <button onClick={()=>handleMathPadKey('cosh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">cosh</button>
+                                    <button onClick={()=>handleMathPadKey('tanh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">tanh</button>
+                                    <button onClick={()=>handleMathPadKey('floor(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">⌊x⌋</button>
+                                    <button onClick={()=>handleMathPadKey('ceil(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">⌈x⌉</button>
+                                    <button onClick={()=>handleMathPadKey('sign(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">sgn</button>
+                                    <button onClick={()=>handleMathPadKey('cbrt(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">∛x</button>
+                                    <button onClick={()=>handleMathPadKey('%')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">mod</button>
+                                    <button onClick={()=>handleMathPadKey('^3')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">x³</button>
+                                    <button onClick={()=>handleMathPadKey('x^2+y^2=4')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">원 템플릿</button>
+                                    <button onClick={()=>handleMathPadKey('(x^2)/4+(y^2)/9=1')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">타원 템플릿</button>
+                                    <button onClick={()=>handleMathPadKey('y=abs(x)')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">절댓값 함수</button>
+                                </>
+                            )}
+                            {false && (<>
+                            <button onClick={()=>handleMathPadKey('/')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition flex items-center justify-center">
+                                <span className="flex flex-col items-center leading-none text-[10px]"><span>□</span><span className="w-3 h-px bg-zinc-300 my-[2px]"></span><span>□</span></span>
+                            </button>
 
-                                <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">sin</button>
-                                <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">cos</button>
-                                <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[12px]">tan</button>
+                            <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">π</button>
+                            <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">e</button>
+                            <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">x<sup className="text-[9px]">y</sup></button>
 
-                                <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">ln</button>
-                                <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">log₁₀</button>
-                                <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">log_n</button>
+                            <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">|x|</button>
+                            <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">√</button>
+                            <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">exp</button>
 
-                                <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-black hover:bg-zinc-700 transition text-sm">π</button>
-                                <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-black hover:bg-zinc-700 transition text-sm">e</button>
-                                <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 transition text-[11px]">exp</button>
-                            </div>
-
-                            {/* 🚀 우측: 숫자 및 사칙연산 (4열) */}
-                            <div className="grid grid-cols-4 gap-1.5 flex-[1.6]">
-                                <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">(</button>
-                                <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">)</button>
-                                <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-600 transition text-sm">⌫</button>
-                                <button onClick={handleMathPadClear} className="bg-rose-600/80 text-white py-2 rounded-lg font-bold hover:bg-rose-600 transition text-xs">AC</button>
-
-                                <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">7</button>
-                                <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">8</button>
-                                <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">9</button>
-                                <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">÷</button>
-
-                                <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">4</button>
-                                <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">5</button>
-                                <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">6</button>
-                                <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">×</button>
-
-                                <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">1</button>
-                                <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">2</button>
-                                <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">3</button>
-                                <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-xl hover:bg-sky-600 transition">-</button>
-
-                                <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">0</button>
-                                <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-500 transition">.</button>
-                                <button onClick={()=>handleMathPadKey('=')} className="bg-indigo-600 text-white py-2 rounded-lg font-bold text-lg hover:bg-indigo-500 transition">=</button>
-                                <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/80 text-white py-2 rounded-lg font-bold text-lg hover:bg-sky-600 transition">+</button>
-                            </div>
+                            <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-600 transition shadow-sm">(</button>
+                            <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-600 transition shadow-sm">)</button>
+                            </>)}
                         </div>
-                        <button onClick={applyMathPad} className="mt-1 w-full bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm py-3 transition shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                            수식 적용하기
-                        </button>
+
+                        {/* 🚀 숫자 및 기본 연산 영역 (오른쪽 4열) */}
+                        <div className="col-span-4 grid grid-cols-4 gap-1.5 md:gap-2">
+                            <button onClick={handleMathPadClear} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-3.5 rounded-xl font-bold text-sm hover:bg-rose-600/40 transition">AC</button>
+                            <button onClick={()=>handleMathPadKey('y')} className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-600/50 transition">y</button>
+                            <button onClick={handleMathPadDelete} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-3.5 rounded-xl font-bold text-sm hover:bg-rose-600/40 transition">⌫</button>
+                            <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">÷</button>
+
+                            <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">7</button>
+                            <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">8</button>
+                            <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">9</button>
+                            <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">×</button>
+
+                            <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">4</button>
+                            <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">5</button>
+                            <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">6</button>
+                            <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-2xl hover:bg-sky-600/40 transition">-</button>
+
+                            <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">1</button>
+                            <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">2</button>
+                            <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">3</button>
+                            <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">+</button>
+
+                            <button onClick={()=>handleMathPadKey('x')} className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-600/50 transition">x</button>
+                            <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">0</button>
+                            <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">.</button>
+                            <button onClick={() => {
+                                if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
+                                applyMathPad();
+                            }} className="bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold text-base transition shadow-[0_0_15px_rgba(147,51,234,0.4)]">=</button>
+                        </div>
                     </div>
                 )}
                 
                 {padTab === 'const' && (
-                    <div className="grid grid-cols-5 gap-3">
+                    <div className="grid grid-cols-6 gap-2">
                         {['a','b','c','d','f','g','h','k','m','n','p','q','r','s','t','u','w','y','z'].map(letter => (
-                            <button key={letter} onClick={() => handleConstClick(letter)} className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 py-4 rounded-lg font-bold text-xl hover:bg-indigo-600/40 transition">
+                            <button key={letter} onClick={() => handleConstClick(letter)} className="bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 py-5 rounded-xl font-bold text-xl hover:bg-indigo-600/50 transition shadow-inner">
                                 {letter}
                             </button>
                         ))}
+                        <button onClick={() => {
+                            if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
+                            applyMathPad();
+                        }} className="col-span-5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-base transition shadow-[0_0_15px_rgba(147,51,234,0.4)]">
+                            수식 적용하기
+                        </button>
                     </div>
                 )}
               </div>
@@ -4508,9 +4715,7 @@
                                                   {graphs.map((g, idx) => (
                                                       <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
                                                           <div className="flex justify-between items-center w-full gap-2">
-                                                              <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)">
-                                                                  {g.eq || '수식을 입력하세요 (예: x^2+y^2=4)'}
-                                                              </div>
+                                                              <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold flex items-center min-h-[46px]" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)" dangerouslySetInnerHTML={{ __html: renderMathWithCaret(g.eq || 'y=x', null) }} />
                                                               <div className="flex gap-1 shrink-0">
                                                                   <button onClick={() => setGraphSettingsId(g.id)} className={`w-9 h-9 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
                                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
