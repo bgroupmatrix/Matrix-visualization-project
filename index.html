@@ -131,19 +131,15 @@
 
     function compileMath(expr, constNames = []) {
         try {
-                let s = expr.toLowerCase();
-                
-                // 🚀 새 UI(y= 직접 입력)에 맞춰, '=' 기호가 있으면 우변만 잘라서 사용하도록 호환성 추가
-                if (s.includes('=')) {
-                    s = s.split('=')[1];
-                }
-                
-                // 🚀 삼각함수 거듭제곱 양방향 완벽 변환 (sin^2(v) 및 sin(v)^2 모두 안전하게 거듭제곱 함수로 컴파일)
-                s = s.replace(/(sin|cos|tan)\^([0-9a-z.]+)\(([^)]+)\)/g, '(Math.pow(Math.$1($3),$2))');
-                s = s.replace(/(sin|cos|tan)\(([^)]+)\)\^([0-9a-z.]+)/g, '(Math.pow(Math.$1($2),$3))');
-                
-                s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
-                const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi'];
+            let s = expr.toLowerCase();
+            
+            // 🚀 새 UI(y= 직접 입력)에 맞춰, '=' 기호가 있으면 우변만 잘라서 사용하도록 호환성 추가
+            if (s.includes('=')) {
+                s = s.split('=')[1];
+            }
+            
+            s = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '(log($2)/log($1))');
+            const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi'];
             const map = {};
             keywords.forEach((kw, i) => {
                 const char = String.fromCharCode(0xE000 + i);
@@ -250,16 +246,21 @@
         return <input type="text" value={localVal} onChange={e=>setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown} className={className} style={{ fontSize: getFontSize(), transition: 'font-size 0.2s ease' }} />;
     }
 
-    const ControlRow = ({ label, min, max, step, value, onChange, onReset = null, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null, onOpenInfo = null }) => (
+    const ControlRow = ({ label, min, max, step, value, onChange, onReset = null, colorClass = "sky", syncKey = null, isSynced = false, onToggleSync = null, onOpenLogic = null, onOpenInfo = null, onOpenConfig = null, isConfigOpen = false }) => (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-center">
           <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
             {label}
             {onOpenInfo && ( <button onClick={onOpenInfo} title="설명" className="text-zinc-500 hover:text-white transition"><svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0-4h.01"/></svg></button> )}
-            {syncKey && ( <button onClick={onToggleSync} title="동기화" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
             {onReset && ( 
               <button onClick={onReset} title="초기화" className="text-zinc-500 hover:text-white transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2V15"/></svg>
+              </button> 
+            )}
+            {syncKey && ( <button onClick={onToggleSync} title="동기화" className={`p-1 rounded transition-colors ${isSynced ? 'bg-sky-500 text-white' : 'text-zinc-500 hover:text-white'}`}><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button> )}
+            {onOpenConfig && ( 
+              <button onClick={onOpenConfig} title="상수 입력값 조절" className={`p-1 rounded transition-colors ${isConfigOpen ? 'text-indigo-400 bg-zinc-800' : 'text-zinc-500 hover:text-white'}`}>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
               </button> 
             )}
             {onOpenLogic && ( 
@@ -391,7 +392,15 @@
       const [activeConstConfig, setActiveConstConfig] = useState(null);
 
       const toggleConstConfig = (name) => { setActiveConstConfig(prev => prev === name ? null : name); };
-      const updateConstant = (name, key, val) => { setConstants(prev => prev.map(c => c.name === name ? { ...c, [key]: val } : c)); };
+      const updateConstant = (name, key, val) => { 
+        setConstants(prev => prev.map(c => {
+          if (c.name !== name) return c;
+          let updated = { ...c, [key]: val };
+          if (key === 'min' && updated.value < val) updated.value = val;
+          if (key === 'max' && updated.value > val) updated.value = val;
+          return updated;
+        })); 
+      };
       const deleteConstant = (name) => { setConstants(prev => prev.filter(c => c.name !== name)); };
       
       const [useGraph, setUseGraph] = useState(false);
@@ -410,194 +419,9 @@
       const [mathPadOpen, setMathPadOpen] = useState(false);
       const [padTab, setPadTab] = useState('math'); 
       const [tempGraphEq, setTempGraphEq] = useState("");
-      const [mathCursorPos, setMathCursorPos] = useState(0);
       const [editingGraphId, setEditingGraphId] = useState(null);
       const inputRef = useRef(null);
       const [mathError, setMathError] = useState(""); // 🚀 수식 에러 메시지 상태
-
-      const [isRadMode, setIsRadMode] = useState(true);
-      const [isInvMode, setIsInvMode] = useState(false);
-      const [mathSubTab, setMathSubTab] = useState('basic');
-      const [showHistory, setShowHistory] = useState(false);
-      const [calcHistory, setCalcHistory] = useState([]);
-
-          // 🚀 일체형 종이 필기 스타일 수식 렌더러 (클릭한 문자에 커서 위치 이동 및 위첨자/근호 내부 커서 표시)
-          const renderMathWithCaret = (eq, caretPos = null) => {
-              if (!eq) {
-                  if (caretPos === null) return '<span class="text-zinc-500 font-sans text-xs">수식 없음</span>';
-                  return '<span class="border border-dashed border-sky-400/80 rounded px-2 min-w-[20px] min-h-[26px] inline-flex items-center justify-center"><span class="inline-block w-[2.5px] h-[1.1em] bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span></span>';
-              }
-              let html = '';
-              let i = 0;
-              let caretRendered = false;
-              const len = eq.length;
-              const getCaret = (isSup = false) => {
-                  if (caretRendered) return '';
-                  caretRendered = true;
-                  return `<span class="inline-block ${isSup ? 'w-[2px] h-[1em]' : 'w-[2.5px] h-[1.1em]'} bg-sky-400 animate-pulse align-middle mx-[0.5px] shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>`;
-              };
-              while (i < len) {
-                  if (!caretRendered && i === caretPos) {
-                      html += getCaret();
-                  }
-                  if (eq[i] === '^') {
-                      let expStart = i + 1;
-                      let expEnd = expStart;
-                      if (expStart < len && eq[expStart] === '(') {
-                          let count = 1; expEnd = expStart + 1;
-                          while (expEnd < len && count > 0) {
-                              if (eq[expEnd] === '(') count++;
-                              else if (eq[expEnd] === ')') count--;
-                              expEnd++;
-                          }
-                      } else {
-                          while (expEnd < len && /[0-9a-zA-Z.]/.test(eq[expEnd])) expEnd++;
-                      }
-                      html += '<sup class="text-[0.65em] font-bold text-zinc-100 ml-0.5 -top-[0.55em] relative">';
-                      if (expStart === expEnd) {
-                          html += `<span data-idx="${expStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[14px] min-h-[16px] inline-flex items-center justify-center align-middle text-zinc-500 font-sans text-xs">${caretPos !== null && !caretRendered && caretPos >= i ? getCaret(true) : '□'}</span>`;
-                      } else {
-                          const isParenExp = expStart < len && eq[expStart] === '(';
-                          const innerStart = isParenExp ? expStart + 1 : expStart;
-                          const innerEnd = isParenExp ? expEnd - 1 : expEnd;
-                          if (innerStart === innerEnd) {
-                              html += `<span data-idx="${innerStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[14px] min-h-[16px] inline-flex items-center justify-center align-middle text-zinc-500 font-sans text-xs">${!caretRendered && caretPos >= i && caretPos <= expEnd ? getCaret(true) : '□'}</span>`;
-                          } else {
-                              for (let k = innerStart; k < innerEnd; k++) {
-                                  if (!caretRendered && k === caretPos) html += getCaret(true);
-                                  html += `<span data-idx="${k}" class="hover:text-white px-[0.5px]">${eq[k]}</span>`;
-                              }
-                          }
-                      }
-                      const isParen = expStart < len && eq[expStart] === '(';
-                      if (!caretRendered && ((isParen && caretPos === expEnd - 1) || (!isParen && caretPos === expEnd))) html += getCaret(true);
-                      html += '</sup>';
-                      i = expEnd;
-                      continue;
-                  }
-                  if (eq.slice(i, i + 5) === 'sqrt(') {
-                      html += `<span class="inline-flex items-stretch align-middle mx-0.5"><svg viewBox="0 0 10 24" preserveAspectRatio="none" class="w-2.5 self-stretch text-emerald-400 fill-none stroke-current stroke-2 shrink-0"><path d="M1 13 L3 13 L5 21 L9 2" /></svg><span class="border-t-2 border-emerald-400 -ml-[1px] px-1.5 py-0.5 min-w-[18px] min-h-[24px] inline-flex items-center text-zinc-100 font-sans">`;
-                      const sStart = i + 5;
-                      i += 5;
-                      let pCount = 1;
-                      if (sStart < len && eq[sStart] === ')') {
-                          html += `<span data-idx="${sStart}" class="text-zinc-500 text-xs border border-dashed border-emerald-400/50 rounded px-1.5">${!caretRendered && caretPos >= sStart - 5 && caretPos <= sStart ? getCaret() : '□'}</span>`;
-                      }
-                      while (i < len && pCount > 0) {
-                          if (!caretRendered && i === caretPos) html += getCaret();
-                          if (eq[i] === '(') pCount++;
-                          else if (eq[i] === ')') {
-                              pCount--;
-                              if (pCount === 0) { i++; break; }
-                          }
-                          html += `<span data-idx="${i}">${eq[i]}</span>`;
-                          i++;
-                      }
-                      html += '</span></span>';
-                      continue;
-                  }
-                  // 🚀 1. 절댓값 교과서 수직선(|...|) 표기
-                  if (eq.slice(i, i + 4) === 'abs(') {
-                      html += `<span data-idx="${i}" class="font-bold text-sky-400 text-2xl mx-0.5 align-middle select-none">|</span>`;
-                      const aStart = i + 4;
-                      if (aStart < len && eq[aStart] === ')') {
-                          html += `<span data-idx="${aStart}" class="text-zinc-500 text-xs border border-dashed border-sky-400/50 rounded px-1.5 mx-0.5">${!caretRendered && caretPos >= i && caretPos <= aStart ? getCaret() : '□'}</span>`;
-                      }
-                      i += 4;
-                      let aDepth = 1;
-                      while (i < len && aDepth > 0) {
-                          if (!caretRendered && i === caretPos) html += getCaret();
-                          if (eq.slice(i, i + 4) === 'abs(') { aDepth++; i += 3; }
-                          else if (eq[i] === '(') aDepth++;
-                          else if (eq[i] === ')') {
-                              aDepth--;
-                              if (aDepth === 0) {
-                                  html += `<span data-idx="${i}" class="font-bold text-sky-400 text-2xl mx-0.5 align-middle select-none">|</span>`;
-                                  i++;
-                                  break;
-                              }
-                          }
-                          html += `<span data-idx="${i}">${eq[i]}</span>`;
-                          i++;
-                      }
-                      continue;
-                  }
-
-                  // 🚀 2. 나눗셈 위아래 수직 분수(가로 분수선) 종이 표기
-                  if (eq[i] === '/') {
-                      let slashIdx = i;
-                      let denEnd = slashIdx + 1;
-                      if (denEnd < len && eq[denEnd] === '(') {
-                          let p = 1; denEnd++;
-                          while (denEnd < len && p > 0) {
-                              if (eq[denEnd] === '(') p++;
-                              else if (eq[denEnd] === ')') p--;
-                              denEnd++;
-                          }
-                      } else {
-                          while (denEnd < len && /[0-9a-zA-Z._]/.test(eq[denEnd])) denEnd++;
-                      }
-
-                      let numStart = slashIdx - 1;
-                      if (numStart >= 0 && eq[numStart] === ')') {
-                          let p = 1; numStart--;
-                          while (numStart >= 0 && p > 0) { if (eq[numStart] === ')') p++; else if (eq[numStart] === '(') p--; numStart--; }
-                          numStart++;
-                      } else {
-                          while (numStart >= 0 && /[0-9a-zA-Z._]/.test(eq[numStart])) numStart--;
-                          numStart++;
-                      }
-                      let numHtml = '';
-                      const marker = `<span data-idx="${numStart}"`;
-                      const markerPos = html.lastIndexOf(marker);
-                      if (markerPos !== -1) { numHtml = html.slice(markerPos); html = html.slice(0, markerPos); }
-                      html += '<span class="inline-flex flex-col items-center align-middle mx-1.5 my-1 text-[0.85em] font-sans">';
-                      html += '<span class="border-b-2 border-zinc-300 px-1.5 py-0.5 text-center min-w-[20px] min-h-[24px] text-zinc-100 flex items-center justify-center">' + (numHtml || (!caretRendered && caretPos === slashIdx ? getCaret(true) : `<span data-idx="${slashIdx}" class="text-zinc-500 text-xs border border-dashed border-sky-400/50 rounded px-1">□</span>`)) + '</span>';
-                      html += '<span class="px-1.5 py-0.5 text-center min-w-[20px] min-h-[24px] text-zinc-100 flex items-center justify-center">';
-                      if (slashIdx + 1 === denEnd) {
-                          html += `<span data-idx="${slashIdx + 1}" class="border border-dashed border-sky-400 rounded px-1.5 min-w-[14px] min-h-[14px] inline-flex items-center justify-center text-zinc-500 text-xs">${!caretRendered && caretPos > slashIdx ? getCaret(true) : '□'}</span>`;
-                      } else {
-                          for (let d = slashIdx + 1; d < denEnd; d++) {
-                              if (!caretRendered && d === caretPos) html += getCaret(true);
-                              html += `<span data-idx="${d}">${eq[d]}</span>`;
-                          }
-                      }
-                      html += '</span></span>';
-                      i = denEnd;
-                      continue;
-                  }
-
-                  const fnMatch = eq.slice(i).match(/^(arcsin|arccos|arctan|asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|log|ln|exp)\(/);
-                  if (fnMatch) {
-                      const fnName = fnMatch[1];
-                      const fnDisp = fnName === 'asin' ? 'sin⁻¹' : fnName === 'acos' ? 'cos⁻¹' : fnName === 'atan' ? 'tan⁻¹' : fnName;
-                      const aStart = i + fnMatch[0].length;
-                      let p = 1, aEnd = aStart;
-                      while (aEnd < len && p > 0) { if (eq[aEnd] === '(') p++; else if (eq[aEnd] === ')') p--; aEnd++; }
-                      const innerEnd = p === 0 ? aEnd - 1 : aEnd;
-                      html += `<span data-idx="${i}" class="font-sans text-sky-400 font-bold mx-0.5 select-none">${fnDisp}</span>`;
-                      if (aStart === innerEnd) {
-                          html += `<span data-idx="${aStart}" class="border border-dashed border-sky-400/80 rounded px-1.5 min-w-[16px] min-h-[20px] inline-flex items-center justify-center text-zinc-500 font-sans text-xs mx-0.5">${!caretRendered && caretPos >= i && caretPos <= aEnd ? getCaret() : '□'}</span>`;
-                      } else {
-                          for (let k = aStart; k < innerEnd; k++) {
-                              if (!caretRendered && k === caretPos) html += getCaret();
-                              html += `<span data-idx="${k}">${eq[k]}</span>`;
-                          }
-                          if (!caretRendered && caretPos === innerEnd) html += getCaret();
-                      }
-                      i = aEnd;
-                      continue;
-                  }
-                  let ch = eq[i];
-                  let dispCh = ch === '*' ? '×' : ch;
-                  html += `<span data-idx="${i}" class="hover:text-sky-300 px-[0.5px]">${dispCh}</span>`;
-                  i++;
-              }
-              if (!caretRendered && caretPos >= len) {
-                  html += getCaret();
-              }
-              return html;
-          };
 
       const [graphSettingsId, setGraphSettingsId] = useState(null);
 
@@ -896,142 +720,44 @@
           });
       }, [graphs]);
 
-      const [focusedLogicCell, setFocusedLogicCell] = useState('m00');
-          const [logicCursorPos, setLogicCursorPos] = useState(0);
-
-          const handleLogicInput = (char) => {
-              const cur = tempLogic[focusedLogicCell] || '';
-              const pos = logicCursorPos;
-              const next = cur.slice(0, pos) + char + cur.slice(pos);
-              setTempLogic({ ...tempLogic, [focusedLogicCell]: next });
-              setLogicCursorPos(pos + char.length);
-          };
-
-          const handleLogicBackspace = () => {
-              const cur = tempLogic[focusedLogicCell] || '';
-              const pos = logicCursorPos;
-              if (pos > 0) {
-                  const next = cur.slice(0, pos - 1) + cur.slice(pos);
-                  setTempLogic({ ...tempLogic, [focusedLogicCell]: next });
-                  setLogicCursorPos(pos - 1);
-              }
-          };
-
-          const handleLogicClear = () => {
-              setTempLogic({ ...tempLogic, [focusedLogicCell]: '' });
-              setLogicCursorPos(0);
-          };
-
-          const handleLogicExp = () => {
-              const cur = tempLogic[focusedLogicCell] || '';
-              const pos = logicCursorPos;
-              if (/(sin|cos|tan)\(v\)$/.test(cur)) {
-                  const fn = cur.match(/(sin|cos|tan)\(v\)$/)[1];
-                  const next = cur.replace(/(sin|cos|tan)\(v\)$/, `${fn}^(v)`);
-                  setTempLogic({ ...tempLogic, [focusedLogicCell]: next });
-                  setLogicCursorPos(cur.indexOf(fn) + 4);
-              } else if (/(sin|cos|tan)\($/.test(cur)) {
-                  const fn = cur.match(/(sin|cos|tan)\($/)[1];
-                  const next = cur.replace(/(sin|cos|tan)\($/, `${fn}^(`);
-                  setTempLogic({ ...tempLogic, [focusedLogicCell]: next });
-                  setLogicCursorPos(cur.indexOf(fn) + 4);
-              } else {
-                  const next = cur.slice(0, pos) + '^' + cur.slice(pos);
-                  setTempLogic({ ...tempLogic, [focusedLogicCell]: next });
-                  setLogicCursorPos(pos + 1);
-              }
-          };
-
-          const moveMathCursor = (dir) => {
-              let pos = mathCursorPos + dir;
-              if (dir > 0 && pos < tempGraphEq.length && (tempGraphEq[pos] === ')' || tempGraphEq.slice(pos, pos + 2) === ')(')) {
-                  pos = tempGraphEq.slice(pos, pos + 2) === ')(' ? pos + 2 : pos + 1;
-              } else if (dir < 0 && pos > 0 && (tempGraphEq[pos - 1] === ')' || tempGraphEq[pos - 1] === '(')) {
-                  pos--;
-              }
-              if (pos < 0) pos = 0;
-              if (pos > tempGraphEq.length) pos = tempGraphEq.length;
-              setMathCursorPos(pos);
-              const el = inputRef.current;
-              if (el) { setTimeout(() => { el.setSelectionRange(pos, pos); el.focus(); }, 0); }
-          };
-          const moveMathCursorVertical = (direction) => {
-              const eq = tempGraphEq;
-              const pos = mathCursorPos;
-              const slashIdx = eq.indexOf('/');
-              if (slashIdx !== -1) {
-                  if (direction === 'up' && pos > slashIdx) {
-                      moveMathCursor(slashIdx - pos);
-                      return;
-                  }
-                  if (direction === 'down' && pos <= slashIdx) {
-                      moveMathCursor(slashIdx + 1 - pos);
-                      return;
-                  }
-              }
-              const expIdx = eq.indexOf('^');
-              if (expIdx !== -1) {
-                  if (direction === 'up' && pos <= expIdx) { moveMathCursor(expIdx + 1 - pos); return; }
-                  if (direction === 'down' && pos > expIdx) { moveMathCursor(eq.length - pos); return; }
-              }
-          };
-
       const openMathPad = (id, currentEq) => { 
           setEditingGraphId(id); 
           setTempGraphEq(currentEq); 
-          setMathCursorPos(currentEq ? currentEq.length : 0);
           setMathPadOpen(true); 
           setPadTab('math');
       };
       
       const handleMathPadKey = (char) => {
           const el = inputRef.current;
-          let pos = mathCursorPos;
-          if (el && el.selectionStart !== null) pos = el.selectionStart;
-          if (/^[+\-*/=]/.test(char) && tempGraphEq[pos] === ')') pos++;
-          const newEq = tempGraphEq.slice(0, pos) + char + tempGraphEq.slice(pos);
-          setTempGraphEq(newEq);
-          let newPos = pos + char.length;
-          if (char.endsWith('()')) newPos = pos + char.length - 1;
-          else if (char === '()/()') newPos = pos + 1;
-          setMathCursorPos(newPos);
-          setTimeout(() => {
-              if (el) {
-                  el.setSelectionRange(newPos, newPos);
+          if (el) {
+              const pos = el.selectionStart;
+              const newEq = tempGraphEq.slice(0, pos) + char + tempGraphEq.slice(pos);
+              setTempGraphEq(newEq);
+              setTimeout(() => {
+                  el.setSelectionRange(pos + char.length, pos + char.length);
                   el.focus();
-              }
-          }, 0);
+              }, 0);
+          } else {
+              setTempGraphEq(tempGraphEq + char);
+          }
       };
 
       const handleMathPadDelete = () => {
           const el = inputRef.current;
-          let start = mathCursorPos;
-          let end = mathCursorPos;
-          if (el && el.selectionStart !== null) {
-              start = el.selectionStart;
-              end = el.selectionEnd;
-          }
-          if (start !== end) {
-              const newEq = tempGraphEq.slice(0, start) + tempGraphEq.slice(end);
-              setTempGraphEq(newEq);
-              setMathCursorPos(start);
-              setTimeout(() => { if (el) { el.setSelectionRange(start, start); el.focus(); } }, 0);
-          } else if (start > 0) {
-              const sub = tempGraphEq.slice(0, start);
-              const atomicTokens = [
-                  'arcsin(', 'arccos(', 'arctan(', 'asin(', 'acos(', 'atan(',
-                  'sinh(', 'cosh(', 'tanh(', 'sqrt(', 'cbrt(', 'floor(',
-                  'ceil(', 'round(', 'sign(', 'abs(', 'sin(', 'cos(', 'tan(',
-                  'log(', 'ln(', 'exp(', 'log_'
-              ];
-              let delLen = 1;
-              for (const tok of atomicTokens) {
-                  if (sub.endsWith(tok)) { delLen = tok.length; break; }
+          if (el) {
+              const start = el.selectionStart;
+              const end = el.selectionEnd;
+              if (start !== end) {
+                  const newEq = tempGraphEq.slice(0, start) + tempGraphEq.slice(end);
+                  setTempGraphEq(newEq);
+                  setTimeout(() => { el.setSelectionRange(start, start); el.focus(); }, 0);
+              } else if (start > 0) {
+                  const newEq = tempGraphEq.slice(0, start - 1) + tempGraphEq.slice(start);
+                  setTempGraphEq(newEq);
+                  setTimeout(() => { el.setSelectionRange(start - 1, start - 1); el.focus(); }, 0);
               }
-              const newEq = tempGraphEq.slice(0, start - delLen) + tempGraphEq.slice(start);
-              setTempGraphEq(newEq);
-              setMathCursorPos(start - delLen);
-              setTimeout(() => { if (el) { el.setSelectionRange(start - delLen, start - delLen); el.focus(); } }, 0);
+          } else {
+              setTempGraphEq(tempGraphEq.slice(0, -1));
           }
       };
 
@@ -1142,21 +868,19 @@
               if (s.includes('()') || /^[+*/^]/.test(s) || /[-+*/^]$/.test(s)) throw new Error("수식 미완성");
 
               // 🚀 [추가됨] 단순 문자열 검사를 넘어 실제 브라우저 실행(Compile & Run) 테스트!
-                // 알 수 없는 변수(예: y=xx)가 입력되어 렌더링 중 앱이 뻗어버리는 현상을 원천 차단합니다.
-                let jsEq = MathParserJS.parse(s);
-                
-                // 🚀 동적 상수 자동 추출 로직: 수식에 사용된 문자(상수)를 미리 파악하여 통과시킵니다.
-                let neededConsts = new Set(constants.map(c => c.name));
-                let matches = s.replace(/log_([0-9a-z.]+)\(([^)]+)\)/g, '').replace(/(sin|cos|tan|log|ln|abs|sqrt|exp|pi|e|x|y)/g, '').match(/[a-z]/g);
-                if (matches) matches.forEach(m => neededConsts.add(m));
-                let constArray = Array.from(neededConsts);
-                
-                let testFunc = new Function('x', ...constArray, `return ${jsEq};`);
-                testFunc(1, ...constArray.map(() => 1.0)); // 모의 실행 (에러 시 catch로 빠짐)
-            } catch(e) {
-                setMathError("⚠️ 수식 문법이 올바르지 않습니다.");
-                return;
-            }
+              let jsEq = MathParserJS.parse(s);
+              // 새로 입력된 수식에서 알파벳 변수 추출 (새로 추가된 상수도 모의 실행에 포함)
+              let testStrClean = s;
+              const keywords = ['sin', 'cos', 'tan', 'log', 'ln', 'abs', 'sqrt', 'exp', 'pi', 'e', 'x', 'y'];
+              keywords.forEach(kw => { testStrClean = testStrClean.split(kw).join(''); });
+              const foundLetters = Array.from(new Set(testStrClean.match(/[a-z]/g) || []));
+              const allConstNames = Array.from(new Set([...constants.map(c => c.name), ...foundLetters]));
+              let testFunc = new Function('x', ...allConstNames, `return ${jsEq};`);
+              testFunc(1, ...allConstNames.map(() => 1)); // 모의 실행 (에러 시 catch로 빠짐)
+          } catch(e) {
+              setMathError("⚠️ 수식 문법이 올바르지 않습니다.");
+              return;
+          }
           
           setMathError("");
           setGraphs(prev => prev.map(g => g.id === editingGraphId ? { ...g, eq: tempGraphEq || 'x' } : g));
@@ -1551,14 +1275,22 @@
           const delta = newVal - oldVal;
           stateSetters[key](newVal);
           if (syncKeys.has(key)) {
+              // 🚀 동기화 켜진 상수들도 함께 연동
+              setConstants(prev => prev.map(c => {
+                  if (syncKeys.has(`const_${c.name}`)) {
+                      let v = c.value + delta;
+                      return { ...c, value: Math.max(c.min, Math.min(c.max, v)) };
+                  }
+                  return c;
+              }));
               syncKeys.forEach(k => {
-                  if (k === key) return;
+                  if (k === key || k.startsWith('const_')) return;
                   let targetNewVal = prevVals.current[k] + delta;
                   const bounds = {
                       scaleX: {min: config.scaleXMin, max: config.scaleXMax}, scaleY: {min: config.scaleYMin, max: config.scaleYMax},
                       translateX: {min: config.transXMin, max: config.transXMax}, translateY: {min: config.transYMin, max: config.transYMax},
                       rotation: {min: config.rotMin, max: config.rotMax},
-                      reflAngle: {min: 0, max: 180}, // 🚀 반사 변환 각도 상하한선 등록
+                      reflAngle: {min: 0, max: 180},
                       projAngle: {min: 0, max: 180},
                       shearX: {min: config.shearXMin, max: config.shearXMax}, shearY: {min: config.shearYMin, max: config.shearYMax},
                       squeeze: {min: config.squeezeMin, max: config.squeezeMax},
@@ -1566,9 +1298,54 @@
                       globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
                       rAdd: {min: -255, max: 255}, rMul: {min: config.contMin, max: config.contMax}, gAdd: {min: -255, max: 255}, gMul: {min: config.contMin, max: config.contMax}, bAdd: {min: -255, max: 255}, bMul: {min: config.contMin, max: config.contMax}
                   }[k];
-                  if (targetNewVal < bounds.min) targetNewVal = bounds.min;
-                  if (targetNewVal > bounds.max) targetNewVal = bounds.max;
-                  stateSetters[k](targetNewVal);
+                  if (bounds) {
+                      if (targetNewVal < bounds.min) targetNewVal = bounds.min;
+                      if (targetNewVal > bounds.max) targetNewVal = bounds.max;
+                  }
+                  if (stateSetters[k]) stateSetters[k](targetNewVal);
+              });
+          }
+      };
+
+      // 🚀 상수 전용 값 변경 및 동기화 처리 핸들러 추가
+      const handleConstSyncChange = (name, newVal) => {
+          const target = constants.find(c => c.name === name);
+          if (!target) return;
+          const delta = newVal - target.value;
+          const syncKeyName = `const_${name}`;
+          const isSynced = syncKeys.has(syncKeyName);
+
+          setConstants(prev => prev.map(c => {
+              if (c.name === name) return { ...c, value: newVal };
+              if (isSynced && syncKeys.has(`const_${c.name}`)) {
+                  let v = c.value + delta;
+                  return { ...c, value: Math.max(c.min, Math.min(c.max, v)) };
+              }
+              return c;
+          }));
+
+          if (isSynced) {
+              syncKeys.forEach(k => {
+                  if (k.startsWith('const_')) return;
+                  if (stateSetters[k]) {
+                      let targetNewVal = prevVals.current[k] + delta;
+                      const bounds = {
+                          scaleX: {min: config.scaleXMin, max: config.scaleXMax}, scaleY: {min: config.scaleYMin, max: config.scaleYMax},
+                          translateX: {min: config.transXMin, max: config.transXMax}, translateY: {min: config.transYMin, max: config.transYMax},
+                          rotation: {min: config.rotMin, max: config.rotMax},
+                          reflAngle: {min: 0, max: 180}, projAngle: {min: 0, max: 180},
+                          shearX: {min: config.shearXMin, max: config.shearXMax}, shearY: {min: config.shearYMin, max: config.shearYMax},
+                          squeeze: {min: config.squeezeMin, max: config.squeezeMax},
+                          perspX: {min: config.perspXMin, max: config.perspXMax}, perspY: {min: config.perspYMin, max: config.perspYMax},
+                          globalAdd: {min: -255, max: 255}, globalMul: {min: config.contMin, max: config.contMax},
+                          rAdd: {min: -255, max: 255}, rMul: {min: config.contMin, max: config.contMax}, gAdd: {min: -255, max: 255}, gMul: {min: config.contMin, max: config.contMax}, bAdd: {min: -255, max: 255}, bMul: {min: config.contMin, max: config.contMax}
+                      }[k];
+                      if (bounds) {
+                          if (targetNewVal < bounds.min) targetNewVal = bounds.min;
+                          if (targetNewVal > bounds.max) targetNewVal = bounds.max;
+                      }
+                      stateSetters[k](targetNewVal);
+                  }
               });
           }
       };
@@ -3501,231 +3278,105 @@
           )}
 
           {mathPadOpen && (
-            <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-md p-2 md:p-4 pb-10">
-              <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-4 md:p-5 w-full max-w-[34rem] shadow-2xl animate-fade-in flex flex-col transition-all">
+            <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col">
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
+                  <h3 className="text-white font-bold text-lg">수식 입력 (y = f(x))</h3>
+                  <button onClick={() => { setMathPadOpen(false); setMathError(""); }} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
+                </div>
                 
-                {/* 🚀 상단 헤더 & Rad/Deg 모드 및 히스토리 전환 */}
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex gap-2 bg-zinc-950 p-1 rounded-xl border border-zinc-800 shadow-inner">
-                    <button onClick={() => setIsRadMode(true)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isRadMode ? 'bg-sky-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>Rad</button>
-                    <button onClick={() => setIsRadMode(false)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${!isRadMode ? 'bg-sky-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>Deg</button>
-                    <button onClick={() => setIsInvMode(!isInvMode)} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isInvMode ? 'bg-amber-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>INV</button>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => setShowHistory(!showHistory)} className={`text-sm font-bold flex items-center gap-1.5 transition ${showHistory ? 'text-sky-400' : 'text-zinc-400 hover:text-white'}`}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                      히스토리
-                    </button>
-                    <button onClick={() => { setMathPadOpen(false); setMathError(""); setShowHistory(false); }} className="text-zinc-500 hover:text-rose-400 font-bold text-xl transition">✕</button>
-                  </div>
+                <div className="bg-zinc-950 border border-zinc-700 rounded-xl p-3 flex flex-col mb-4 shadow-inner">
+                    <div className="flex items-center text-purple-400 font-mono text-xl w-full border-b border-zinc-800 pb-2 mb-2 relative">
+                        <span className="mr-2 text-zinc-500 text-sm">수식:</span>
+                        <input
+                            ref={inputRef} type="text" value={tempGraphEq} 
+                            onChange={(e) => { setTempGraphEq(e.target.value); setMathError(""); }} 
+                            onKeyDown={(e) => { if (e.key === 'Enter') applyMathPad(); }}
+                            className="flex-1 bg-transparent outline-none text-white tracking-wider font-mono min-w-0"
+                            autoFocus autoComplete="off" spellCheck="false"
+                            inputMode="none"
+                        />
+                    </div>
+                    <div className="flex justify-start text-purple-300 font-serif text-2xl tracking-wide min-h-[36px] items-center pl-8 opacity-80"
+                         dangerouslySetInnerHTML={{ __html: tempGraphEq ? tempGraphEq.replace(/log_([0-9a-zA-Z]+)/g, 'log<sub>$1</sub>').replace(/\^([0-9a-zA-Z]+|\([^)]+\))/g, '<sup>$1</sup>').replace(/\(([^)]+)\)\/\(([^)]+)\)/g, '<span class="inline-flex flex-col items-center align-middle mx-1 text-[0.65em]"><span class="border-b border-purple-400/50 px-1 pb-0.5">$1</span><span class="pt-0.5">$2</span></span>').replace(/\*/g, '·') : "<span class='text-zinc-600 text-sm'>수식 미리보기</span>" }}>
+                    </div>
                 </div>
 
-                {/* 🚀 수식 기록(History) 패널 */}
-                {showHistory && (
-                  <div className="mb-3 bg-zinc-950 border border-zinc-800 rounded-xl p-3 max-h-32 overflow-y-auto scrollbar-hide flex flex-col gap-2 shadow-inner">
-                     {calcHistory.length === 0 ? (
-                       <span className="text-zinc-600 text-xs text-center py-3 font-medium">수식 기록이 없습니다.</span>
-                     ) : (
-                       calcHistory.map((hist, i) => (
-                         <div key={i} onClick={() => { setTempGraphEq(hist); setMathCursorPos(hist.length); setShowHistory(false); setMathError(""); }} className="text-zinc-400 hover:text-sky-300 text-sm font-mono cursor-pointer bg-zinc-900/50 hover:bg-zinc-800 p-2.5 rounded-lg transition flex justify-between items-center border border-transparent hover:border-zinc-700">
-                           <span>{hist}</span>
-                           <span className="text-zinc-600 text-[10px] bg-zinc-800 px-2 py-1 rounded">불러오기 ↵</span>
-                         </div>
-                       ))
-                     )}
-                  </div>
-                )}
-
-                {/* 🚀 2D 수식 디스플레이 창 (Paper Style) */}
-                <div 
-                    onClick={(e) => {
-                        const target = e.target.closest('[data-idx]');
-                        const el = inputRef.current;
-                        if (target) {
-                            const idx = parseInt(target.getAttribute('data-idx'), 10);
-                            const rect = target.getBoundingClientRect();
-                            const clickPos = (e.clientX - rect.left > rect.width / 2) ? idx + 1 : idx;
-                            setMathCursorPos(clickPos);
-                            if (el) { el.focus(); el.setSelectionRange(clickPos, clickPos); }
-                        } else {
-                            const endPos = tempGraphEq.length;
-                            setMathCursorPos(endPos);
-                            if (el) { el.focus(); el.setSelectionRange(endPos, endPos); }
-                        }
-                    }}
-                    className="bg-zinc-950 border border-zinc-700 rounded-2xl p-4 min-h-[110px] flex flex-col justify-center mb-3 shadow-inner relative overflow-x-auto scrollbar-hide cursor-text select-none group"
-                >
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={tempGraphEq}
-                        onChange={(e) => {
-                            setTempGraphEq(e.target.value);
-                            setMathCursorPos(e.target.selectionStart || 0);
-                            setMathError("");
-                        }}
-                        onSelect={(e) => {
-                            if (e.target.selectionStart !== null) setMathCursorPos(e.target.selectionStart);
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
-                                applyMathPad();
-                            }
-                            else if (e.key === 'ArrowLeft') { e.preventDefault(); moveMathCursor(-1); }
-                            else if (e.key === 'ArrowRight') { e.preventDefault(); moveMathCursor(1); }
-                        }}
-                        className="opacity-0 w-0 h-0 absolute pointer-events-none"
-                        autoFocus
-                        autoComplete="off"
-                        spellCheck="false"
-                    />
-                    <div 
-                        className="text-white font-serif text-3xl md:text-4xl tracking-wider w-full text-right py-2 flex items-center justify-end flex-wrap min-h-[48px]"
-                        dangerouslySetInnerHTML={{ __html: renderMathWithCaret(tempGraphEq, mathCursorPos) }}
-                    />
-                    
-                    {/* 🚀 그래프 전용 모드: 수치 계산 결과 프리뷰 삭제 */}
-                    {(() => {
-                        return null;
-                        let liveResult = "";
-                        try {
-                            let s = tempGraphEq.toLowerCase().replace(/\s+/g, '');
-                            if (s.includes('=')) s = s.split('=')[1];
-                            let jsEq = MathParserJS.parse(s);
-                            // Deg 모드일 경우 삼각함수 내부에 라디안 변환 로직 동적 삽입
-                            if (!isRadMode) jsEq = jsEq.replace(/Math\.sin\(/g, 'Math.sin(Math.PI/180*').replace(/Math\.cos\(/g, 'Math.cos(Math.PI/180*').replace(/Math\.tan\(/g, 'Math.tan(Math.PI/180*');
-                            let constNames = constants.map(c=>c.name);
-                            let func = new Function('x', 'y', 'v', ...constNames, `return ${jsEq};`);
-                            let res = func(1, 1, 1, ...constants.map(c=>c.value));
-                            if (isFinite(res) && !isNaN(res)) liveResult = "= " + parseFloat(res.toFixed(6));
-                        } catch(e) {}
-                        return liveResult ? <div className="text-zinc-400 font-mono text-sm text-right mt-2 font-bold">{liveResult}</div> : null;
-                    })()}
-                </div>
-
-                {mathError && <div className="text-rose-400 font-bold text-xs mb-3 text-center bg-rose-900/20 py-2.5 rounded-xl border border-rose-500/30 shadow-sm">{mathError}</div>}
+                {/* 🚀 에러 발생 시 경고창 */}
+                {mathError && <div className="text-rose-400 font-bold text-xs mb-4 -mt-2 text-center bg-rose-900/20 py-2 rounded-lg border border-rose-500/30">{mathError}</div>}
                 
-                <div className="flex gap-2 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800 mb-3 justify-between shadow-inner">
-                    <div className="flex gap-1">
-                        <button onClick={() => { setPadTab('math'); setMathSubTab('basic'); }} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'math' && mathSubTab === 'basic' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>기본/삼각</button>
-                        <button onClick={() => { setPadTab('math'); setMathSubTab('adv'); }} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'math' && mathSubTab === 'adv' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>고급/해석</button>
-                        <button onClick={() => setPadTab('const')} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 (a~z)</button>
-                    </div>
-                    <div className="flex gap-1 items-center">
-                        <button onClick={() => moveMathCursor(-1)} className="px-4 py-1.5 text-xs text-sky-400 bg-sky-900/20 hover:bg-sky-900/40 border border-sky-500/30 rounded-lg transition-colors font-bold shadow-sm">◀</button>
-                        <button onClick={() => moveMathCursor(1)} className="px-4 py-1.5 text-xs text-sky-400 bg-sky-900/20 hover:bg-sky-900/40 border border-sky-500/30 rounded-lg transition-colors font-bold shadow-sm">▶</button>
-                    </div>
+                <div className="flex gap-2 mb-4 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                    <button onClick={() => setPadTab('math')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'math' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>기본 수식</button>
+                    <button onClick={() => setPadTab('const')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${padTab === 'const' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>상수 추가 (a~z)</button>
                 </div>
 
                 {padTab === 'math' && (
-                    <div className="grid grid-cols-7 gap-1.5 md:gap-2">
-                        <div className="col-span-3 grid grid-cols-3 gap-1.5 md:gap-2 border-r border-zinc-800 pr-1.5 md:pr-2">
-                            {mathSubTab === 'basic' ? (
-                                <>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'asin(' : 'sin(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'sin⁻¹' : 'sin'}</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'acos(' : 'cos(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'cos⁻¹' : 'cos'}</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'atan(' : 'tan(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'tan⁻¹' : 'tan'}</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'exp(' : 'ln(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? 'eˣ' : 'ln'}</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? '10^(' : 'log(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">{isInvMode ? '10ˣ' : 'log'}</button>
-                                    <button onClick={()=>{
-                                        const cur = tempGraphEq;
-                                        if (cur.length > 0 && /[0-9a-zA-Z)]$/.test(cur.slice(0, mathCursorPos))) {
-                                            handleMathPadKey('/');
-                                        } else {
-                                            handleMathPadKey('()/()');
-                                            moveMathCursor(-4);
-                                        }
-                                    }} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition flex items-center justify-center">
-                                        <span className="flex flex-col items-center leading-none text-[10px]"><span>□</span><span className="w-3 h-px bg-zinc-300 my-[2px]"></span><span>□</span></span>
-                                    </button>
-                                    <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">π</button>
-                                    <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">e</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? '^2' : '^')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">{isInvMode ? 'x²' : 'xʸ'}</button>
-                                    <button onClick={()=>handleMathPadKey('abs()')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">|x|</button>
-                                    <button onClick={()=>handleMathPadKey(isInvMode ? 'cbrt()' : 'sqrt()')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">{isInvMode ? '∛' : '√'}</button>
-                                    <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">log_a</button>
-                                </>
-                            ) : (
-                                <>
-                                    <button onClick={()=>handleMathPadKey('sinh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">sinh</button>
-                                    <button onClick={()=>handleMathPadKey('cosh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">cosh</button>
-                                    <button onClick={()=>handleMathPadKey('tanh(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">tanh</button>
-                                    <button onClick={()=>handleMathPadKey('floor(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">⌊x⌋</button>
-                                    <button onClick={()=>handleMathPadKey('ceil(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">⌈x⌉</button>
-                                    <button onClick={()=>handleMathPadKey('sign(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">sgn</button>
-                                    <button onClick={()=>handleMathPadKey('cbrt(')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">∛x</button>
-                                    <button onClick={()=>handleMathPadKey('%')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">mod</button>
-                                    <button onClick={()=>handleMathPadKey('^3')} className="bg-zinc-800 text-indigo-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">x³</button>
-                                    <button onClick={()=>handleMathPadKey('x^2+y^2=4')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">원 템플릿</button>
-                                    <button onClick={()=>handleMathPadKey('(x^2)/4+(y^2)/9=1')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">타원 템플릿</button>
-                                    <button onClick={()=>handleMathPadKey('y=abs(x)')} className="bg-zinc-800 text-purple-400 py-3.5 rounded-xl font-bold text-[10px] hover:bg-zinc-700 transition truncate">절댓값 함수</button>
-                                </>
-                            )}
-                            {false && (<>
-                            <button onClick={()=>handleMathPadKey('/')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition flex items-center justify-center">
-                                <span className="flex flex-col items-center leading-none text-[10px]"><span>□</span><span className="w-3 h-px bg-zinc-300 my-[2px]"></span><span>□</span></span>
-                            </button>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                            {/* 좌측: 함수 및 변수 (3열) */}
+                            <div className="grid grid-cols-3 gap-1.5 flex-[1.2]">
+                                <button onClick={()=>handleMathPadKey('x')} className="bg-purple-600/30 text-purple-400 border border-purple-500/30 py-2 rounded-lg font-bold text-lg hover:bg-purple-600/50">x</button>
+                                <button onClick={()=>handleMathPadKey('y')} className="bg-pink-600/30 text-pink-400 border border-pink-500/30 py-2 rounded-lg font-bold text-lg hover:bg-pink-600/50">y</button>
+                                <button onClick={()=>handleMathPadKey('pi')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">π</button>
+                                
+                                <button onClick={()=>handleMathPadKey('e')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2 rounded-lg font-black hover:bg-emerald-600/40 text-sm">e</button>
+                                <button onClick={()=>handleMathPadKey('^2')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">x²</button>
+                                <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-sky-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">xⁿ</button>
+                                
+                                <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">√</button>
+                                <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-sm">|x|</button>
+                                <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">exp</button>
 
-                            <button onClick={()=>handleMathPadKey('pi')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">π</button>
-                            <button onClick={()=>handleMathPadKey('e')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">e</button>
-                            <button onClick={()=>handleMathPadKey('^')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">x<sup className="text-[9px]">y</sup></button>
+                                <button onClick={()=>handleMathPadKey('sin(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">sin</button>
+                                <button onClick={()=>handleMathPadKey('cos(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">cos</button>
+                                <button onClick={()=>handleMathPadKey('tan(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[11px]">tan</button>
 
-                            <button onClick={()=>handleMathPadKey('abs(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">|x|</button>
-                            <button onClick={()=>handleMathPadKey('sqrt(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">√</button>
-                            <button onClick={()=>handleMathPadKey('exp(')} className="bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold text-xs hover:bg-zinc-700 transition">exp</button>
+                                <button onClick={()=>handleMathPadKey('ln(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">ln</button>
+                                <button onClick={()=>handleMathPadKey('log(')} className="bg-zinc-800 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log₁₀</button>
+                                <button onClick={()=>handleMathPadKey('log_')} className="bg-zinc-800 text-amber-300 py-2 rounded-lg font-bold hover:bg-zinc-700 text-[10px]">log_n</button>
+                            </div>
 
-                            <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-600 transition shadow-sm">(</button>
-                            <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-zinc-600 transition shadow-sm">)</button>
-                            </>)}
+                            {/* 우측: 숫자 및 사칙연산 (4열) */}
+                            <div className="grid grid-cols-4 gap-1.5 flex-[1.6]">
+                                <button onClick={handleMathPadClear} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-2 rounded-lg font-bold hover:bg-rose-600/40 text-xs transition">AC</button>
+                                <button onClick={()=>handleMathPadKey('(')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">(</button>
+                                <button onClick={()=>handleMathPadKey(')')} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">)</button>
+                                <button onClick={handleMathPadDelete} className="bg-zinc-700 text-zinc-300 py-2 rounded-lg font-bold hover:bg-zinc-600 text-sm">⌫</button>
+
+                                <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">7</button>
+                                <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">8</button>
+                                <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">9</button>
+                                <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">÷</button>
+
+                                <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">4</button>
+                                <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">5</button>
+                                <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">6</button>
+                                <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">×</button>
+
+                                <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">1</button>
+                                <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">2</button>
+                                <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">3</button>
+                                <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-xl hover:bg-sky-600/40">-</button>
+
+                                <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">0</button>
+                                <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-2 rounded-lg font-bold text-lg hover:bg-zinc-700">.</button>
+                                <button onClick={()=>handleMathPadKey('=')} className="bg-amber-600/20 text-amber-400 border border-amber-500/30 py-2 rounded-lg font-bold text-lg hover:bg-amber-600/40">=</button>
+                                <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-2 rounded-lg font-bold text-lg hover:bg-sky-600/40">+</button>
+                            </div>
                         </div>
-
-                        {/* 🚀 숫자 및 기본 연산 영역 (오른쪽 4열) */}
-                        <div className="col-span-4 grid grid-cols-4 gap-1.5 md:gap-2">
-                            <button onClick={handleMathPadClear} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-3.5 rounded-xl font-bold text-sm hover:bg-rose-600/40 transition">AC</button>
-                            <button onClick={()=>handleMathPadKey('y')} className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-600/50 transition">y</button>
-                            <button onClick={handleMathPadDelete} className="bg-rose-600/20 text-rose-400 border border-rose-500/30 py-3.5 rounded-xl font-bold text-sm hover:bg-rose-600/40 transition">⌫</button>
-                            <button onClick={()=>handleMathPadKey('/')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">÷</button>
-
-                            <button onClick={()=>handleMathPadKey('7')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">7</button>
-                            <button onClick={()=>handleMathPadKey('8')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">8</button>
-                            <button onClick={()=>handleMathPadKey('9')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">9</button>
-                            <button onClick={()=>handleMathPadKey('*')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">×</button>
-
-                            <button onClick={()=>handleMathPadKey('4')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">4</button>
-                            <button onClick={()=>handleMathPadKey('5')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">5</button>
-                            <button onClick={()=>handleMathPadKey('6')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">6</button>
-                            <button onClick={()=>handleMathPadKey('-')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-2xl hover:bg-sky-600/40 transition">-</button>
-
-                            <button onClick={()=>handleMathPadKey('1')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">1</button>
-                            <button onClick={()=>handleMathPadKey('2')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">2</button>
-                            <button onClick={()=>handleMathPadKey('3')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">3</button>
-                            <button onClick={()=>handleMathPadKey('+')} className="bg-sky-600/20 text-sky-400 border border-sky-500/30 py-3.5 rounded-xl font-bold text-xl hover:bg-sky-600/40 transition">+</button>
-
-                            <button onClick={()=>handleMathPadKey('x')} className="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 py-3.5 rounded-xl font-bold text-lg hover:bg-indigo-600/50 transition">x</button>
-                            <button onClick={()=>handleMathPadKey('0')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">0</button>
-                            <button onClick={()=>handleMathPadKey('.')} className="bg-zinc-800 text-white py-3.5 rounded-xl font-bold text-xl hover:bg-zinc-700 transition shadow-sm">.</button>
-                            <button onClick={() => {
-                                if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
-                                applyMathPad();
-                            }} className="bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold text-base transition shadow-[0_0_15px_rgba(147,51,234,0.4)]">=</button>
-                        </div>
+                        <button onClick={applyMathPad} className="mt-1 w-full bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm py-3 transition shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                            수식 적용하기
+                        </button>
                     </div>
                 )}
                 
                 {padTab === 'const' && (
-                    <div className="grid grid-cols-6 gap-2">
+                    <div className="grid grid-cols-5 gap-3">
                         {['a','b','c','d','f','g','h','k','m','n','p','q','r','s','t','u','w','y','z'].map(letter => (
-                            <button key={letter} onClick={() => handleConstClick(letter)} className="bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 py-5 rounded-xl font-bold text-xl hover:bg-indigo-600/50 transition shadow-inner">
+                            <button key={letter} onClick={() => handleConstClick(letter)} className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 py-4 rounded-lg font-bold text-xl hover:bg-indigo-600/40 transition">
                                 {letter}
                             </button>
                         ))}
-                        <button onClick={() => {
-                            if (tempGraphEq && !calcHistory.includes(tempGraphEq)) setCalcHistory(prev => [tempGraphEq, ...prev].slice(0, 10));
-                            applyMathPad();
-                        }} className="col-span-5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-base transition shadow-[0_0_15px_rgba(147,51,234,0.4)]">
-                            수식 적용하기
-                        </button>
                     </div>
                 )}
               </div>
@@ -3982,83 +3633,26 @@
           )}
 
           {logicModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4 pb-10">
-              <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 w-full max-w-[28rem] shadow-2xl animate-fade-in flex flex-col gap-4">
+            <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center pt-24 md:pt-0 bg-black/70 backdrop-blur-sm px-4">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 md:p-6 w-full max-w-sm shadow-2xl animate-fade-in flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-                  <h3 className="text-white font-bold text-lg md:text-xl">회전 변환식 설정</h3>
+                  <h3 className="text-white font-bold text-lg md:text-xl">삼각비 변경</h3>
                   <button onClick={() => setLogicModalOpen(false)} className="text-zinc-500 hover:text-white font-bold text-xl">✕</button>
                 </div>
-                <p className="text-zinc-400 text-xs leading-relaxed">
-                  회전에 사용되는 2x2 행렬 공식을 직접 수정합니다.<br/>
-                  수식의 중심 각도 변수는 <b>v</b>입니다. (예: <b>tan(v)</b>, <b>sin^2(v)</b>)
+                <p className="text-zinc-400 text-[11px] md:text-xs">
+                  회전 변환의 함수식을 직접 수정합니다.<br/>
+                  변수 <code className="text-sky-400 bg-zinc-800 px-1 rounded mx-0.5">v</code>는 슬라이더의 라디안 값입니다.<br/>
+                  <span className="text-zinc-500">(예: <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">tan(v)</code>, <code className="text-amber-400 bg-zinc-800 px-1 rounded mx-0.5">-sin(v)*2</code>)</span>
                 </p>
-                
-                {/* 🚀 회전 변환식 4개 셀: ^ 기호 없이 교과서 표준(sin²(v)) 형식으로 미려하게 렌더링 */}
-                <div className="bg-black border border-zinc-800 rounded-xl p-4 flex justify-center items-stretch relative shadow-inner h-[120px]">
-                    <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                    <div className="grid grid-cols-2 gap-3 w-full max-w-[210px] z-10 mx-2 items-center">
-                        {['m00', 'm01', 'm10', 'm11'].map((cellKey) => {
-                            let text = tempLogic[cellKey] || '0';
-                            let formatted = text
-                                .replace(/(sin|cos|tan)\(v\)\^([0-9a-z.]+)/g, '$1^$2(v)')
-                                .replace(/(sin|cos|tan)\^([0-9a-z.]*)\(v\)/g, (m, fn, p) => `${fn}<sup class="text-sky-300 font-bold ml-0.5">${p || '<span class="border border-dashed border-sky-400 rounded px-1 inline-block w-3 h-3.5 align-middle"></span>'}</sup>(v)`)
-                                .replace(/v\^([0-9a-z.]*)/g, (m, p) => `v<sup class="text-sky-300 font-bold ml-0.5">${p || '<span class="border border-dashed border-sky-400 rounded px-1 inline-block w-3 h-3.5 align-middle"></span>'}</sup>`)
-                                .replace(/\^([0-9a-z.]*)/g, (m, p) => `<sup class="text-sky-300 font-bold ml-0.5">${p || '<span class="border border-dashed border-sky-400 rounded px-1 inline-block w-3 h-3.5 align-middle"></span>'}</sup>`);
-
-                            if (cellKey === focusedLogicCell) {
-                                let cPos = logicCursorPos;
-                                let rawLen = (tempLogic[cellKey] || '').length;
-                                if (cPos >= rawLen) {
-                                    formatted += '<span class="inline-block w-[2px] h-[1em] bg-sky-400 animate-pulse ml-0.5 align-middle"></span>';
-                                }
-                            }
-                            return (
-                                <div
-                                    key={cellKey}
-                                    onClick={(e) => {
-                                        setFocusedLogicCell(cellKey);
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const clickX = e.clientX - rect.left;
-                                        const totalLen = (tempLogic[cellKey] || '').length;
-                                        const approxPos = Math.round((clickX / rect.width) * totalLen);
-                                        setLogicCursorPos(Math.max(0, Math.min(totalLen, approxPos)));
-                                    }}
-                                    className={`bg-zinc-900 border ${focusedLogicCell === cellKey ? 'border-sky-500 ring-2 ring-sky-500/40 text-sky-300' : 'border-zinc-700 text-zinc-300'} px-2 py-2 rounded text-center font-mono text-xs md:text-sm transition-all cursor-pointer flex items-center justify-center select-none min-h-[38px]`}
-                                    dangerouslySetInnerHTML={{ __html: formatted }}
-                                />
-                            );
-                        })}
-                    </div>
-                    <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[14px] h-full text-zinc-500 fill-current shrink-0"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
+                <div className="grid grid-cols-2 gap-3 font-mono text-sm md:text-base">
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m00</span><input type="text" value={tempLogic.m00} onChange={e => setTempLogic({...tempLogic, m00: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m01</span><input type="text" value={tempLogic.m01} onChange={e => setTempLogic({...tempLogic, m01: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m10</span><input type="text" value={tempLogic.m10} onChange={e => setTempLogic({...tempLogic, m10: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
+                  <div className="flex flex-col gap-1"><span className="text-zinc-500 text-[10px]">m11</span><input type="text" value={tempLogic.m11} onChange={e => setTempLogic({...tempLogic, m11: e.target.value})} className="bg-black border border-zinc-700 text-sky-400 px-3 py-2 rounded focus:outline-none focus:border-sky-500 text-center" /></div>
                 </div>
-
-                {/* 🚀 계산기 표준 x^□ 버튼 탑재: 삼각비 거듭제곱을 누르면 sin(v)^2가 아닌 교과서 표준 sin^2(v)로 지능형 결합 */}
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                    <button onClick={() => handleLogicInput('sin(')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">sin</button>
-                    <button onClick={() => handleLogicInput('cos(')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">cos</button>
-                    <button onClick={() => handleLogicInput('tan(')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-sm hover:bg-zinc-600">tan</button>
-                    <button onClick={() => handleLogicInput('v')} className="bg-sky-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-sky-500 shadow-sm">각도(v)</button>
-                    
-                    <button onClick={() => handleLogicInput('+')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-lg hover:bg-zinc-600">+</button>
-                    <button onClick={() => handleLogicInput('-')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-lg hover:bg-zinc-600">-</button>
-                    <button onClick={() => handleLogicInput('(')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-600">(</button>
-                    <button onClick={() => handleLogicInput(')')} className="bg-zinc-700 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-600">)</button>
-
-                    <button 
-                        onClick={handleLogicExp} 
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold text-sm shadow-md flex items-center justify-center gap-1 col-span-2 transition-all"
-                        title="거듭제곱"
-                    >
-                        <span className="font-serif italic font-bold text-lg leading-none">x</span>
-                        <span className="w-3.5 h-3.5 border-2 border-dashed border-white rounded-[2px] inline-block -mt-2"></span>
-                    </button>
-                    <button onClick={handleLogicBackspace} className="bg-zinc-600 text-white py-3 rounded-lg font-bold text-base hover:bg-zinc-500">⌫</button>
-                    <button onClick={handleLogicClear} className="bg-rose-600 text-white py-3 rounded-lg font-bold text-xs hover:bg-rose-500">AC</button>
-                </div>
-
-                <div className="flex gap-3 mt-1">
-                  <button onClick={() => setTempLogic({m00:'cos(v)', m01:'-sin(v)', m10:'sin(v)', m11:'cos(v)'})} className="flex-1 py-3 rounded-lg bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition shadow text-sm">초기화</button>
-                  <button onClick={saveLogicModal} className="flex-1 py-3 rounded-lg bg-sky-600 text-white font-bold hover:bg-sky-500 transition shadow-[0_0_15px_rgba(2,132,199,0.3)] text-sm">적용하기</button>
+                <div className="flex gap-3 mt-2">
+                  <button onClick={() => setTempLogic({m00:'cos(v)', m01:'-sin(v)', m10:'sin(v)', m11:'cos(v)'})} className="flex-1 py-2 rounded bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 transition text-sm">초기화</button>
+                  <button onClick={saveLogicModal} className="flex-1 py-2 rounded bg-sky-600 text-white font-bold hover:bg-sky-500 transition text-sm">적용하기</button>
                 </div>
               </div>
             </div>
@@ -4078,7 +3672,7 @@
                         </button>
                     </>
                 )}
-                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="설정">
+                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 md:p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition shadow-lg text-white font-bold text-lg md:text-xl ${isSettingsOpen ? 'ring-2 ring-sky-500' : ''}`} title="입력값 조절">
                   <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
             </div>
@@ -4086,7 +3680,7 @@
               <div className="pointer-events-auto mt-2 md:mt-3 bg-zinc-800 border border-zinc-700 shadow-2xl rounded-xl p-4 flex flex-col w-[85vw] md:w-[28rem] animate-fade-in origin-top-right">
                 <div className="flex border-b border-zinc-700 mb-4">
                   <button onClick={() => setSettingsTab('display')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='display' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>화면 설정</button>
-                  <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력 값 설정</button>
+                  <button onClick={() => setSettingsTab('inputs')} className={`flex-1 pb-2 text-sm font-bold transition ${settingsTab==='inputs' ? 'text-sky-400 border-b-2 border-sky-400' : 'text-zinc-500 hover:text-zinc-300'}`}>입력값 조절</button>
                 </div>
                 {settingsTab === 'display' && (
                   <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2">
@@ -4720,7 +4314,9 @@
                                                   {graphs.map((g, idx) => (
                                                       <div key={g.id} className="bg-zinc-800 border border-zinc-700 pl-3 pr-2 py-2 rounded flex flex-col shadow-sm gap-2">
                                                           <div className="flex justify-between items-center w-full gap-2">
-                                                              <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold flex items-center min-h-[46px]" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)" dangerouslySetInnerHTML={{ __html: renderMathWithCaret(g.eq || 'y=x', null) }} />
+                                                              <div onClick={() => openMathPad(g.id, g.eq)} className="flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 rounded-lg cursor-pointer hover:border-zinc-500 font-mono text-base overflow-x-auto whitespace-nowrap shadow-inner font-bold" style={{color: GRAPH_COLORS[idx % GRAPH_COLORS.length]}} title="수식 편집 (여기를 클릭하세요)">
+                                                              {g.eq || '수식을 입력하세요 (예: x^2+y^2=4)'}
+                                                              </div>
                                                               <div className="flex gap-1 shrink-0">
                                                                   <button onClick={() => setGraphSettingsId(g.id)} className={`w-9 h-9 flex items-center justify-center rounded font-bold shadow transition ${g.matrixMode !== 'global' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'}`} title="행렬 설정">
                                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -4746,29 +4342,67 @@
                                           
                                           {isGraphListExpanded && constants.length > 0 && (
                                               <div className="mt-4 pt-4 border-t border-sky-500/30 flex flex-col gap-3">
-                                                  <span className="text-zinc-400 text-xs font-bold">상수</span>
+                                                  <span className="text-indigo-400 text-xs font-bold">상수 조절 ({constants.length})</span>
                                                   {constants.map(c => (
-                                                      <div key={c.name} className="flex flex-col gap-1 bg-indigo-900/10 p-3 rounded-lg border border-indigo-500/20">
-                                                          <div className="flex justify-between items-center w-full">
-                                                              <div className="flex-1">
-                                                                  <ControlRow 
-                                                                      label={`상수 ${c.name}`} 
-                                                                      min={c.min} max={c.max} step={c.step} 
-                                                                      value={c.value} 
-                                                                      onChange={v => updateConstant(c.name, 'value', v)} 
-                                                                      onReset={() => updateConstant(c.name, 'value', 1.0)}
-                                                                      colorClass="indigo" 
-                                                                  />
-                                                              </div>
-                                                              <button onClick={() => toggleConstConfig(c.name)} className="ml-3 p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded transition shadow-sm shrink-0">
-                                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                                                              </button>
-                                                          </div>
+                                                      <div key={c.name} className="flex flex-col gap-2 bg-black/30 p-3 rounded-lg border border-indigo-500/20">
+                                                          <ControlRow 
+                                                              label={`상수 ${c.name}`} 
+                                                              min={c.min} max={c.max} step={c.step} 
+                                                              value={c.value} 
+                                                              onChange={v => handleConstSyncChange(c.name, v)} 
+                                                              onReset={() => handleConstSyncChange(c.name, 1.0)}
+                                                              syncKey={`const_${c.name}`}
+                                                              isSynced={syncKeys.has(`const_${c.name}`)}
+                                                              onToggleSync={() => toggleSync(`const_${c.name}`)}
+                                                              onOpenConfig={() => toggleConstConfig(c.name)}
+                                                              isConfigOpen={activeConstConfig === c.name}
+                                                              colorClass="indigo" 
+                                                          />
+                                                          {/* 🚀 입력 값 조절(ConfigRow) UI 구조 및 스타일 100% 동일 적용 */}
                                                           {activeConstConfig === c.name && (
-                                                              <div className="flex gap-2 mt-2 pt-2 border-t border-indigo-500/20">
-                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">최솟값<CustomNumberInput value={c.min} onChange={v => updateConstant(c.name, 'min', v)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
-                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">최댓값<CustomNumberInput value={c.max} onChange={v => updateConstant(c.name, 'max', v)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
-                                                                  <label className="flex-1 flex flex-col gap-1 text-[10px] text-zinc-400">간격<CustomNumberInput value={c.step} onChange={v => updateConstant(c.name, 'step', v > 0 ? v : 0.1)} className="w-full bg-zinc-950 text-indigo-300 font-bold px-1.5 py-1 text-center rounded border border-zinc-700 outline-none focus:border-indigo-500" /></label>
+                                                              <div className="flex flex-col gap-2 pt-2 border-t border-zinc-700/80 animate-fade-in">
+                                                                  <div className="flex justify-between items-center">
+                                                                      <span className="text-zinc-300 text-xs font-bold">상수 {c.name} 입력값 조절</span>
+                                                                      <button 
+                                                                          onClick={() => {
+                                                                              updateConstant(c.name, 'min', -10);
+                                                                              updateConstant(c.name, 'max', 10);
+                                                                              updateConstant(c.name, 'step', 0.1);
+                                                                          }}
+                                                                          className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-700 transition"
+                                                                      >
+                                                                          초기화
+                                                                      </button>
+                                                                  </div>
+                                                                  <div className="flex gap-2">
+                                                                      <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">
+                                                                          최솟값
+                                                                          <CustomNumberInput 
+                                                                              value={c.min} 
+                                                                              validate={(v) => v <= c.max} 
+                                                                              onChange={v => updateConstant(c.name, 'min', v)} 
+                                                                              className="bg-zinc-950 border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center" 
+                                                                          />
+                                                                      </label>
+                                                                      <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">
+                                                                          최댓값
+                                                                          <CustomNumberInput 
+                                                                              value={c.max} 
+                                                                              validate={(v) => v >= c.min} 
+                                                                              onChange={v => updateConstant(c.name, 'max', v)} 
+                                                                              className="bg-zinc-950 border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center" 
+                                                                          />
+                                                                      </label>
+                                                                      <label className="flex-1 text-[11px] text-zinc-500 flex flex-col gap-1">
+                                                                          간격
+                                                                          <CustomNumberInput 
+                                                                              value={c.step} 
+                                                                              validate={(v) => Math.abs(v) > 0} 
+                                                                              onChange={v => updateConstant(c.name, 'step', Math.abs(v))} 
+                                                                              className="bg-zinc-950 border border-zinc-700 text-indigo-400 font-bold px-2 py-1.5 rounded outline-none w-full text-center" 
+                                                                          />
+                                                                      </label>
+                                                                  </div>
                                                               </div>
                                                           )}
                                                       </div>
