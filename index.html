@@ -2521,7 +2521,7 @@
                   const rawDx = (e.clientX || 0) - lastMouseRef.current.x;
                   const rawDy = (e.clientY || 0) - lastMouseRef.current.y;
                   setCam3D(prev => ({
-                      yaw: Math.round((((prev.yaw + rawDx * 0.45 + 540) % 360) - 180) * 10) / 10,
+                      yaw: Math.round(((((prev.yaw - rawDx * 0.45 + 180) % 360) + 360) % 360 - 180) * 10) / 10,
                       pitch: Math.round(Math.max(-85, Math.min(85, prev.pitch + rawDy * 0.45)) * 10) / 10
                   }));
               } else {
@@ -2602,10 +2602,10 @@
                   dragDistRef.current += Math.abs(dx) + Math.abs(dy);
                   if (is3DMode) {
                       const rawDx = touch.clientX - lastMouseRef.current.x;
-                      const rawDy = touch.clientY - lastMouseRef.current.y;
+                      const rawDy = Ftouch.clientY - lastMouseRef.current.y;
                       setCam3D(prev => ({
-                          yaw: Math.round((((prev.yaw + rawDx * 0.45 + 540) % 360) - 180) * 10) / 10,
-                          pitch: Math.round(Math.max(-85, Math.min(85, prev.pitch + rawDy * 0.45)) * 10) / 10
+                          yaw: Math.round(((((prev.yaw - rawDx * 0.45 + 180) % 360) + 360) % 360 - 180) * 10) / 10,
+                          pitch: Math.round(Math.max(-85, Math.min(85, prev.pitch - rawDy * 0.45)) * 10) / 10
                       }));
                   } else {
                       setCamera(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
@@ -5500,12 +5500,12 @@
             <div className="hidden md:flex bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative px-4 py-6 min-h-[220px]">
                 {/* 🚀 PC용 현재 상태 저장 버튼 (아이콘 변경) */}
               {!showMatrixChain && (
-                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-indigo-400 border border-indigo-500/50 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 저장">
+                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 저장">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                   </button>
               )}
               
-              <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 순서 변경">
+              <button onClick={() => setShowMatrixChain(!showMatrixChain)} className={`absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${showMatrixChain ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`} title="행렬 곱셈 순서 변경">
                   {showMatrixChain ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                   ) : (
@@ -5526,7 +5526,7 @@
                               setGraphs([{ ...graphs[0], eq: 'y=x' }]);
                           }
                       }}
-                      className={`absolute bottom-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${is3DMode ? 'bg-sky-500 text-white border border-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.5)]' : 'bg-zinc-800 text-sky-400 border border-sky-500/50 hover:bg-zinc-700 hover:text-white'}`}
+                      className={`absolute bottom-4 left-4 w-9 h-9 flex items-center justify-center rounded-lg transition shadow z-10 ${is3DMode ? 'bg-sky-500 text-white border border-zinc-700 shadow-[0_0_15px_rgba(14,165,233,0.5)]' : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white'}`}
                       title={is3DMode ? "2차원 평면 모드로 전환" : "3차원 공간 모드로 전환"}
                   >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -5729,10 +5729,6 @@
                           </div>
                         </div>
                         <hr className="border-zinc-800" />
-                        <div className="space-y-4">
-                          <ControlRow label="3D 수평 시점 (Yaw)" min={-180} max={180} step={1} value={cam3D.yaw} onChange={v => setCam3D(prev => ({ ...prev, yaw: v }))} onReset={() => setCam3D(prev => ({ ...prev, yaw: -32 }))} colorClass="indigo" />
-                          <ControlRow label="3D 수직 시점 (Pitch)" min={-85} max={85} step={1} value={cam3D.pitch} onChange={v => setCam3D(prev => ({ ...prev, pitch: v }))} onReset={() => setCam3D(prev => ({ ...prev, pitch: 24 }))} colorClass="indigo" />
-                        </div>
                       </>
                     )}
                     
