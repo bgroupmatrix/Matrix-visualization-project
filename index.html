@@ -93,19 +93,19 @@
     const GRAPH_COLORS = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4'];
 
     const INFO_DATA = {
-        perspX: { title: "수평 투시", desc: "화면을 가로 방향으로 원근감을 주어 비스듬히 눕힙니다. 투시란 멀리 있는 것은 작게, 가까이 있는 것은 크게 보여 입체감과 거리감을 주는 기법입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
-        perspY: { title: "수직 투시", desc: "화면을 세로 방향으로 원근감을 주어 벽처럼 세웁니다. 투시란 멀리 있는 것은 작게, 가까이 있는 것은 크게 보여 입체감과 거리감을 주는 기법입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] },
-        scaleX: { title: "X축 확대", desc: "가로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
-        scaleY: { title: "Y축 확대", desc: "세로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
-        squeeze: { title: "스퀴즈", desc: "전체 넓이는 그대로 유지하면서 한쪽 방향을 늘리는 만큼 반대쪽 방향을 납작하게 압축합니다. 찰흙을 누르면 옆으로 퍼지지만 전체 양은 그대로인 원리입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
-        transX: { title: "X축 이동", desc: "화면을 왼쪽이나 오른쪽으로 나란히 밀어서 이동합니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
-        transY: { title: "Y축 이동", desc: "화면을 위나 아래로 나란히 밀어서 이동합니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
-        transZ: { title: "Z축 이동", desc: "3차원 공간에서 높이·깊이 방향인 Z축을 따라 도형과 사진을 나란히 이동합니다.", formulas: ["변환된 Z좌표 = 기존 Z좌표 + dz"] },
-        rot: { title: "평면 회전", desc: "중심점을 기준으로 지정한 각도만큼 화면을 돌립니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
-        shearX: { title: "X축 전단", desc: "위아래는 고정한 채 가로 방향으로 비스듬하게 밀어 기울입니다. 전단이란 쌓아 둔 카드 뭉치를 옆으로 밀듯 층층이 어긋나게 미는 변환을 뜻합니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
-        shearY: { title: "Y축 전단", desc: "좌우는 고정한 채 세로 방향으로 비스듬하게 밀어 기울입니다. 전단이란 쌓아 둔 카드 뭉치를 위아래로 밀듯 층층이 어긋나게 미는 변환을 뜻합니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
-        refl: { title: "직선에 대한 대칭이동", desc: "원점을 지나는 직선을 거울 삼아 도형을 반대쪽으로 뒤집습니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
-        reflLine: { title: "직선 방정식에 대한 대칭이동", desc: "원점을 지나지 않는 원하는 직선을 거울 삼아 도형을 반대쪽으로 뒤집습니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
+        perspX: { title: "수평 투시 변환", desc: "화면을 가로 방향으로 원근감을 주어 비스듬히 눕힙니다. 투시란 멀리 있는 것은 작게, 가까이 있는 것은 크게 보여 입체감과 거리감을 주는 기법입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['px', '0', '1']] },
+        perspY: { title: "수직 투시 변환", desc: "화면을 세로 방향으로 원근감을 주어 벽처럼 세웁니다. 투시란 멀리 있는 것은 작게, 가까이 있는 것은 크게 보여 입체감과 거리감을 주는 기법입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', 'py', '1']] },
+        scaleX: { title: "X축 확대 변환", desc: "가로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['sx', '0', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        scaleY: { title: "Y축 확대 변환", desc: "세로 방향으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', 'sy', '0'], ['0', '0', '1']] },
+        squeeze: { title: "스퀴즈 변환", desc: "전체 넓이는 그대로 유지하면서 한쪽 방향을 늘리는 만큼 반대쪽 방향을 납작하게 압축합니다. 찰흙을 누르면 옆으로 퍼지지만 전체 양은 그대로인 원리입니다.", matrix: [['k', '0', '0'], ['0', '1/k', '0'], ['0', '0', '1']] },
+        transX: { title: "X축 이동 변환", desc: "화면을 왼쪽이나 오른쪽으로 나란히 밀어서 이동합니다.", matrix: [['1', '0', 'dx'], ['0', '1', '0'], ['0', '0', '1']] },
+        transY: { title: "Y축 이동 변환", desc: "화면을 위나 아래로 나란히 밀어서 이동합니다.", matrix: [['1', '0', '0'], ['0', '1', 'dy'], ['0', '0', '1']] },
+        transZ: { title: "Z축 이동 변환", desc: "3차원 공간에서 높이·깊이 방향인 Z축을 따라 도형과 사진을 나란히 이동합니다.", formulas: ["변환된 Z좌표 = 기존 Z좌표 + dz"] },
+        rot: { title: "회전 변환", desc: "중심점을 기준으로 지정한 각도만큼 화면을 돌립니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
+        shearX: { title: "X축 전단 변환", desc: "위아래는 고정한 채 가로 방향으로 비스듬하게 밀어 기울입니다. 전단이란 쌓아 둔 카드 뭉치를 옆으로 밀듯 층층이 어긋나게 미는 변환을 뜻합니다.", matrix: [['1', 'shx', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        shearY: { title: "Y축 전단 변환", desc: "좌우는 고정한 채 세로 방향으로 비스듬하게 밀어 기울입니다. 전단이란 쌓아 둔 카드 뭉치를 위아래로 밀듯 층층이 어긋나게 미는 변환을 뜻합니다.", matrix: [['1', '0', '0'], ['shy', '1', '0'], ['0', '0', '1']] },
+        refl: { title: "직선에 대한 대칭 변환", desc: "원점을 지나는 직선을 거울 삼아 도형을 반대쪽으로 뒤집습니다.", matrix: [['(1-m²)/(1+m²)', '2m/(1+m²)', '0'], ['2m/(1+m²)', '(m²-1)/(1+m²)', '0'], ['0', '0', '1']] },
+        reflLine: { title: "직선 방정식에 대한 대칭 변환", desc: "원점을 지나지 않는 원하는 직선을 거울 삼아 도형을 반대쪽으로 뒤집습니다.", matrix: [['(B²-A²)/D', '-2AB/D', '-2AC/D'], ['-2AB/D', '(A²-B²)/D', '-2BC/D'], ['0', '0', '1']], formulas: ["D = A² + B²"] },
         proj: { title: "직선에 대한 정사영", desc: "위에서 수직으로 빛을 비췄을 때 생기는 그림자처럼, 모든 점을 기준 직선이나 평면 위로 수직으로 내려 납작하게 모읍니다.", matrix: [['1/(1+m²)', 'm/(1+m²)', '0'], ['m/(1+m²)', 'm²/(1+m²)', '0'], ['0', '0', '1']] },
         mathLab: { title: "수학 모드", desc: "사진을 숨기고 좌표 평면과 공간 위에서 순수한 도형과 함수가 행렬에 의해 어떻게 변하는지 실험하는 모드입니다." },
         graph: { title: "함수 그리기", desc: "수식으로 그려진 그래프 선이 변환 행렬에 의해 어떻게 휘어지고 이동하는지 확인합니다.", formulas: ["y = f(x)", "변환된 점 = 변환 행렬 × [x, y, 1]"] },
@@ -122,16 +122,16 @@
         duo: { title: "이중 색상 변환", desc: "사진의 어두운 부분과 밝은 부분을 선택한 두 가지 색깔로만 물들여 색다른 분위기를 줍니다.", formulas: ["새 색상 = 어두운 색 + 밝기 비율 × 두 색의 차이"] },
         cAdd: { title: "색상별 밝기", desc: "빨강, 초록, 파랑 중 특정한 한 가지 색상의 빛만 더하거나 뺍니다.", formulas: ["새 색상값 = 기존 색상값 + 밝기 조절값"] },
         cMul: { title: "색상별 명암비", desc: "특정한 한 가지 색상에만 밝고 어두운 대비 배율을 곱해 해당 색감을 강조합니다.", formulas: ["새 색상값 = 기존 색상값 × 명암비 배율"] },
-        matrixChain: { title: "행렬 곱셈 순서 변경", desc: "행렬 곱셈은 곱하는 순서에 따라 최종 결과가 완전히 달라집니다. 순서를 직접 바꾸어 화면이 어떻게 다르게 움직이는지 관찰해 보세요." },
-        scaleZ: { title: "Z축 확대", desc: "3차원 공간의 높이·깊이 방향인 Z축으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', '0', 'sz']] },
-        squeeze3D: { title: "3차원 스퀴즈", desc: "입체 도형의 전체 부피는 그대로 유지하면서 가로·세로는 k배 늘리고 높이는 1/k²배로 압축합니다. 찰흙을 위에서 누르면 옆으로 퍼지지만 전체 부피는 일정한 원리입니다.", matrix: [['k', '0', '0'], ['0', 'k', '0'], ['0', '0', '1/k²']], formulas: ["부피 변화율 = k × k × 1/k² = 1"] },
-        rotX: { title: "X축 3차원 회전", desc: "가로축인 X축을 철봉 삼아 매달려 돌듯, 3차원 공간의 사진과 도형을 앞뒤로 회전시킵니다.", matrix: [['1', '0', '0'], ['0', 'cosθ', '-sinθ'], ['0', 'sinθ', 'cosθ']] },
-        rotY: { title: "Y축 3차원 회전", desc: "세로축인 Y축을 회전축으로 삼아, 회전문이 돌듯 3차원 공간의 사진과 도형을 좌우 입체적으로 회전시킵니다.", matrix: [['cosθ', '0', 'sinθ'], ['0', '1', '0'], ['-sinθ', '0', 'cosθ']] },
-        rotZ: { title: "Z축 3차원 회전", desc: "높이축인 Z축을 중심축으로 삼아, 시계 바늘이 돌듯 바닥 평면 위에서 회전시킵니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
-        shearXY: { title: "XY 3차원 전단", desc: "세로 위치에 비례하여 가로 방향으로 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', 'shxy', '0'], ['0', '1', '0'], ['0', '0', '1']] },
-        shearXZ: { title: "XZ 3차원 전단", desc: "높이에 비례하여 가로 방향으로 사진과 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', '0', 'shxz'], ['0', '1', '0'], ['0', '0', '1']] },
-        shearYZ: { title: "YZ 3차원 전단", desc: "높이에 비례하여 세로 방향으로 사진과 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', '0', '0'], ['0', '1', 'shyz'], ['0', '0', '1']] },
-        symmetry3D: { title: "3차원 평면 대칭", desc: "3차원 공간의 바닥면·옆면·정면 또는 원점을 거울 삼아 입체 도형을 반대쪽으로 뒤집습니다." },
+        matrixChain: { title: "행렬 곱셈 순서 변경", desc: "행렬 곱셈은 일반적으로 교환 법칙이 성립하지 않아 곱하는 순서에 따라 최종 결과가 완전히 달라집니다. 순서를 직접 바꾸어 결과가 어떻게 달라지는지 관찰해 보세요." },
+        scaleZ: { title: "Z축 확대 변환", desc: "3차원 공간의 높이·깊이 방향인 Z축으로 지정한 배율만큼 늘리거나 줄입니다.", matrix: [['1', '0', '0'], ['0', '1', '0'], ['0', '0', 'sz']] },
+        squeeze3D: { title: "3차원 스퀴즈 변환", desc: "입체 도형의 전체 부피는 그대로 유지하면서 가로·세로는 k배 늘리고 높이는 1/k²배로 압축합니다. 찰흙을 위에서 누르면 옆으로 퍼지지만 전체 부피는 일정한 원리입니다.", matrix: [['k', '0', '0'], ['0', 'k', '0'], ['0', '0', '1/k²']], formulas: ["부피 변화율 = k × k × 1/k² = 1"] },
+        rotX: { title: "X축 3차원 회전 변환", desc: "가로축인 X축을 철봉 삼아 매달려 돌듯, 3차원 공간의 사진과 도형을 앞뒤로 회전시킵니다.", matrix: [['1', '0', '0'], ['0', 'cosθ', '-sinθ'], ['0', 'sinθ', 'cosθ']] },
+        rotY: { title: "Y축 3차원 회전 변환", desc: "세로축인 Y축을 회전축으로 삼아, 회전문이 돌듯 3차원 공간의 사진과 도형을 좌우 입체적으로 회전시킵니다.", matrix: [['cosθ', '0', 'sinθ'], ['0', '1', '0'], ['-sinθ', '0', 'cosθ']] },
+        rotZ: { title: "Z축 3차원 회전 변환", desc: "높이축인 Z축을 중심축으로 삼아, 시계 바늘이 돌듯 바닥 평면 위에서 회전시킵니다.", matrix: [['cosθ', '-sinθ', '0'], ['sinθ', 'cosθ', '0'], ['0', '0', '1']] },
+        shearXY: { title: "XY 3차원 전단 변환", desc: "세로 위치에 비례하여 가로 방향으로 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', 'shxy', '0'], ['0', '1', '0'], ['0', '0', '1']] },
+        shearXZ: { title: "XZ 3차원 전단 변환", desc: "높이에 비례하여 가로 방향으로 사진과 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', '0', 'shxz'], ['0', '1', '0'], ['0', '0', '1']] },
+        shearYZ: { title: "YZ 3차원 전단 변환", desc: "높이에 비례하여 세로 방향으로 사진과 입체 도형을 비스듬히 밀어 기울입니다. 전단이란 쌓인 책을 옆으로 밀어 비스듬하게 만드는 변환입니다.", matrix: [['1', '0', '0'], ['0', '1', 'shyz'], ['0', '0', '1']] },
+        symmetry3D: { title: "3차원 평면 대칭 변환", desc: "3차원 공간의 바닥면·옆면·정면 또는 원점을 거울 삼아 입체 도형을 반대쪽으로 뒤집습니다." },
         unitCube: { title: "단위 정육면체", desc: "가로·세로·높이가 모두 1이고 부피가 1인 기준 정육면체를 띄워, 3차원 행렬 변환 후 입체 도형의 부피가 몇 배로 변하는지 직관적으로 비교합니다.", formulas: ["부피 변화율 = |a(ei-fh) - b(di-fg) + c(dh-eg)|"] },
         polyhedron3D: { title: "3차원 다면체", desc: "여러 개의 평면으로 둘러싸인 입체도형인 다면체(정육면체, 정사면체, 정팔면체, 사각뿔)를 3차원 공간에 띄워 행렬 변환을 입체적으로 관찰합니다." },
         surface3D: { title: "3차원 곡면 그리기", desc: "가로와 세로 위치에 따라 높이가 정해지는 3차원 함수 수식을 입체 곡면 형태로 그리고 행렬 변환을 적용합니다.", formulas: ["z = f(x, y)", "변환된 점 = 3×3 변환 행렬 × [x, y, z]"] }
@@ -763,7 +763,7 @@
             </div>
           </div>
           
-          <p className="relative z-10 mt-6 text-zinc-400 font-medium tracking-widest text-sm md:text-lg text-center px-4">행렬 변환 시뮬레이터</p>
+          <p className="relative z-10 mt-6 text-zinc-400 font-medium tracking-widest text-sm md:text-lg text-center px-4">Matrix Transform Simulator</p>
           <button onClick={onStart} className="relative z-10 mt-12 md:mt-16 px-10 py-3 md:px-14 md:py-4 bg-gradient-to-r from-white to-zinc-300 text-black text-xl md:text-2xl font-black rounded-full hover:from-zinc-300 hover:to-zinc-500 shadow-lg transition-all duration-300 transform hover:-translate-y-1">시작하기</button>
         </div>
       );
@@ -6069,7 +6069,7 @@
             </div>
           )}
 
-          {/* 🚀 3번 기능 개선: 모바일 계산과정 UI 폰트/간격 축소 및 가로스크롤 최적화 */}
+          {/* 🚀 3번 기능 개선: 한눈에 들어오는 컴팩트 연산 레이아웃 및 요소별 색상·박스 구분 */}
           {selectedCalcPoint && (() => {
               const z0Val = selectedCalcPoint.z ?? 0;
               const [m00, m01, m02, m10, m11, m12, m20, m21, m22] = mat3D;
@@ -6081,206 +6081,223 @@
               const finY3 = rawY3 / (Math.abs(w3) < 1e-6 ? 1 : w3);
               const finZ3 = rawZ3 / (Math.abs(w3) < 1e-6 ? 1 : w3);
 
+              const pX2 = matrix.m14 || 0;
+              const pY2 = matrix.m24 || 0;
+              const m44Val = matrix.m44 ?? 1;
+              const rawX2 = matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e;
+              const rawY2 = matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f;
+              const w2 = pX2 * selectedCalcPoint.x + pY2 * selectedCalcPoint.y + m44Val;
+              const isPerspActive = is3DMode
+                  ? Boolean(usePerspective)
+                  : Boolean(usePerspective || pX2 || pY2 || Math.abs(m44Val - 1) > 1e-6);
+              const perspWVal = is3DMode ? w3 : w2;
+              const isPerspWZero = Math.abs(perspWVal) < 1e-6;
+              const safePerspW = isPerspWZero ? 1 : perspWVal;
+              const finX2 = rawX2 / (Math.abs(w2) < 1e-6 ? 1 : w2);
+              const finY2 = rawY2 / (Math.abs(w2) < 1e-6 ? 1 : w2);
+
+              const handleCopyCalcText = () => {
+                  if (is3DMode) {
+                      const text = `[3차원 행렬 연산 과정]\n3×3 행렬:\n[ ${fmt(m00)}  ${fmt(m01)}  ${fmt(m02)} ]\n[ ${fmt(m10)}  ${fmt(m11)}  ${fmt(m12)} ]\n[ ${fmt(m20)}  ${fmt(m21)}  ${fmt(m22)} ]\n\n원본 3D 좌표: (${selectedCalcPoint.x}, ${selectedCalcPoint.y}, ${z0Val})\n평행이동(dx, dy, dz): (${fmt(effTrans3D.x)}, ${fmt(effTrans3D.y)}, ${fmt(effTrans3D.z)})\n\nX' = ${fmt(rawX3)}\nY' = ${fmt(rawY3)}\nZ' = ${fmt(rawZ3)}\n\n최종 3D 좌표: (${fmt(finX3)}, ${fmt(finY3)}, ${fmt(finZ3)})`;
+                      navigator.clipboard.writeText(text).then(() => alert("3D 연산 과정이 텍스트로 복사되었습니다."));
+                  } else {
+                      const a = fmt(matrix.a), c = fmt(matrix.c), e = fmt(matrix.e);
+                      const b = fmt(matrix.b), d = fmt(matrix.d), f = fmt(matrix.f);
+                      const x = selectedCalcPoint.x, y = selectedCalcPoint.y;
+                      const pXStr = pX2 ? fmt(pX2) : '0';
+                      const pYStr = pY2 ? fmt(pY2) : '0';
+                      const m44Str = fmt(m44Val);
+                      const text = `[행렬 연산 과정]\n행렬:\n[ ${a}  ${c}  ${e} ]\n[ ${b}  ${d}  ${f} ]\n[ ${pXStr}  ${pYStr}  ${m44Str} ]\n\n원본 좌표: (${x}, ${y})\n\nX' = (${a} * ${x}) + (${c} * ${y}) + ${e}*1 = ${fmt(rawX2)}\nY' = (${b} * ${x}) + (${d} * ${y}) + ${f}*1 = ${fmt(rawY2)}\nW' = (${pXStr} * ${x}) + (${pYStr} * ${y}) + ${m44Str}*1 = ${fmt(w2)}\n\n결과 좌표: (X'/W', Y'/W') = (${fmt(finX2)}, ${fmt(finY2)})`;
+                      navigator.clipboard.writeText(text).then(() => alert("연산 과정이 텍스트로 복사되었습니다."));
+                  }
+              };
+
               return (
-              <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 md:p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
-                  <div className="bg-zinc-900 border border-zinc-600 rounded-xl p-4 md:p-5 shadow-2xl max-w-md w-full flex flex-col gap-3 transform transition-all max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-between items-center border-b border-zinc-700 pb-2">
-                          <h3 className="text-white font-bold text-sm md:text-xl flex items-center gap-2">
-                              <svg className="w-4 h-4 md:w-5 md:h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2.5 md:p-4 animate-fade-in" onClick={() => setSelectedCalcPoint(null)}>
+                  <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-3.5 md:p-4 shadow-2xl max-w-md w-full flex flex-col gap-2.5 transform transition-all max-h-[94vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                      <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                          <h3 className="text-white font-bold text-sm md:text-base flex items-center gap-1.5">
+                              <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                               {is3DMode ? "3차원 행렬 연산 과정" : "행렬 연산 과정"}
                           </h3>
-                          <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-500 hover:text-white font-bold text-lg md:text-xl">✕</button>
+                          <div className="flex items-center gap-2">
+                              <button onClick={handleCopyCalcText} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-2 py-1 rounded-md text-[10px] md:text-xs font-bold flex items-center gap-1 transition">
+                                  <svg className="w-3 h-3 text-sky-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                  복사
+                              </button>
+                              <button onClick={() => setSelectedCalcPoint(null)} className="text-zinc-400 hover:text-white font-bold text-base md:text-lg px-1">✕</button>
+                          </div>
                       </div>
                       
                       {is3DMode ? (
-                          <div className="bg-zinc-950 p-3 md:p-4 rounded-lg border border-zinc-800 font-mono text-zinc-300 overflow-x-auto shadow-inner scrollbar-hide relative pb-10 md:pb-12 text-[10px] md:text-sm">
-                              <div className="flex items-center gap-1 md:gap-1.5 mb-4 justify-center min-w-max">
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="grid grid-cols-3 gap-x-1.5 gap-y-1 text-center text-sky-400 mx-0.5 w-max items-center py-2">
+                          <div className="bg-zinc-950 p-2.5 md:p-3 rounded-lg border border-zinc-800 font-mono text-zinc-200 flex flex-col gap-2 text-[11px] md:text-xs">
+                              {/* 상단: 요소별 구별된 행렬식 영역 */}
+                              <div className="flex items-center justify-center gap-1 md:gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-sky-400 mb-0.5">변환 행렬</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-1.5 py-0.5 grid grid-cols-3 gap-x-2 gap-y-0.5 text-center text-sky-300 font-bold">
                                           <span>{fmt(m00)}</span><span>{fmt(m01)}</span><span>{fmt(m02)}</span>
                                           <span>{fmt(m10)}</span><span>{fmt(m11)}</span><span>{fmt(m12)}</span>
                                           <span>{fmt(m20)}</span><span>{fmt(m21)}</span><span>{fmt(m22)}</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
-                                  <span className="text-slate-400 font-sans font-bold px-0.5">×</span>
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="flex flex-col gap-y-1 text-center text-amber-300 mx-0.5 w-max items-center justify-center py-2">
+                                  <span className="text-zinc-400 font-sans font-bold">×</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-amber-400 mb-0.5">입력 좌표</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-1.5 py-0.5 flex flex-col gap-y-0.5 text-center text-amber-300 font-bold">
                                           <span>{selectedCalcPoint.x}</span>
                                           <span>{selectedCalcPoint.y}</span>
                                           <span>{z0Val}</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
-                                  <span className="text-slate-400 font-sans font-bold px-0.5">+</span>
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="flex flex-col gap-y-1 text-center text-purple-300 mx-0.5 w-max items-center justify-center py-2">
+                                  <span className="text-zinc-400 font-sans font-bold">+</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-indigo-400 mb-0.5">평행이동</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-1.5 py-0.5 flex flex-col gap-y-0.5 text-center text-indigo-300 font-bold">
                                           <span>{fmt(effTrans3D.x)}</span>
                                           <span>{fmt(effTrans3D.y)}</span>
                                           <span>{fmt(effTrans3D.z)}</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
-                                  <span className="text-slate-400 font-sans font-bold px-0.5">=</span>
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="flex flex-col gap-y-1 text-center text-emerald-300 mx-0.5 w-max font-bold items-center justify-center py-2">
+                                  <span className="text-zinc-400 font-sans font-bold">=</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-emerald-400 mb-0.5">결과</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-1.5 py-0.5 flex flex-col gap-y-0.5 text-center text-emerald-300 font-bold">
                                           <span>X'</span>
                                           <span>Y'</span>
                                           <span>Z'</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
                               </div>
 
-                              <div className="flex flex-col gap-2 border-t border-slate-700/50 pt-3 min-w-max">
-                                  <div>
-                                      <span className="text-emerald-300 font-bold">X'</span> = ({fmt(m00)}×{selectedCalcPoint.x}) + ({fmt(m01)}×{selectedCalcPoint.y}) + ({fmt(m02)}×{z0Val}) + {fmt(effTrans3D.x)} = <span className="text-emerald-400 font-bold">{fmt(rawX3)}</span>
+                              {/* 중단: 행별 1줄 계산 카드 */}
+                              <div className="flex flex-col gap-1 overflow-x-auto scrollbar-hide">
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">X'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(m00)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(m01)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(m02)}</span>×<span className="text-amber-300 font-bold">{z0Val}</span>) + <span className="text-indigo-300 font-bold">{fmt(effTrans3D.x)}</span></span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(rawX3)}</span>
                                   </div>
-                                  <div>
-                                      <span className="text-emerald-300 font-bold">Y'</span> = ({fmt(m10)}×{selectedCalcPoint.x}) + ({fmt(m11)}×{selectedCalcPoint.y}) + ({fmt(m12)}×{z0Val}) + {fmt(effTrans3D.y)} = <span className="text-emerald-400 font-bold">{fmt(rawY3)}</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">Y'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(m10)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(m11)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(m12)}</span>×<span className="text-amber-300 font-bold">{z0Val}</span>) + <span className="text-indigo-300 font-bold">{fmt(effTrans3D.y)}</span></span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(rawY3)}</span>
                                   </div>
-                                  <div>
-                                      <span className="text-emerald-300 font-bold">Z'</span> = ({fmt(m20)}×{selectedCalcPoint.x}) + ({fmt(m21)}×{selectedCalcPoint.y}) + ({fmt(m22)}×{z0Val}) + {fmt(effTrans3D.z)} = <span className="text-emerald-400 font-bold">{fmt(rawZ3)}</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">Z'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(m20)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(m21)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(m22)}</span>×<span className="text-amber-300 font-bold">{z0Val}</span>) + <span className="text-indigo-300 font-bold">{fmt(effTrans3D.z)}</span></span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(rawZ3)}</span>
                                   </div>
                               </div>
 
-                              <div className="flex flex-col gap-1.5 border-t border-slate-700/50 pt-3 mt-3 min-w-max">
-                                  <div className="flex items-center gap-2">
-                                      <span className="text-white font-bold">변환된 최종 3차원 좌표</span>
-                                      {usePerspective && <span className="text-rose-400 text-xs">※ 투시 비율 {fmt(w3)} 적용됨</span>}
+                              {/* 하단: 최종 결과 요약 바 */}
+                              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                                  <div className="flex items-center gap-1.5 font-sans">
+                                      <span className="text-white font-bold text-xs">변환된 최종 좌표</span>
+                                      {isPerspActive && <span className="text-[10px] bg-zinc-800 text-sky-300 border border-zinc-700 px-1.5 py-0.5 rounded font-mono">÷ W'({fmt(w3)})</span>}
                                   </div>
-                                  <div className="pl-2 font-sans">
-                                      = <span className="text-emerald-400 font-bold text-sm md:text-lg font-mono border-b-2 border-emerald-400/50">({fmt(finX3)}, {fmt(finY3)}, {fmt(finZ3)})</span>
-                                  </div>
+                                  <span className="text-emerald-400 font-bold text-xs md:text-sm font-mono">({fmt(finX3)}, {fmt(finY3)}, {fmt(finZ3)})</span>
                               </div>
-
-                              <button onClick={() => {
-                                  const text = `[3차원 행렬 연산 과정]\n3×3 행렬:\n[ ${fmt(m00)}  ${fmt(m01)}  ${fmt(m02)} ]\n[ ${fmt(m10)}  ${fmt(m11)}  ${fmt(m12)} ]\n[ ${fmt(m20)}  ${fmt(m21)}  ${fmt(m22)} ]\n\n원본 3D 좌표: (${selectedCalcPoint.x}, ${selectedCalcPoint.y}, ${z0Val})\n평행이동(dx, dy, dz): (${fmt(effTrans3D.x)}, ${fmt(effTrans3D.y)}, ${fmt(effTrans3D.z)})\n\nX' = ${fmt(rawX3)}\nY' = ${fmt(rawY3)}\nZ' = ${fmt(rawZ3)}\n\n최종 3D 좌표: (${fmt(finX3)}, ${fmt(finY3)}, ${fmt(finZ3)})`;
-                                  navigator.clipboard.writeText(text).then(() => alert("3D 연산 과정이 텍스트로 복사되었습니다."));
-                              }} className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] md:text-xs font-sans font-bold flex items-center gap-1.5 transition shadow">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                                  텍스트로 복사
-                              </button>
                           </div>
                       ) : (
-                          <div className="bg-zinc-950 p-3 md:p-4 rounded-lg border border-zinc-800 font-mono text-zinc-300 overflow-x-auto shadow-inner scrollbar-hide relative pb-10 md:pb-12 text-[10px] md:text-sm">
-                              <div className="flex items-center gap-1 md:gap-2 mb-4 justify-center min-w-max">
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="grid grid-cols-3 gap-x-1.5 gap-y-1 text-center text-sky-400 mx-0.5 w-max items-center py-2">
+                          <div className="bg-zinc-950 p-2.5 md:p-3 rounded-lg border border-zinc-800 font-mono text-zinc-200 flex flex-col gap-2 text-[11px] md:text-xs">
+                              {/* 상단: 요소별 구별된 행렬식 영역 */}
+                              <div className="flex items-center justify-center gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide py-0.5">
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-sky-400 mb-0.5">변환 행렬</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-2 py-0.5 grid grid-cols-3 gap-x-2.5 gap-y-0.5 text-center text-sky-300 font-bold">
                                           <span>{fmt(matrix.a)}</span><span>{fmt(matrix.c)}</span><span>{fmt(matrix.e)}</span>
                                           <span>{fmt(matrix.b)}</span><span>{fmt(matrix.d)}</span><span>{fmt(matrix.f)}</span>
-                                          <span>{matrix.m14 ? fmt(matrix.m14) : '0'}</span><span>{matrix.m24 ? fmt(matrix.m24) : '0'}</span><span>{fmt(matrix.m44 ?? 1)}</span>
+                                          <span>{pX2 ? fmt(pX2) : '0'}</span><span>{pY2 ? fmt(pY2) : '0'}</span><span>{fmt(m44Val)}</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
-                                  <span className="text-slate-400 font-sans font-bold px-1">×</span>
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-amber-300 mx-0.5 md:mx-1 w-max items-center justify-center py-2">
+                                  <span className="text-zinc-400 font-sans font-bold">×</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-amber-400 mb-0.5">입력 좌표</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-2 py-0.5 flex flex-col gap-y-0.5 text-center text-amber-300 font-bold">
                                           <span>{selectedCalcPoint.x}</span>
                                           <span>{selectedCalcPoint.y}</span>
-                                          <span className="text-slate-500">1</span>
+                                          <span>1</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
-                                  <span className="text-slate-400 font-sans font-bold px-1">=</span>
-                                  <div className="flex items-stretch">
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 22,0 C -4,25 -4,75 22,100 C 4,75 4,25 22,0 Z" /></svg>
-                                      <div className="flex flex-col gap-y-1 md:gap-y-2 text-center text-emerald-300 mx-0.5 md:mx-1 w-max font-bold items-center justify-center py-2">
+                                  <span className="text-zinc-400 font-sans font-bold">=</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 flex flex-col items-center shrink-0">
+                                      <span className="text-[9px] font-sans font-bold text-emerald-400 mb-0.5">결과</span>
+                                      <div className="border-l-2 border-r-2 border-zinc-500 rounded-[3px] px-2 py-0.5 flex flex-col gap-y-0.5 text-center text-emerald-300 font-bold">
                                           <span>X'</span>
                                           <span>Y'</span>
                                           <span>W'</span>
                                       </div>
-                                      <svg viewBox="0 0 24 100" preserveAspectRatio="none" className="w-[10px] md:w-[14px] text-zinc-500 fill-current shrink-0 py-1"><path d="M 2,0 C 28,25 28,75 2,100 C 20,75 20,25 2,0 Z" /></svg>
                                   </div>
                               </div>
 
-                              <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 min-w-max">
-                                  <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-                                      <span className="text-emerald-300 font-bold w-4 md:w-6">X'</span> <span className="font-sans">=</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.a)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.c)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-sky-300">{fmt(matrix.e)}</span> <span className="font-sans text-slate-500">× 1</span>
+                              {/* 중단: 행별 1줄 계산 카드 */}
+                              <div className="flex flex-col gap-1 overflow-x-auto scrollbar-hide">
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">X'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(matrix.a)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(matrix.c)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(matrix.e)}</span>×<span className="text-amber-300 font-bold">1</span>)</span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(rawX2)}</span>
                                   </div>
-                                  <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                      = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt(matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e)}</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">Y'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(matrix.b)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(matrix.d)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(matrix.f)}</span>×<span className="text-amber-300 font-bold">1</span>)</span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(rawY2)}</span>
                                   </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base pt-1 min-w-max">
-                                  <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-                                      <span className="text-emerald-300 font-bold w-4 md:w-6">Y'</span> <span className="font-sans">=</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.b)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.d)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-sky-300">{fmt(matrix.f)}</span> <span className="font-sans text-slate-500">× 1</span>
-                                  </div>
-                                  <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                      = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt(matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f)}</span>
-                                  </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base pt-1 min-w-max">
-                                  <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-                                      <span className="text-emerald-300 font-bold w-4 md:w-6">W'</span> <span className="font-sans">=</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.m14 || 0)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.x}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-slate-400">(</span><span className="text-sky-300">{fmt(matrix.m24 || 0)}</span> <span className="font-sans">×</span> <span className="text-amber-300">{selectedCalcPoint.y}</span><span className="text-slate-400">)</span> <span className="font-sans">+</span> 
-                                      <span className="text-sky-300">{fmt(matrix.m44 ?? 1)}</span> <span className="font-sans text-slate-500">× 1</span>
-                                  </div>
-                                  <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                      = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono">{fmt((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + (matrix.m44 ?? 1))}</span>
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 min-w-max">
+                                      <div className="flex items-center gap-1">
+                                          <span className="text-emerald-300 font-bold w-4">W'</span>
+                                          <span className="text-zinc-400">=</span>
+                                          <span>(<span className="text-sky-300 font-bold">{fmt(pX2)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.x}</span>) + (<span className="text-sky-300 font-bold">{fmt(pY2)}</span>×<span className="text-amber-300 font-bold">{selectedCalcPoint.y}</span>) + (<span className="text-sky-300 font-bold">{fmt(m44Val)}</span>×<span className="text-amber-300 font-bold">1</span>)</span>
+                                      </div>
+                                      <span className="text-emerald-400 font-bold shrink-0">= {fmt(w2)}</span>
                                   </div>
                               </div>
 
-                              <div className="flex flex-col gap-2 md:gap-3 text-[10px] md:text-base border-t border-slate-700/50 pt-3 md:pt-4 mt-2 md:mt-4 min-w-max">
-                                  <div className="flex items-center gap-2">
-                                      <span className="text-white font-bold">변환된 최종 좌표</span>
-                                      { (matrix.m14 || matrix.m24 || Math.abs((matrix.m44 ?? 1) - 1) > 1e-6) ? <span className="text-rose-400 text-xs ml-2">※ 투시 변환 적용됨</span> : null }
+                              {/* 하단: 최종 결과 요약 바 */}
+                              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                                  <div className="flex items-center gap-1.5 font-sans">
+                                      <span className="text-white font-bold text-xs">변환된 최종 좌표</span>
+                                      <span className="text-[10px] bg-zinc-800 text-sky-300 border border-zinc-700 px-1.5 py-0.5 rounded font-mono">(X'/W', Y'/W')</span>
                                   </div>
-                                  <div className="flex items-center gap-1 md:gap-2 pl-4 md:pl-9 font-sans">
-                                      = <span className="text-emerald-400 font-bold text-sm md:text-xl font-mono border-b-2 border-emerald-400/50">({fmt((matrix.a * selectedCalcPoint.x + matrix.c * selectedCalcPoint.y + matrix.e) / ((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + (matrix.m44 ?? 1)))}, {fmt((matrix.b * selectedCalcPoint.x + matrix.d * selectedCalcPoint.y + matrix.f) / ((matrix.m14 || 0) * selectedCalcPoint.x + (matrix.m24 || 0) * selectedCalcPoint.y + (matrix.m44 ?? 1)))})</span>
-                                  </div>
+                                  <span className="text-emerald-400 font-bold text-xs md:text-sm font-mono">({fmt(finX2)}, {fmt(finY2)})</span>
                               </div>
-
-                              <button onClick={() => {
-                                  const a = fmt(matrix.a), c = fmt(matrix.c), e = fmt(matrix.e);
-                                  const b = fmt(matrix.b), d = fmt(matrix.d), f = fmt(matrix.f);
-                                  const x = selectedCalcPoint.x, y = selectedCalcPoint.y;
-                                  const pX = matrix.m14 ? fmt(matrix.m14) : '0';
-                                  const pY = matrix.m24 ? fmt(matrix.m24) : '0';
-                                  const m44Val = matrix.m44 ?? 1;
-                                  const m44Str = fmt(m44Val);
-                                  const rawX = matrix.a * x + matrix.c * y + e * 1;
-                                  const rawY = matrix.b * x + matrix.d * y + f * 1;
-                                  const w = (matrix.m14 || 0) * x + (matrix.m24 || 0) * y + m44Val;
-                                  const resX = fmt(rawX / w);
-                                  const resY = fmt(rawY / w);
-                                  const text = `[행렬 연산 과정]\n행렬:\n[ ${a}  ${c}  ${e} ]\n[ ${b}  ${d}  ${f} ]\n[ ${pX}  ${pY}  ${m44Str} ]\n\n원본 좌표: (${x}, ${y})\n\nX' = (${a} * ${x}) + (${c} * ${y}) + ${e}*1 = ${fmt(rawX)}\nY' = (${b} * ${x}) + (${d} * ${y}) + ${f}*1 = ${fmt(rawY)}\nW' = (${pX} * ${x}) + (${pY} * ${y}) + ${m44Str}*1 = ${fmt(w)}\n\n결과 좌표: (X'/W', Y'/W') = (${resX}, ${resY})`;
-                                  navigator.clipboard.writeText(text).then(() => alert("연산 과정이 텍스트로 복사되었습니다."));
-                              }} className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] md:text-xs font-sans font-bold flex items-center gap-1.5 transition shadow">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                                  텍스트로 복사
-                              </button>
                           </div>
                       )}
 
-                      <div className="flex flex-col gap-2 mt-1">
-                          <div className="p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-[11px] md:text-xs text-zinc-300 leading-relaxed">
-                              <b className="text-white block mb-1.5 flex items-center gap-1.5">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                  연산 원리 알아보기
-                              </b>
-                              <div className="flex flex-col gap-2">
-                                  <p>
-                                      <strong className="text-white bg-zinc-700 px-1 rounded">왜 좌표를 세로로 세워서 곱할까요?</strong><br/>
-                                      가로줄과 세로줄을 순서대로 짝지어 곱하는 행렬의 곱셈 규칙에 맞추기 위해, 점의 좌표를 세로 한 줄로 세워서 계산합니다.
+                      <div className="p-3 bg-zinc-800 border border-zinc-700 rounded-lg text-[11px] md:text-xs text-zinc-300 leading-relaxed flex flex-col gap-2">
+                          <b className="text-white flex items-center gap-1.5">
+                              <svg className="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              연산 원리 알아보기
+                          </b>
+                          <div>
+                              <strong className="text-sky-300 bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 rounded inline-block mb-1">왜 좌표를 세로로 세워서 곱할까요?</strong>
+                              <p className="text-zinc-300">
+                                  행렬 곱셈은 앞 행렬의 열 개수와 뒷 행렬의 행 개수가 같아야 하므로, 점의 좌표를 세로 한 줄로 세워서 계산합니다.
+                              </p>
+                          </div>
+
+                          {isPerspActive && (
+                              <div className="border-t border-zinc-700 pt-2 flex flex-col gap-1 animate-fade-in">
+                                  <strong className="text-sky-300 bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 rounded inline-block w-max">왜 마지막에 W'로 나눌까요? (투시 변환)</strong>
+                                  <p className="text-zinc-300">
+                                      <span className="font-mono text-emerald-300 font-bold">W'({fmt(perspWVal)})</span>는 관찰자로부터 떨어진 <b>거리 비율</b>입니다. 좌표를 <span className="font-mono text-emerald-300 font-bold">W'</span>로 나누어 실제 화면 평면(<span className="font-mono">W=1</span>)에 맞추면, 먼 곳(<span className="font-mono">W'&gt;1</span>)은 작아지고 가까운 곳(<span className="font-mono">W'&lt;1</span>)은 커져서 <b>원근감</b>이 생깁니다.
                                   </p>
                               </div>
-                          </div>
+                          )}
                       </div>
                       
                       <div className="flex justify-end gap-2 md:gap-3 mt-1 md:mt-2">
@@ -6670,10 +6687,10 @@
             <div className="flex flex-col md:flex-row items-end md:items-center gap-2 pointer-events-auto">
                 {shadowStates.length > 0 && (
                     <>
-                        <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="모든 애니메이션 재생">
+                        <button onClick={() => playAnimation('all')} className="p-2 md:p-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-sky-500" title="전체 애니메이션 재생">
                             <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
                         </button>
-                        <button onClick={() => setShadowStates([])} className="p-2 md:p-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-rose-500" title="모든 애니메이션 삭제">
+                        <button onClick={() => setShadowStates([])} className="p-2 md:p-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition shadow-lg flex items-center justify-center border border-rose-500" title="전체 애니메이션 삭제">
                             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                         <button onClick={() => setShowShadowList(prev => !prev)} className={`px-3 py-2 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition shadow-lg flex items-center gap-1.5 border ${showShadowList ? 'bg-indigo-600 text-white border-indigo-400 ring-2 ring-indigo-400/50' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-600'}`} title="애니메이션 목록">
@@ -6698,22 +6715,7 @@
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">{s.is3DMode ? '3차원' : '2차원'}</span>
                         <span className="text-xs font-bold text-zinc-200 truncate">애니메이션 {idx + 1}</span>
-                      </div><label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                            <div className="relative">
-                                <input type="checkbox" checked={imageSmoothing} onChange={(e) => setImageSmoothing(e.target.checked)} className="peer sr-only" />
-                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                            </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">이미지 스무딩 (계단현상 방지)</span>
-                        </label>
-                        <label className="flex items-center gap-3 cursor-pointer group bg-zinc-900/50 p-3 rounded-lg border border-zinc-700/50 hover:bg-zinc-800 transition">
-                            <div className="relative">
-                                <input type="checkbox" checked={matrixFormatExact} onChange={(e) => setMatrixFormatExact(e.target.checked)} className="peer sr-only" />
-                                <div className="block bg-zinc-950 w-10 h-6 rounded-full border border-zinc-700 peer-checked:bg-sky-500 transition"></div>
-                                <div className="dot absolute left-1 top-1 bg-zinc-400 w-4 h-4 rounded-full transition peer-checked:translate-x-4 peer-checked:bg-white"></div>
-                            </div>
-                            <span className="text-xs md:text-sm font-medium text-zinc-300 group-hover:text-white transition">행렬 원소 정수 표시 (1.00 → 1)</span>
-                        </label>
+                      </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <button onClick={() => playAnimation(s.id)} className="p-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white transition" title="재생">
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
@@ -6933,24 +6935,24 @@
                     <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wider pl-1">기하학 변환</span>
                         <div className="flex flex-col gap-4">
-                            <ConfigRow title="X축 확대" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 확대" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Z축 확대" prefix="scaleZ" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="X축 이동" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 이동" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Z축 이동" prefix="transZ" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="평면 회전" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="X축 회전" prefix="rotX" config={config} setConfig={setConfig} colorClass="rose" />
-                            <ConfigRow title="Y축 회전" prefix="rotY" config={config} setConfig={setConfig} colorClass="emerald" />
-                            <ConfigRow title="Z축 회전" prefix="rotZ" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="X축 전단" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="Y축 전단" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="XY 3차원 전단" prefix="shearXY" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="XZ 3차원 전단" prefix="shearXZ" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="YZ 3차원 전단" prefix="shearYZ" config={config} setConfig={setConfig} colorClass="sky" />
-                            <ConfigRow title="스퀴즈" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
-                            <ConfigRow title="수평 투시" prefix="perspX" config={config} setConfig={setConfig} colorClass="indigo" />
-                            <ConfigRow title="수직 투시" prefix="perspY" config={config} setConfig={setConfig} colorClass="indigo" />
+                            <ConfigRow title="X축 확대 변환" prefix="scaleX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 확대 변환" prefix="scaleY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Z축 확대 변환" prefix="scaleZ" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 이동 변환" prefix="transX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 이동 변환" prefix="transY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Z축 이동 변환" prefix="transZ" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="회전 변환" prefix="rot" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 회전 변환" prefix="rotX" config={config} setConfig={setConfig} colorClass="rose" />
+                            <ConfigRow title="Y축 회전 변환" prefix="rotY" config={config} setConfig={setConfig} colorClass="emerald" />
+                            <ConfigRow title="Z축 회전 변환" prefix="rotZ" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="X축 전단 변환" prefix="shearX" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="Y축 전단 변환" prefix="shearY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="XY 3차원 전단 변환" prefix="shearXY" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="XZ 3차원 전단 변환" prefix="shearXZ" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="YZ 3차원 전단 변환" prefix="shearYZ" config={config} setConfig={setConfig} colorClass="sky" />
+                            <ConfigRow title="스퀴즈 변환" prefix="squeeze" config={config} setConfig={setConfig} colorClass="purple" />
+                            <ConfigRow title="수평 투시 변환" prefix="perspX" config={config} setConfig={setConfig} colorClass="indigo" />
+                            <ConfigRow title="수직 투시 변환" prefix="perspY" config={config} setConfig={setConfig} colorClass="indigo" />
                         </div>
                     </div>
                     <hr className="border-zinc-700/50" />
@@ -7010,7 +7012,7 @@
             <div className="hidden md:flex bg-black justify-center items-center border-b border-zinc-800 shrink-0 relative px-4 py-6 min-h-[220px]">
                 {/* 🚀 PC용 현재 상태 저장 버튼 (아이콘 변경) */}
               {!showMatrixChain && (
-                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="현재 상태 저장">
+                  <button onClick={handleSaveState} className="absolute bottom-4 right-4 w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition shadow z-10" title="애니매이션">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                   </button>
               )}
@@ -7176,30 +7178,30 @@
                 {activeTab === 'geo' && (
                   <div className="flex flex-col gap-5 md:gap-6 pb-20">
                     <div className="space-y-4">
-                      <ControlRow label="X축 확대" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
-                      <ControlRow label="Y축 확대" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
+                      <ControlRow label="X축 확대 변환" min={config.scaleXMin} max={config.scaleXMax} step={config.scaleXStep} value={scaleX} onChange={v => handleSyncChange('scaleX', v)} onReset={() => handleSyncChange('scaleX', 1.0)} syncKey="scaleX" isSynced={syncKeys.has('scaleX')} onToggleSync={() => toggleSync('scaleX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleX)} />
+                      <ControlRow label="Y축 확대 변환" min={config.scaleYMin} max={config.scaleYMax} step={config.scaleYStep} value={scaleY} onChange={v => handleSyncChange('scaleY', v)} onReset={() => handleSyncChange('scaleY', 1.0)} syncKey="scaleY" isSynced={syncKeys.has('scaleY')} onToggleSync={() => toggleSync('scaleY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleY)} />
                       {is3DMode && (
-                        <ControlRow label="Z축 확대" min={config.scaleZMin} max={config.scaleZMax} step={config.scaleZStep} value={scaleZ} onChange={v => handleSyncChange('scaleZ', v)} onReset={() => handleSyncChange('scaleZ', 1.0)} syncKey="scaleZ" isSynced={syncKeys.has('scaleZ')} onToggleSync={() => toggleSync('scaleZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleZ)} />
+                        <ControlRow label="Z축 확대 변환" min={config.scaleZMin} max={config.scaleZMax} step={config.scaleZStep} value={scaleZ} onChange={v => handleSyncChange('scaleZ', v)} onReset={() => handleSyncChange('scaleZ', 1.0)} syncKey="scaleZ" isSynced={syncKeys.has('scaleZ')} onToggleSync={() => toggleSync('scaleZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.scaleZ)} />
                       )}
-                      <ControlRow label="스퀴즈" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(is3DMode ? INFO_DATA.squeeze3D : INFO_DATA.squeeze)} />
+                      <ControlRow label="스퀴즈 변환" min={config.squeezeMin} max={config.squeezeMax} step={config.squeezeStep} value={squeeze} onChange={v => handleSyncChange('squeeze', v)} onReset={() => handleSyncChange('squeeze', 1.0)} colorClass="purple" syncKey="squeeze" isSynced={syncKeys.has('squeeze')} onToggleSync={() => toggleSync('squeeze')} onOpenInfo={() => setLogicInfoData(is3DMode ? INFO_DATA.squeeze3D : INFO_DATA.squeeze)} />
                     </div>
                     <hr className="border-zinc-800" />
                     <div className="space-y-4">
-                      <ControlRow label="X축 이동" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
-                      <ControlRow label="Y축 이동" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
+                      <ControlRow label="X축 이동 변환" min={config.transXMin} max={config.transXMax} step={config.transXStep} value={translateX} onChange={v => handleSyncChange('translateX', v)} onReset={() => handleSyncChange('translateX', 0)} syncKey="translateX" isSynced={syncKeys.has('translateX')} onToggleSync={() => toggleSync('translateX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transX)} />
+                      <ControlRow label="Y축 이동 변환" min={config.transYMin} max={config.transYMax} step={config.transYStep} value={translateY} onChange={v => handleSyncChange('translateY', v)} onReset={() => handleSyncChange('translateY', 0)} syncKey="translateY" isSynced={syncKeys.has('translateY')} onToggleSync={() => toggleSync('translateY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transY)} />
                       {is3DMode && (
-                        <ControlRow label="Z축 이동" min={config.transZMin} max={config.transZMax} step={config.transZStep} value={translateZ} onChange={v => handleSyncChange('translateZ', v)} onReset={() => handleSyncChange('translateZ', 0)} syncKey="translateZ" isSynced={syncKeys.has('translateZ')} onToggleSync={() => toggleSync('translateZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transZ)} />
+                        <ControlRow label="Z축 이동 변환" min={config.transZMin} max={config.transZMax} step={config.transZStep} value={translateZ} onChange={v => handleSyncChange('translateZ', v)} onReset={() => handleSyncChange('translateZ', 0)} syncKey="translateZ" isSynced={syncKeys.has('translateZ')} onToggleSync={() => toggleSync('translateZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.transZ)} />
                       )}
                     </div>
                     <hr className="border-zinc-800" />
                     <div className="space-y-4">
                       {!is3DMode ? (
-                        <ControlRow label="평면 회전" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
+                        <ControlRow label="회전 변환" min={config.rotMin} max={config.rotMax} step={config.rotStep} value={rotation} onChange={v => handleSyncChange('rotation', v)} onReset={() => handleSyncChange('rotation', 0)} syncKey="rotation" isSynced={syncKeys.has('rotation')} onToggleSync={() => toggleSync('rotation')} onOpenLogic={openLogicModal} onOpenInfo={() => setLogicInfoData(INFO_DATA.rot)} />
                       ) : (
                         <>
-                          <ControlRow label="X축 회전" min={config.rotXMin} max={config.rotXMax} step={config.rotXStep} value={rotX} onChange={v => handleSyncChange('rotX', v)} onReset={() => handleSyncChange('rotX', 0)} syncKey="rotX" isSynced={syncKeys.has('rotX')} onToggleSync={() => toggleSync('rotX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotX)} colorClass="rose" />
-                          <ControlRow label="Y축 회전" min={config.rotYMin} max={config.rotYMax} step={config.rotYStep} value={rotY} onChange={v => handleSyncChange('rotY', v)} onReset={() => handleSyncChange('rotY', 0)} syncKey="rotY" isSynced={syncKeys.has('rotY')} onToggleSync={() => toggleSync('rotY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotY)} colorClass="emerald" />
-                          <ControlRow label="Z축 회전" min={config.rotZMin} max={config.rotZMax} step={config.rotZStep} value={rotZ} onChange={v => handleSyncChange('rotZ', v)} onReset={() => handleSyncChange('rotZ', 0)} syncKey="rotZ" isSynced={syncKeys.has('rotZ')} onToggleSync={() => toggleSync('rotZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotZ)} colorClass="sky" />
+                          <ControlRow label="X축 회전 변환" min={config.rotXMin} max={config.rotXMax} step={config.rotXStep} value={rotX} onChange={v => handleSyncChange('rotX', v)} onReset={() => handleSyncChange('rotX', 0)} syncKey="rotX" isSynced={syncKeys.has('rotX')} onToggleSync={() => toggleSync('rotX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotX)} colorClass="rose" />
+                          <ControlRow label="Y축 회전 변환" min={config.rotYMin} max={config.rotYMax} step={config.rotYStep} value={rotY} onChange={v => handleSyncChange('rotY', v)} onReset={() => handleSyncChange('rotY', 0)} syncKey="rotY" isSynced={syncKeys.has('rotY')} onToggleSync={() => toggleSync('rotY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotY)} colorClass="emerald" />
+                          <ControlRow label="Z축 회전 변환" min={config.rotZMin} max={config.rotZMax} step={config.rotZStep} value={rotZ} onChange={v => handleSyncChange('rotZ', v)} onReset={() => handleSyncChange('rotZ', 0)} syncKey="rotZ" isSynced={syncKeys.has('rotZ')} onToggleSync={() => toggleSync('rotZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.rotZ)} colorClass="sky" />
                         </>
                       )}
                     </div>
@@ -7207,14 +7209,14 @@
                     <div className="space-y-4">
                       {!is3DMode ? (
                         <>
-                          <ControlRow label="X축 전단" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
-                          <ControlRow label="Y축 전단" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
+                          <ControlRow label="X축 전단 변환" min={config.shearXMin} max={config.shearXMax} step={config.shearXStep} value={shearX} onChange={v => handleSyncChange('shearX', v)} onReset={() => handleSyncChange('shearX', 0)} syncKey="shearX" isSynced={syncKeys.has('shearX')} onToggleSync={() => toggleSync('shearX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearX)} />
+                          <ControlRow label="Y축 전단 변환" min={config.shearYMin} max={config.shearYMax} step={config.shearYStep} value={shearY} onChange={v => handleSyncChange('shearY', v)} onReset={() => handleSyncChange('shearY', 0)} syncKey="shearY" isSynced={syncKeys.has('shearY')} onToggleSync={() => toggleSync('shearY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearY)} />
                         </>
                       ) : (
                         <>
-                          <ControlRow label="XY 3차원 전단" min={config.shearXYMin} max={config.shearXYMax} step={config.shearXYStep} value={shearXY} onChange={v => handleSyncChange('shearXY', v)} onReset={() => handleSyncChange('shearXY', 0)} syncKey="shearXY" isSynced={syncKeys.has('shearXY')} onToggleSync={() => toggleSync('shearXY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearXY)} />
-                          <ControlRow label="XZ 3차원 전단" min={config.shearXZMin} max={config.shearXZMax} step={config.shearXZStep} value={shearXZ} onChange={v => handleSyncChange('shearXZ', v)} onReset={() => handleSyncChange('shearXZ', 0)} syncKey="shearXZ" isSynced={syncKeys.has('shearXZ')} onToggleSync={() => toggleSync('shearXZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearXZ)} />
-                          <ControlRow label="YZ 3차원 전단" min={config.shearYZMin} max={config.shearYZMax} step={config.shearYZStep} value={shearYZ} onChange={v => handleSyncChange('shearYZ', v)} onReset={() => handleSyncChange('shearYZ', 0)} syncKey="shearYZ" isSynced={syncKeys.has('shearYZ')} onToggleSync={() => toggleSync('shearYZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearYZ)} />
+                          <ControlRow label="XY 3차원 전단 변환" min={config.shearXYMin} max={config.shearXYMax} step={config.shearXYStep} value={shearXY} onChange={v => handleSyncChange('shearXY', v)} onReset={() => handleSyncChange('shearXY', 0)} syncKey="shearXY" isSynced={syncKeys.has('shearXY')} onToggleSync={() => toggleSync('shearXY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearXY)} />
+                          <ControlRow label="XZ 3차원 전단 변환" min={config.shearXZMin} max={config.shearXZMax} step={config.shearXZStep} value={shearXZ} onChange={v => handleSyncChange('shearXZ', v)} onReset={() => handleSyncChange('shearXZ', 0)} syncKey="shearXZ" isSynced={syncKeys.has('shearXZ')} onToggleSync={() => toggleSync('shearXZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearXZ)} />
+                          <ControlRow label="YZ 3차원 전단 변환" min={config.shearYZMin} max={config.shearYZMax} step={config.shearYZStep} value={shearYZ} onChange={v => handleSyncChange('shearYZ', v)} onReset={() => handleSyncChange('shearYZ', 0)} syncKey="shearYZ" isSynced={syncKeys.has('shearYZ')} onToggleSync={() => toggleSync('shearYZ')} onOpenInfo={() => setLogicInfoData(INFO_DATA.shearYZ)} />
                         </>
                       )}
                     </div>
@@ -7267,7 +7269,7 @@
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-zinc-400 font-medium text-sm flex items-center gap-1.5">
-                                {is3DMode ? "3차원 정사영 변환" : "투영 변환 직선"}
+                                {is3DMode ? "3차원 투영 변환" : "투영 변환 직선"}
                             </span>
                             <label className="flex items-center cursor-pointer group">
                                 <div className="relative">
@@ -7280,9 +7282,9 @@
                         {is3DMode && (
                             <div className="grid grid-cols-5 gap-1 bg-zinc-950/70 p-1.5 rounded-lg border border-zinc-800">
                                 {[
-                                    { id: 'xy', label: 'XY바닥면' },
-                                    { id: 'yz', label: 'YZ옆면' },
-                                    { id: 'zx', label: 'ZX정면' },
+                                    { id: 'xy', label: 'XY 평면' },
+                                    { id: 'yz', label: 'YZ 평면' },
+                                    { id: 'zx', label: 'ZX 평면' },
                                     { id: 'rotPlane', label: '회전평면' },
                                     { id: 'line', label: '직선축' }
                                 ].map(item => (
@@ -7316,8 +7318,8 @@
                                 </div>
                             </label>
                         </div>
-                        <ControlRow label="수평 투시" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
-                        <ControlRow label="수직 투시" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
+                        <ControlRow label="수평 투시 변환" min={config.perspXMin} max={config.perspXMax} step={config.perspXStep} value={perspX} onChange={v => { handleSyncChange('perspX', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspX', 0); setUsePerspective(true); }} syncKey="perspX" isSynced={syncKeys.has('perspX')} onToggleSync={() => toggleSync('perspX')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspX)} colorClass="indigo" />
+                        <ControlRow label="수직 투시 변환" min={config.perspYMin} max={config.perspYMax} step={config.perspYStep} value={perspY} onChange={v => { handleSyncChange('perspY', v); setUsePerspective(true); }} onReset={() => { handleSyncChange('perspY', 0); setUsePerspective(true); }} syncKey="perspY" isSynced={syncKeys.has('perspY')} onToggleSync={() => toggleSync('perspY')} onOpenInfo={() => setLogicInfoData(INFO_DATA.perspY)} colorClass="indigo" />
                     </div>
                     <hr className="border-zinc-800" />
                   </div>
@@ -7799,7 +7801,7 @@
                      style={shadowMenuPos ? { left: `${shadowMenuPos.left}px`, top: `${shadowMenuPos.top}px`, bottom: 'auto', right: 'auto', transform: 'none' } : (isMobile ? { bottom: `calc(${Math.min(mobilePanelHeight, 45)}vh + var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 20px)` } : { bottom: '8rem' })}>
                     
                     {/* 🚀 왼쪽 X 버튼 추가 (팝업창 닫기 전용) */}
-                    <button onClick={() => { setShowShadowMenu(false); setSelectedShadowId(null); }} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center shadow transition shrink-0" title="창 닫기">
+                    <button onClick={() => { setShowShadowMenu(false); setSelectedShadowId(null); }} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center shadow transition shrink-0" title="닫기">
                         <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
 
@@ -7841,15 +7843,15 @@
                         </span>
                     </div>
 
-                    <button onClick={() => playAnimation(selectedShadowId)} className="bg-sky-600 hover:bg-sky-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="개별 재생">
+                    <button onClick={() => playAnimation(selectedShadowId)} className="bg-sky-600 hover:bg-sky-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="재생">
                         <svg className="w-4 h-4 md:w-5 md:h-5 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
                     </button>
                     <div className="w-px h-6 bg-zinc-700 shrink-0"></div>
-                    <button onClick={() => handleLoadState(selectedShadowId)} className="bg-amber-600 hover:bg-amber-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="상태 불러오기">
+                    <button onClick={() => handleLoadState(selectedShadowId)} className="bg-amber-600 hover:bg-amber-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="불러오기">
                         <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                     </button>
                     <div className="w-px h-6 bg-zinc-700 shrink-0"></div>
-                    <button onClick={() => { setShadowStates(prev => prev.filter(s => s.id !== selectedShadowId)); setShowShadowMenu(false); }} className="bg-rose-600 hover:bg-rose-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="개별 삭제">
+                    <button onClick={() => { setShadowStates(prev => prev.filter(s => s.id !== selectedShadowId)); setShowShadowMenu(false); }} className="bg-rose-600 hover:bg-rose-500 text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow transition shrink-0" title="삭제">
                         <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -7865,7 +7867,7 @@
                     className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-[70] pointer-events-none w-[92vw] md:w-auto"
                 >
                     <div className="bg-amber-500/95 text-white px-4 py-3 md:px-5 md:py-2.5 rounded-2xl md:rounded-full font-bold text-xs md:text-base shadow-[0_0_15px_rgba(245,158,11,0.5)] flex flex-col md:flex-row items-center gap-2 md:gap-3 pointer-events-auto text-center break-keep w-full md:w-auto">
-                        <span>{is3DMode ? '3차원 좌표를 직접 입력하여 연산 과정을 확인하세요' : '화면을 터치하여 연산 과정을 볼 점을 찍어주세요'}</span>
+                        <span>{is3DMode ? '3차원 좌표를 직접 입력하여 연산 과정을 확인하세요' : '화면을 눌러 연산 과정을 볼 점을 찍어주세요'}</span>
                         <div className="flex gap-2 w-full justify-center md:w-auto mt-1 md:mt-0">
                             {!is3DMode && (
                                 <button onClick={() => setShowManualCalcPointUI(!showManualCalcPointUI)} className="bg-white text-amber-600 px-3 py-1.5 md:py-1 rounded-full text-xs hover:bg-amber-100 transition whitespace-nowrap shadow-sm">
